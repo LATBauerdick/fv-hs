@@ -1,0 +1,28 @@
+name:                fv
+version:             0.1.0.0
+synopsis:            haskell implementation of FV vertex fitting package
+description:         Please see README.md
+homepage:            https://github.com/LATBauerdick/fv.hs#readme
+license:             BSD3
+license-file:        LICENSE
+author:              LATBauerdick
+maintainer:          github@bauerdick.org
+copyright:           Copyright: (c) 1991, 2016 LATBauerdick
+category:            HEP
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:     src
+  exposed-modules:    FVT
+  build-depends:      base >= 4.7 && < 5
+                    , matrix
+  default-language:   Haskell2010
+
+executable fvt
+  hs-source-dirs:     test
+  main-is:            tests.hs
+  default-language:   Haskell2010
+  build-depends:      base >= 4.7 && < 5
+                    , fv
+                    , matrix
