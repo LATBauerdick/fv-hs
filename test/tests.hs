@@ -2,42 +2,40 @@
 --
 module Main where
 
-import Data.Matrix
+import Data.Matrix ( Matrix, fromList, multStd2, transpose )
 
-v0 :: Matrix Double
-v0 = fromList 3 1 [
-  3.355679512023926,       3.489715576171875,       7.110095977783203
-      ]
+type M = Matrix Double
+data Xvec = Xvec (M, M) deriving Show -- 3-vector and covariance matrix for position/vertex measurement
+data Hvec = Hvec (M, M) deriving Show -- 5-vector and covariance matrix for helix measurement
+data Qvec = Qvec (M, M) deriving Show -- 3-vector and covariance Matrix for momentum measurement
 
-cv0 :: Matrix Double
-cv0 = fromLists [ [0.2884106636047363,     0.2967556118965149,     0.4457152485847473],[0.2967556118965149,     0.3057302236557007,     0.4589158892631531],[0.4457152485847473,     0.4589158892631531,     0.7007381319999695] ]
+hSlurp :: [Double] -> (Xvec, Hvec)
+hSlurp inp = (v, h) where
+  v0 :: M
+  v0       = fromList 3 1 $ take 3 inp
+  cv0 :: M
+  cv0      = fromList 3 3 $ take 9 $ drop 3 inp
+  v = Xvec (v0, cv0)
+  w2pt     = head $ drop 12 inp
+  nt       = head $ drop 13 inp
+  h0 :: M
+  h0       = fromList 5 1 $ take 5 $ drop 14 inp
+  ch0 :: M
+  ch0      = fromList 5 5 $ take 25 $ drop 19 inp
+  h = Hvec (h0, ch0)
 
-h0 :: Matrix Double
-h0 = fromList 5 1 [
-  9.0513890609145164E-04, 1.174186706542969, 0.7913663387298584,
-    -5.4129425436258316E-02, 1.309153556823730
-     ]
-
-ch0 :: Matrix Double
-ch0 = fromList 5 5 [
-  3.0409931517372257E-11, 3.0817798313265143E-10,-2.6150961396353978E-09,
- -6.2086684238238377E-08, 1.9006475560079394E-10, 3.0817798313265143E-10,
-  3.5358195873413933E-06,-5.5664237663677341E-09,-4.7704439509743679E-08,
- -3.5389247932471335E-04,-2.6150961396353978E-09,-5.5664237663677341E-09,
-  3.9334932466772443E-07, 9.2603177108685486E-06,-4.2692363422247581E-07,
- -6.2086684238238377E-08,-4.7704439509743679E-08, 9.2603177108685486E-06,
-  2.7857377426698804E-04,-1.2511900422396138E-05, 1.9006475560079394E-10,
- -3.5389247932471335E-04,-4.2692363422247581E-07,-1.2511900422396138E-05,
-  4.6403184533119202E-02
-     ]
 main :: IO ()
-main = do
-  print $ transpose v0
-  print $ multStd2 (transpose v0) (multStd2 cv0 v0)
-  print h0
-  print $ multStd2 (transpose h0) (multStd2 ch0 h0)
+main = let
+          (v, h) = hSlurp inp
+          Xvec (v0, cv0) = v
+          Hvec (h0, ch0) = h
+       in
+  do
+    print v0
+    print $ multStd2 (transpose v0) (multStd2 cv0 v0)
+    print h0
+    print $ multStd2 (transpose h0) (multStd2 ch0 h0)
 --  print inp
-
 
 inp = [
   3.355679512023926,      3.489715576171875,      7.110095977783203,
