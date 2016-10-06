@@ -1,40 +1,47 @@
 -- file: test.hs
 --
-module Main where
+module Main ( main) where
 
-import Data.Matrix ( Matrix, fromList, multStd2, transpose )
+import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity )
+import Fit
+import Coeff (w2pt, h2p4)
 
-type M = Matrix Double
-data Xvec = Xvec (M, M) deriving Show -- 3-vector and covariance matrix for position/vertex measurement
-data Hvec = Hvec (M, M) deriving Show -- 5-vector and covariance matrix for helix measurement
-data Qvec = Qvec (M, M) deriving Show -- 3-vector and covariance Matrix for momentum measurement
-
-hSlurp :: [Double] -> (Xvec, Hvec)
-hSlurp inp = (v, h) where
+hSlurp :: [Double] -> (XVec, [HVec])
+hSlurp inp = (v, hl) where
   v0 :: M
-  v0       = fromList 3 1 $ take 3 inp
+  v0        = fromList 3 1 $ take 3 inp
   cv0 :: M
-  cv0      = fromList 3 3 $ take 9 $ drop 3 inp
-  v = Xvec (v0, cv0)
-  w2pt     = head $ drop 12 inp
-  nt       = head $ drop 13 inp
-  h0 :: M
-  h0       = fromList 5 1 $ take 5 $ drop 14 inp
-  ch0 :: M
-  ch0      = fromList 5 5 $ take 25 $ drop 19 inp
-  h = Hvec (h0, ch0)
+  cv0       = fromList 3 3 $ take 9 $ drop 3 inp
+  v         = XVec (v0, cv0)
+  w2pt      = inp !! 12
+  nt        = round (inp !! 13) ::Int
+  i0        = drop 14 inp
+  lst       = (nt-1)*30
+  is        = [ drop n i0 | n <-[0,30..lst]]
+  hl        = [ nxtH i | i <- is ]
+
+nxtH :: [Double] -> HVec
+nxtH ii = HVec (h0, ch0) where
+      (ih, ich) = splitAt 5 ii
+      h0 :: M
+      h0        = fromList 5 1 ih
+      ch0 :: M
+      ch0       = fromList 5 5 $ take 25 ich
 
 main :: IO ()
 main = let
-          (v, h) = hSlurp inp
-          Xvec (v0, cv0) = v
-          Hvec (h0, ch0) = h
+          (v, hl) = hSlurp inp
+          XVec (v0, cv0) = v
+          HVec (h0, ch0) = hl !! 0
        in
   do
+    print w2pt
     print v0
     print $ multStd2 (transpose v0) (multStd2 cv0 v0)
     print h0
+    print $ h2p4 $ hl !! 0
     print $ multStd2 (transpose h0) (multStd2 ch0 h0)
+    print [hel hv | hv <- hl]
 --  print inp
 
 inp = [
