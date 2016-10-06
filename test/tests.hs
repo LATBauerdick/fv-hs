@@ -3,7 +3,7 @@
 module Main ( main) where
 
 import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity )
-import Fit
+import Fit ( M, XVec (..), HVec (..) , hel)
 import Coeff (w2pt, h2p4)
 
 hSlurp :: [Double] -> (XVec, [HVec])

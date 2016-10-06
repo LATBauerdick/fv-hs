@@ -3,7 +3,7 @@
 module Coeff ( w2pt, h2p4 ) where
 
 import Data.Matrix ( identity, fromList, fromLists, (!) )
-import Fit -- ( M, HVec, PVec )
+import Fit ( M, HVec (..), PVec (..), hel, cov )
 
 w2pt :: Double
 w2pt = 4.5451703E-03

@@ -1,5 +1,5 @@
 -- file src/Fit.hs
-module Fit  where
+module Fit ( M, XVec (..), HVec (..), QVec (..), PVec (..), cov, hel ) where
 
 import Data.Matrix ( Matrix )
 
