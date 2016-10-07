@@ -2,8 +2,9 @@
 --
 module Coeff ( w2pt, h2p4 ) where
 
-import Data.Matrix ( identity, fromList, fromLists, (!) )
-import Fit ( M, HVec (..), PVec (..), hel, cov )
+import Data.Matrix ( identity, fromLists, (!) )
+import Data.Vector ( fromList )
+import Types ( M, V, HVec (..), PMeas (..), hel, cov )
 
 w2pt :: Double
 w2pt = 4.5451703E-03
@@ -11,7 +12,7 @@ w2pt = 4.5451703E-03
 mπ :: Double
 mπ = 0.1395675E0
 
-h2p4 :: HVec -> PVec
+h2p4 :: HVec -> PMeas
 h2p4 hh = p where
   m = mπ
   h = hel hh
@@ -48,7 +49,7 @@ h2p4 hh = p where
            2.0*(px*(py*ch!(1,2) + pz*ch!(1,3)) + py*pz*ch!(2,3)))/e/e
 
 
-  p0 = fromList 1 4 [px,py,pz,e ] :: M
+  p0 = fromList [px,py,pz,e ] :: V
   cp0 = fromLists [[sxx, sxy, sxz, sxe], [sxy, syy, syz, sye], [sxz, syz, szz, sze], [sxe, sye, sze, see]] :: M
-  p = PVec (p0 , cp0)
+  p = PMeas p0 cp0
 

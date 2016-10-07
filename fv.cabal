@@ -15,9 +15,11 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:     src
   exposed-modules:    Fit
+                    , Types
                     , Coeff
   build-depends:      base >= 4.7 && < 5
                     , matrix
+                    , vector
   default-language:   Haskell2010
 
 executable fvt
@@ -27,3 +29,4 @@ executable fvt
   build-depends:      base >= 4.7 && < 5
                     , fv
                     , matrix
+                    , vector

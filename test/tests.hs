@@ -2,9 +2,11 @@
 --
 module Main ( main) where
 
-import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity )
-import Fit ( M, XVec (..), HVec (..) , hel)
-import Coeff (w2pt, h2p4)
+import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity, getDiag  )
+import Data.Vector ( (!), toList )
+import Types ( M, XVec (..), HVec (..) , PMeas (..), hel)
+import Coeff ( w2pt, h2p4 )
+import Text.Printf
 
 hSlurp :: [Double] -> (XVec, [HVec])
 hSlurp inp = (v, hl) where
@@ -32,17 +34,31 @@ main :: IO ()
 main = let
           (v, hl) = hSlurp inp
           XVec (v0, cv0) = v
-          HVec (h0, ch0) = hl !! 0
+          HVec (h0, ch0) = head hl
        in
   do
     print w2pt
     print v0
     print $ multStd2 (transpose v0) (multStd2 cv0 v0)
     print h0
-    print $ h2p4 $ hl !! 0
     print $ multStd2 (transpose h0) (multStd2 ch0 h0)
     print [hel hv | hv <- hl]
+    let f h = pmErr "px,py,pz,E -->" p where p = h2p4 h
+      in mapM_ f hl
+-- this does not work:  pmErr pp where pp = h2p4 $ head hl
 --  print inp
+
+pmErr :: String -> PMeas -> IO ()
+pmErr s (PMeas p cp) = do
+  putStr s
+  let
+    xs                = [ p!0 , p!1, p!2, p!3 ]
+    vdx               = getDiag cp
+    dxs               = [ vdx!0, vdx!1, vdx!2, vdx!3 ]
+    pairs             = zip xs dxs
+    f (x, dx)         = printf "%8.3f ± %8.3f" (x::Double) ((sqrt dx)::Double)
+    in mapM_ f pairs
+  putStrLn " GeV"
 
 inp = [
   3.355679512023926,      3.489715576171875,      7.110095977783203,
