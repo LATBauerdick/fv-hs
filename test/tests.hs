@@ -2,19 +2,17 @@
 --
 module Main ( main) where
 
-import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity, getDiag  )
-import Data.Vector ( (!), toList )
-import Types ( M, XVec (..), HVec (..) , PMeas (..), hel)
-import Coeff ( w2pt, h2p4 )
+import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity, getDiag, rowVector, colVector  )
+import Data.Vector ( (!), toList, fromList, zip )
+import Types ( M, V, XVec (..), HVec (..) , PMeas (..) )
+import Coeff ( w2pt, h2p4, invMass )
 import Text.Printf
 
 hSlurp :: [Double] -> (XVec, [HVec])
 hSlurp inp = (v, hl) where
-  v0 :: M
-  v0        = fromList 3 1 $ take 3 inp
-  cv0 :: M
-  cv0       = fromList 3 3 $ take 9 $ drop 3 inp
-  v         = XVec (v0, cv0)
+  v0        = Data.Vector.fromList $ take 3 inp
+  cv0       = Data.Matrix.fromList 3 3 $ take 9 $ drop 3 inp
+  v         = XVec v0 cv0
   w2pt      = inp !! 12
   nt        = round (inp !! 13) ::Int
   i0        = drop 14 inp
@@ -23,28 +21,32 @@ hSlurp inp = (v, hl) where
   hl        = [ nxtH i | i <- is ]
 
 nxtH :: [Double] -> HVec
-nxtH ii = HVec (h0, ch0) where
+nxtH ii = (HVec h0 ch0) where
       (ih, ich) = splitAt 5 ii
-      h0 :: M
-      h0        = fromList 5 1 ih
+      h0 :: V
+      h0        = Data.Vector.fromList ih
       ch0 :: M
-      ch0       = fromList 5 5 $ take 25 ich
+      ch0       = Data.Matrix.fromList 5 5 $ take 25 ich
 
 main :: IO ()
 main = let
           (v, hl) = hSlurp inp
-          XVec (v0, cv0) = v
-          HVec (h0, ch0) = head hl
+          XVec v0 cv0 = v
+          HVec h0 ch0 = head hl
        in
   do
     print w2pt
     print v0
-    print $ multStd2 (transpose v0) (multStd2 cv0 v0)
+    print $ multStd2 (rowVector v0) (multStd2 cv0 (colVector v0))
     print h0
-    print $ multStd2 (transpose h0) (multStd2 ch0 h0)
-    print [hel hv | hv <- hl]
-    let f h = pmErr "px,py,pz,E -->" p where p = h2p4 h
+    print $ multStd2 (rowVector h0) (multStd2 ch0 (colVector h0))
+    print [h | (HVec h _) <- hl]
+
+    let f h = pmErr "px,py,pz,E -->" . h2p4 $ h
       in mapM_ f hl
+
+    let pl = map h2p4 hl in print $ invMass pl
+
 -- this does not work:  pmErr pp where pp = h2p4 $ head hl
 --  print inp
 
@@ -52,12 +54,9 @@ pmErr :: String -> PMeas -> IO ()
 pmErr s (PMeas p cp) = do
   putStr s
   let
-    xs                = [ p!0 , p!1, p!2, p!3 ]
     vdx               = getDiag cp
-    dxs               = [ vdx!0, vdx!1, vdx!2, vdx!3 ]
-    pairs             = zip xs dxs
     f (x, dx)         = printf "%8.3f ± %8.3f" (x::Double) ((sqrt dx)::Double)
-    in mapM_ f pairs
+    in mapM_ f $ Data.Vector.zip p vdx
   putStrLn " GeV"
 
 inp = [

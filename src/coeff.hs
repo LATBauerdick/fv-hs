@@ -1,10 +1,10 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, h2p4 ) where
+module Coeff ( w2pt, h2p4, invMass ) where
 
-import Data.Matrix ( identity, fromLists, (!) )
-import Data.Vector ( fromList )
-import Types ( M, V, HVec (..), PMeas (..), hel, cov )
+import Data.Matrix ( identity, fromLists, elementwise, (!) )
+import qualified Data.Vector ( fromList, (!) )
+import Types ( M, V, MMeas (..), HVec (..), PMeas (..) )
 
 w2pt :: Double
 w2pt = 4.5451703E-03
@@ -13,13 +13,11 @@ mπ :: Double
 mπ = 0.1395675E0
 
 h2p4 :: HVec -> PMeas
-h2p4 hh = p where
+h2p4 (HVec h ch) = (PMeas p0 cp0) where
   m = mπ
-  h = hel hh
-  ch = cov hh
-  w    = h!(1,1)
-  tl   = h!(2,1)
-  psi0 = h!(3,1)
+  w    = h Data.Vector.! 0
+  tl   = h Data.Vector.! 1
+  psi0 = h Data.Vector.! 2
   sph  = sin psi0
   cph  = cos psi0
   pt   = w2pt / abs w
@@ -49,7 +47,43 @@ h2p4 hh = p where
            2.0*(px*(py*ch!(1,2) + pz*ch!(1,3)) + py*pz*ch!(2,3)))/e/e
 
 
-  p0 = fromList [px,py,pz,e ] :: V
+  p0 = Data.Vector.fromList [px,py,pz,e ] ::V
   cp0 = fromLists [[sxx, sxy, sxz, sxe], [sxy, syy, syz, sye], [sxz, syz, szz, sze], [sxe, sye, sze, see]] :: M
   p = PMeas p0 cp0
+
+invMass :: [PMeas] -> MMeas
+invMass pl@(h:t) = mass ptot where
+  ptot = foldr sumP h t
+
+
+sumP :: PMeas -> PMeas -> PMeas
+sumP (PMeas p cp) (PMeas p' cp') = PMeas (Data.Vector.fromList [p0, p1, p2, p3]) sumA where
+  p0   = (p Data.Vector.! 0) + (p' Data.Vector.! 0)
+  p1   = (p Data.Vector.! 1) + (p' Data.Vector.! 1)
+  p2   = (p Data.Vector.! 2) + (p' Data.Vector.! 2)
+  p3   = (p Data.Vector.! 3) + (p' Data.Vector.! 3)
+  sumA = elementwise (+) cp cp'     -- sum up the covariance matrices
+
+mass :: PMeas -> MMeas
+mass (PMeas p cp) = mm  where
+  px               = p Data.Vector.! 0
+  py               = p Data.Vector.! 1
+  pz               = p Data.Vector.! 2
+  e                = p Data.Vector.! 3
+  c11              = cp!(1,1)
+  c12              = cp!(1,2)
+  c13              = cp!(1,3)
+  c14              = cp!(1,4)
+  c22              = cp!(2,2)
+  c23              = cp!(2,3)
+  c24              = cp!(2,4)
+  c33              = cp!(3,3)
+  c34              = cp!(3,4)
+  c44              = cp!(4,4)
+  m                = sqrt $ max (e^2-px^2-py^2-pz^2) 0
+  sigm0            = px*c11*px + py*c22*py + pz*c33*pz + e *c44*e +
+                       2.0*(px* c12*py + c13*pz - c14*e) +
+                       py*(c23*pz - c24*e) - pz* c34*e
+  sigm             = ( sqrt $ max sigm0 0 ) / m
+  mm               = MMeas m sigm
 
