@@ -3,10 +3,12 @@
 module Main ( main) where
 
 import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity, getDiag, rowVector, colVector  )
-import Data.Vector ( (!), toList, fromList, zip )
-import Types ( M, V, XVec (..), HVec (..) , PMeas (..) )
-import Coeff ( w2pt, h2p4, invMass )
+import qualified Data.Vector ( (!), toList, fromList, zip )
 import Text.Printf
+
+import Types ( M, V, XVec (..), HVec (..) , PMeas (..), Prong (..) )
+import Coeff ( w2pt, h2p4, q2p4, invMass )
+import Fit ( fit )
 
 hSlurp :: [Double] -> (XVec, [HVec])
 hSlurp inp = (v, hl) where
@@ -21,31 +23,48 @@ hSlurp inp = (v, hl) where
   hl        = [ nxtH i | i <- is ]
 
 nxtH :: [Double] -> HVec
-nxtH ii = (HVec h0 ch0) where
-      (ih, ich) = splitAt 5 ii
-      h0 :: V
-      h0        = Data.Vector.fromList ih
-      ch0 :: M
-      ch0       = Data.Matrix.fromList 5 5 $ take 25 ich
+nxtH i = HVec h ch where
+      (ih, ich) = splitAt 5 i
+      h         = Data.Vector.fromList ih
+      ch        = Data.Matrix.fromList 5 5 $ take 25 ich
+
+hFilter :: ( Eq a, Enum a, Num a ) => [b] -> [a] -> [b]
+hFilter hl rng =
+-- return list bs with indicesi a in [b] that  are in rng [a]
+  [h | (h, i) <- zip hl [0..], i `elem` rng ]
+
+fvATBA :: V -> M -> M
+fvATBA a b =
+  multStd2 (rowVector a) (multStd2 b (colVector a))
 
 main :: IO ()
-main = let
-          (v, hl) = hSlurp inp
-          XVec v0 cv0 = v
-          HVec h0 ch0 = head hl
-       in
-  do
+main = do
+    let (v, hl) = hSlurp inp
+    let       XVec v0 cv0 = v
+    let      HVec h0 ch0 = head hl
     print w2pt
     print v0
-    print $ multStd2 (rowVector v0) (multStd2 cv0 (colVector v0))
+    print $ fvATBA v0 cv0
     print h0
-    print $ multStd2 (rowVector h0) (multStd2 ch0 (colVector h0))
+    print $ fvATBA h0 ch0
     print [h | (HVec h _) <- hl]
 
-    let f h = pmErr "px,py,pz,E -->" . h2p4 $ h
-      in mapM_ f hl
+    mapM_ (pmErr "px,py,pz,E ->" . h2p4) hl
 
-    let pl = map h2p4 hl in print $ invMass pl
+    let pl = map h2p4 hl
+    print $ invMass pl
+
+    let pl5 = map h2p4 $ hFilter hl [0,2,3,4,5]
+    print $ invMass pl5
+
+    putStrLn "Fitting Vertex --------------------"
+
+    let Prong n vf ql cl = fit v hl
+    let pl = map q2p4 ql
+    print $ invMass pl
+    let ql5 = map q2p4 $ hFilter ql [0,2,3,4,5]
+    print $ invMass ql5
+
 
 -- this does not work:  pmErr pp where pp = h2p4 $ head hl
 --  print inp
@@ -54,9 +73,10 @@ pmErr :: String -> PMeas -> IO ()
 pmErr s (PMeas p cp) = do
   putStr s
   let
-    vdx               = getDiag cp
-    f (x, dx)         = printf "%8.3f ± %8.3f" (x::Double) ((sqrt dx)::Double)
-    in mapM_ f $ Data.Vector.zip p vdx
+    s2p        = getDiag cp
+    f (x, s2)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+      where dx = sqrt s2
+    in mapM_ f $ Data.Vector.zip p s2p
   putStrLn " GeV"
 
 inp = [

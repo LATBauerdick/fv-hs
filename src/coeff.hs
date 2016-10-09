@@ -1,10 +1,11 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, h2p4, invMass ) where
+module Coeff ( w2pt, h2p4, q2p4, invMass ) where
 
-import Data.Matrix ( identity, fromLists, elementwise, (!) )
+import Data.Matrix ( identity, fromLists, elementwise, (!), submatrix )
+import Data.Vector ( take )
 import qualified Data.Vector ( fromList, (!) )
-import Types ( M, V, MMeas (..), HVec (..), PMeas (..) )
+import Types ( M33, V3, MMeas (..), HVec (..), QVec (..), PMeas (..) )
 
 w2pt :: Double
 w2pt = 4.5451703E-03
@@ -12,12 +13,19 @@ w2pt = 4.5451703E-03
 mπ :: Double
 mπ = 0.1395675E0
 
+q2p4 :: QVec -> PMeas
+q2p4 (QVec q cq) = h3p q cq
+
 h2p4 :: HVec -> PMeas
-h2p4 (HVec h ch) = (PMeas p0 cp0) where
+h2p4 (HVec h ch) =
+  h3p (Data.Vector.take 3 h) (submatrix 1 3 1 3 ch)
+
+h3p :: V3 -> M33 -> PMeas
+h3p h3 ch = (PMeas p0 cp0) where
   m = mπ
-  w    = h Data.Vector.! 0
-  tl   = h Data.Vector.! 1
-  psi0 = h Data.Vector.! 2
+  w    = h3 Data.Vector.! 0
+  tl   = h3 Data.Vector.! 1
+  psi0 = h3 Data.Vector.! 2
   sph  = sin psi0
   cph  = cos psi0
   pt   = w2pt / abs w
@@ -40,16 +48,14 @@ h2p4 (HVec h ch) = (PMeas p0 cp0) where
            ps*ps*cph*ch!(2,3)
   szz = (dpdk*tl)^2 * ch!(1,1) + ps*ps*ch!(2,2) -
            2.0*ps*dpdk*tl*ch!(1,2)
-  sxe = (px*ch!(1,1) + py*ch!(1,2) + pz*ch!(1,3))/e
-  sye = (px*ch!(1,2) + py*ch!(2,2) + pz*ch!(2,3))/e
-  sze = (px*ch!(1,3) + py*ch!(2,3) + pz*ch!(3,3))/e
-  see = (px*px*ch!(1,1) + py*py*ch!(2,2) + pz*pz*ch!(3,3) +
-           2.0*(px*(py*ch!(1,2) + pz*ch!(1,3)) + py*pz*ch!(2,3)))/e/e
+  sxe = (px*sxx + py*sxy + pz*sxz)/e
+  sye = (px*sxy + py*syy + pz*syz)/e
+  sze = (px*sxz + py*syz + pz*szz)/e
+  see = (px*px*sxx + py*py*syy + pz*pz*szz +
+         2.0*(px*(py*sxy + pz*sxz) + py*pz*syz))/e/e
 
-
-  p0 = Data.Vector.fromList [px,py,pz,e ] ::V
-  cp0 = fromLists [[sxx, sxy, sxz, sxe], [sxy, syy, syz, sye], [sxz, syz, szz, sze], [sxe, sye, sze, see]] :: M
-  p = PMeas p0 cp0
+  p0 = Data.Vector.fromList [px,py,pz,e ]
+  cp0 = fromLists [[sxx, sxy, sxz, sxe], [sxy, syy, syz, sye], [sxz, syz, szz, sze], [sxe, sye, sze, see]]
 
 invMass :: [PMeas] -> MMeas
 invMass pl@(h:t) = mass ptot where
@@ -81,9 +87,9 @@ mass (PMeas p cp) = mm  where
   c34              = cp!(3,4)
   c44              = cp!(4,4)
   m                = sqrt $ max (e^2-px^2-py^2-pz^2) 0
-  sigm0            = px*c11*px + py*c22*py + pz*c33*pz + e *c44*e +
-                       2.0*(px* c12*py + c13*pz - c14*e) +
-                       py*(c23*pz - c24*e) - pz* c34*e
+  sigm0            = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
+                       2.0*(px*(c12*py + c13*pz - c14*e)
+                          + py*(c23*pz - c24*e)
+                          - pz*c34*e)
   sigm             = ( sqrt $ max sigm0 0 ) / m
   mm               = MMeas m sigm
-
