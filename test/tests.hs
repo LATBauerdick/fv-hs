@@ -21,12 +21,10 @@ hSlurp inp = (v, hl) where
   hl        = [ nxtH i | i <- is ]
 
 nxtH :: [Double] -> HVec
-nxtH ii = (HVec h0 ch0) where
-      (ih, ich) = splitAt 5 ii
-      h0 :: V
-      h0        = Data.Vector.fromList ih
-      ch0 :: M
-      ch0       = Data.Matrix.fromList 5 5 $ take 25 ich
+nxtH i = (HVec h ch) where
+      (ih, ich) = splitAt 5 i
+      h         = Data.Vector.fromList ih
+      ch        = Data.Matrix.fromList 5 5 $ take 25 ich
 
 main :: IO ()
 main = let
@@ -42,7 +40,7 @@ main = let
     print $ multStd2 (rowVector h0) (multStd2 ch0 (colVector h0))
     print [h | (HVec h _) <- hl]
 
-    let f h = pmErr "px,py,pz,E -->" . h2p4 $ h
+    let f h = pmErr "px,py,pz,E ->" . h2p4 $ h
       in mapM_ f hl
 
     let pl = map h2p4 hl in print $ invMass pl
@@ -54,9 +52,9 @@ pmErr :: String -> PMeas -> IO ()
 pmErr s (PMeas p cp) = do
   putStr s
   let
-    vdx               = getDiag cp
+    s2p               = getDiag cp
     f (x, dx)         = printf "%8.3f ± %8.3f" (x::Double) ((sqrt dx)::Double)
-    in mapM_ f $ Data.Vector.zip p vdx
+    in mapM_ f $ Data.Vector.zip p s2p
   putStrLn " GeV"
 
 inp = [
