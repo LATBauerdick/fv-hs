@@ -20,7 +20,7 @@ fit v0 hl = pr where
 filt :: XVec -> [HVec] -> XVec
 filt v0 hl = v where
   ƒ :: HVec -> XVec -> XVec
-  ƒ h (XVec v cv) = (XVec v cv) `debug` (".")
+  ƒ h v = v `debug` (".")
   v = foldr ƒ v0 hl
 
 
