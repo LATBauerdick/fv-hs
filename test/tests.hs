@@ -30,7 +30,8 @@ nxtH i = HVec h ch where
 
 hFilter :: ( Eq a, Enum a, Num a ) => [b] -> [a] -> [b]
 hFilter hl rng =
--- return list bs with indicesi a in [b] that  are in rng [a]
+-- filter list of tracks of helices etc given list of indices in [a]
+-- return list with only those b that have  indices that  are in rng [a]
   [h | (h, i) <- zip hl [0..], i `elem` rng ]
 
 fvATBA :: V -> M -> M
@@ -64,7 +65,6 @@ main = do
     print $ invMass pl
     let ql5              = map q2p4 $ hFilter ql [0,2,3,4,5]
     print $ invMass ql5
-
 
 -- this does not work:  pmErr pp where pp = h2p4 $ head hl
 --  print inp
