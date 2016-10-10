@@ -39,30 +39,30 @@ fvATBA a b =
 
 main :: IO ()
 main = do
-    let (v, hl) = hSlurp inp
-    let       XVec v0 cv0 = v
-    let      HVec h0 ch0 = head hl
+    let (v, hl)     = hSlurp inp
+    let XVec v0 cv0 = v
+    let HVec h0 ch0 = head hl
     print w2pt
     print v0
     print $ fvATBA v0 cv0
     print h0
     print $ fvATBA h0 ch0
-    print [h | (HVec h _) <- hl]
+--    print [h | (HVec h _) <- hl]
 
     mapM_ (pmErr "px,py,pz,E ->" . h2p4) hl
 
-    let pl = map h2p4 hl
+    let pl              = map h2p4 hl
     print $ invMass pl
 
-    let pl5 = map h2p4 $ hFilter hl [0,2,3,4,5]
+    let pl5             = map h2p4 $ hFilter hl [0,2,3,4,5]
     print $ invMass pl5
 
-    putStrLn "Fitting Vertex --------------------"
-
+    putStrLn            "Fitting Vertex --------------------"
     let Prong n vf ql cl = fit v hl
-    let pl = map q2p4 ql
+    print vf
+    let pl               = map q2p4 ql
     print $ invMass pl
-    let ql5 = map q2p4 $ hFilter ql [0,2,3,4,5]
+    let ql5              = map q2p4 $ hFilter ql [0,2,3,4,5]
     print $ invMass ql5
 
 
