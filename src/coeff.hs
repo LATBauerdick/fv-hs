@@ -1,11 +1,12 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, h2p4, q2p4, invMass ) where
+module Coeff ( w2pt, fvABh0, h2p4, q2p4, invMass ) where
 
 import Data.Matrix ( identity, fromLists, elementwise, (!), submatrix )
 import Data.Vector ( take )
 import qualified Data.Vector ( fromList, (!) )
-import Types ( M33, V3, MMeas (..), HVec (..), QVec (..), PMeas (..) )
+import Types ( M33, V3, MMeas (..), HMeas (..), QMeas (..), PMeas (..)
+  , ABh0 (..) )
 
 w2pt :: Double
 w2pt = 4.5451703E-03
@@ -13,11 +14,21 @@ w2pt = 4.5451703E-03
 mπ :: Double
 mπ = 0.1395675E0
 
-q2p4 :: QVec -> PMeas
-q2p4 (QVec q cq) = h3p q cq
+--fvq :: V -> V -> V
+-- should calc q at nearest point of approach to v
+--fvq h v = Data.Vector.take 3 h
 
-h2p4 :: HVec -> PMeas
-h2p4 (HVec h ch) =
+fvABh0 :: V3 -> V3 -> ABh0
+fvABh0 v q = ABh0 aa bb h0 where
+  aa = Data.Matrix.fromLists [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0, 0, 0], [0, 0, 0]]
+  bb = Data.Matrix.fromLists [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0, 0, 0], [0, 0, 0]]
+  h0 = Data.Vector.fromList [1.0, 1.0, 1.0]
+
+q2p4 :: QMeas -> PMeas
+q2p4 (QMeas q cq) = h3p q cq
+
+h2p4 :: HMeas -> PMeas
+h2p4 (HMeas h ch) =
   h3p (Data.Vector.take 3 h) (submatrix 1 3 1 3 ch)
 
 h3p :: V3 -> M33 -> PMeas

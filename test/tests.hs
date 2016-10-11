@@ -2,19 +2,20 @@
 --
 module Main ( main) where
 
-import Data.Matrix ( Matrix, fromList, multStd2, transpose, identity, getDiag, rowVector, colVector  )
+import Data.Matrix ( Matrix, fromList, getDiag )
 import qualified Data.Vector ( (!), toList, fromList, zip )
 import Text.Printf
 
-import Types ( M, V, XVec (..), HVec (..) , PMeas (..), Prong (..) )
+import Types ( M, V, XMeas (..), HMeas (..) , PMeas (..), Prong (..) )
 import Coeff ( w2pt, h2p4, q2p4, invMass )
+import Matrix ( vATBA )
 import Fit ( fit )
 
-hSlurp :: [Double] -> (XVec, [HVec])
+hSlurp :: [Double] -> (XMeas, [HMeas])
 hSlurp inp = (v, hl) where
   v0        = Data.Vector.fromList $ take 3 inp
   cv0       = Data.Matrix.fromList 3 3 $ take 9 $ drop 3 inp
-  v         = XVec v0 cv0
+  v         = XMeas v0 cv0
   w2pt      = inp !! 12
   nt        = round (inp !! 13) ::Int
   i0        = drop 14 inp
@@ -22,8 +23,8 @@ hSlurp inp = (v, hl) where
   is        = [ drop n i0 | n <-[0,30..lst]]
   hl        = [ nxtH i | i <- is ]
 
-nxtH :: [Double] -> HVec
-nxtH i = HVec h ch where
+nxtH :: [Double] -> HMeas
+nxtH i = HMeas h ch where
       (ih, ich) = splitAt 5 i
       h         = Data.Vector.fromList ih
       ch        = Data.Matrix.fromList 5 5 $ take 25 ich
@@ -33,22 +34,17 @@ hFilter hl rng =
 -- filter list of tracks of helices etc given list of indices in [a]
 -- return list with only those b that have  indices that  are in rng [a]
   [h | (h, i) <- zip hl [0..], i `elem` rng ]
-
-fvATBA :: V -> M -> M
-fvATBA a b =
-  multStd2 (rowVector a) (multStd2 b (colVector a))
-
 main :: IO ()
 main = do
     let (v, hl)     = hSlurp inp
-    let XVec v0 cv0 = v
-    let HVec h0 ch0 = head hl
+    let XMeas v0 cv0 = v
+    let HMeas h0 ch0 = head hl
     print w2pt
     print v0
-    print $ fvATBA v0 cv0
+    print $ vATBA v0 cv0
     print h0
-    print $ fvATBA h0 ch0
---    print [h | (HVec h _) <- hl]
+    print $ vATBA h0 ch0
+--    print [h | (HMeas h _) <- hl]
 
     mapM_ (pmErr "px,py,pz,E ->" . h2p4) hl
 

@@ -1,7 +1,7 @@
 -- file src/Fit.hs
 module Types (
-              M, V, M33, V3, XVec (..), HVec (..), QVec (..)
-            , PMeas (..), MMeas (..), Prong (..)
+              M, V, M33, V3, XMeas (..), HMeas (..), QMeas (..)
+             , PMeas (..), MMeas (..), Prong (..), ABh0 (..)
              ) where
 
 import Data.Matrix ( Matrix )
@@ -13,19 +13,20 @@ type M33 = Matrix Double
 type V3 = Vector Double
 type N = Int
 type Chi2 = Double
-data Prong = Prong N XVec [QVec] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
+data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
 
+data ABh0 = ABh0 M M V
 
 type X3 = V
 type C33 = M
-data XVec = XVec X3 C33 deriving Show -- 3-vector and covariance matrix for position/vertex measurement
+data XMeas = XMeas X3 C33 deriving Show -- 3-vector and covariance matrix for position/vertex measurement
 
 type H5 = V
 type C55 = M
-data HVec = HVec H5 C55 deriving Show -- 5-vector and covariance matrix for helix measurement
+data HMeas = HMeas H5 C55 deriving Show -- 5-vector and covariance matrix for helix measurement
 
 type Q3 = V
-data QVec = QVec Q3 C33 deriving Show -- 3-vector and covariance matrix for momentum measurement
+data QMeas = QMeas Q3 C33 deriving Show -- 3-vector and covariance matrix for momentum measurement
 
 type P4 = V -- four-vector
 type C44 = M -- 4x4 covariance matrix
