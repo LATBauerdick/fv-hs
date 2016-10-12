@@ -3,7 +3,8 @@ module Matrix ( inv, vATBA, mATBA, mABAT, mATB, mAMB, mAPB
 
 import Debug.Trace ( trace )
 import Data.Matrix ( inverse, identity, nrows, transpose, elementwise
-                   , rowVector, colVector, getCol, multStd2 )
+                   , rowVector, colVector, getCol, multStd2
+                   , getMatrixAsVector )
 import Types ( M, V )
 
 debug = flip trace
@@ -36,8 +37,18 @@ mABAT a b = multStd2 a (multStd2 b (transpose a))
 mATBA :: M -> M -> M
 mATBA a b = multStd2 (transpose a) (multStd2 b a)
 
-inv :: M -> M
-inv m = either invErr id (Data.Matrix.inverse m)
+inv' :: M -> M
+inv' m = either invErr id (Data.Matrix.inverse m)
   where invErr s = (identity $ nrows m) `debug` ("🚩" ++ s)
 
+inv :: M -> M
+inv m = f e where
+  e = Data.Matrix.inverse m
+  f :: Either String M -> M
+  f (Right m') = m' `debug` ("^" ++ show mx ) where
+    mx = (* 100.0) . maximum  . getMatrixAsVector $ mxx
+    mxx = elementwise (/)
+                      (elementwise (-) (multStd2 m m') (identity (nrows m)))
+                      m
+  f (Left s) = (identity $ nrows m) `debug` ("🚩" ++ s)
 

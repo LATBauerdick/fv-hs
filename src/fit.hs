@@ -34,7 +34,7 @@ kal (HMeas h hh) (XMeas v vv) = v' `debug` (".") where
   cc = inv uu
   m = vAMB h h0
   v'' = mAv cc (vAPB (mAv uu0 v) (mAv (mATB aa gb) m))
-  v' = XMeas v vv
+  v' = XMeas v'' vv
 
     -- (loop [v0 v0, U0 U0, A A, B B, h0 h0, 𝜒20 1e10, iter 0]
     --   (let [
