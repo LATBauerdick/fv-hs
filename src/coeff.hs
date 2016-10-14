@@ -1,12 +1,13 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, fvABh0, h2p4, q2p4, invMass ) where
+module Coeff ( w2pt, fvABh0, h2p4, q2p4, invMass, showErr ) where
 
-import Data.Matrix ( identity, fromLists, elementwise, (!), submatrix )
-import Data.Vector ( take )
-import qualified Data.Vector ( fromList, (!) )
+import Data.Matrix ( (!), getDiag, getCol )
+import Data.Vector ( zip )
 import Types ( M, M33, V3, MMeas (..), HMeas (..), QMeas (..), PMeas (..)
   , ABh0 (..) )
+import Matrix ( sub, sub2, toList, fromList, fromList2 )
+import Text.Printf
 
 w2pt :: Double
 w2pt = 4.5451703E-03
@@ -20,23 +21,32 @@ mπ = 0.1395675E0
 
 fvABh0 :: M -> M -> ABh0
 fvABh0 v h = ABh0 aa bb h0 where
-  aa = Data.Matrix.fromLists [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0,0,0], [0,0,0]]
-  bb = Data.Matrix.fromLists [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0,0,0], [0,0,0]]
+  aa = fromList2 5 3 [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0,0,0, 0,0,0]
+  bb = fromList2 5 3 [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0,0,0, 0,0,0]
   h0 = h
+
+-- print a imomentum vector with error
+showErr :: String -> PMeas -> IO ()
+showErr s (PMeas p cp) = do
+  putStr s
+  let
+    s2p        = getDiag cp
+    f (x, s2)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+      where dx = sqrt s2
+    in mapM_ f $ Data.Vector.zip (getCol 1 p) s2p
+  putStrLn " GeV"
 
 q2p4 :: QMeas -> PMeas
 q2p4 (QMeas q cq) = h3p q cq
 
 h2p4 :: HMeas -> PMeas
 h2p4 (HMeas h ch) =
-  h3p (Data.Vector.take 3 h) (submatrix 1 3 1 3 ch)
+  h3p (sub 3 h) (sub2 3 ch)
 
 h3p :: V3 -> M33 -> PMeas
 h3p h3 ch = (PMeas p0 cp0) where
   m = mπ
-  w    = h3 Data.Vector.! 0
-  tl   = h3 Data.Vector.! 1
-  psi0 = h3 Data.Vector.! 2
+  [w,tl,psi0] = toList 3 h3
   sph  = sin psi0
   cph  = cos psi0
   pt   = w2pt / abs w
@@ -65,8 +75,8 @@ h3p h3 ch = (PMeas p0 cp0) where
   see = (px*px*sxx + py*py*syy + pz*pz*szz +
          2.0*(px*(py*sxy + pz*sxz) + py*pz*syz))/e/e
 
-  p0 = Data.Vector.fromList [px,py,pz,e ]
-  cp0 = fromLists [[sxx, sxy, sxz, sxe], [sxy, syy, syz, sye], [sxz, syz, szz, sze], [sxe, sye, sze, see]]
+  p0 = fromList 4 [px,py,pz,e]
+  cp0 = fromList2 4 4 [sxx, sxy, sxz, sxe, sxy, syy, syz, sye, sxz, syz, szz, sze, sxe, sye, sze, see]
 
 invMass :: [PMeas] -> MMeas
 invMass pl@(h:t) = mass ptot where
@@ -74,19 +84,11 @@ invMass pl@(h:t) = mass ptot where
 
 
 sumP :: PMeas -> PMeas -> PMeas
-sumP (PMeas p cp) (PMeas p' cp') = PMeas (Data.Vector.fromList [p0, p1, p2, p3]) sumA where
-  p0   = (p Data.Vector.! 0) + (p' Data.Vector.! 0)
-  p1   = (p Data.Vector.! 1) + (p' Data.Vector.! 1)
-  p2   = (p Data.Vector.! 2) + (p' Data.Vector.! 2)
-  p3   = (p Data.Vector.! 3) + (p' Data.Vector.! 3)
-  sumA = elementwise (+) cp cp'     -- sum up the covariance matrices
+sumP (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
 
 mass :: PMeas -> MMeas
 mass (PMeas p cp) = mm  where
-  px               = p Data.Vector.! 0
-  py               = p Data.Vector.! 1
-  pz               = p Data.Vector.! 2
-  e                = p Data.Vector.! 3
+  [px,py,pz,e] = toList 4 p
   c11              = cp!(1,1)
   c12              = cp!(1,2)
   c13              = cp!(1,3)

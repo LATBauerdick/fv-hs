@@ -2,19 +2,15 @@
 --
 module Main ( main) where
 
-import Data.Matrix ( Matrix, fromList, getDiag )
-import qualified Data.Vector ( (!), toList, fromList, zip )
-import Text.Printf
-
 import Types ( M, V, XMeas (..), HMeas (..) , PMeas (..), Prong (..) )
-import Coeff ( w2pt, h2p4, q2p4, invMass )
-import Matrix ( vATBA, inv )
+import Coeff ( w2pt, h2p4, q2p4, invMass, showErr )
+import Matrix ( inv, sw, fromList, fromList2 )
 import Fit ( fit )
 
 hSlurp :: [Double] -> (XMeas, [HMeas])
 hSlurp inp = (v, hl) where
-  v0        = Data.Vector.fromList $ take 3 inp
-  cv0       = Data.Matrix.fromList 3 3 $ take 9 $ drop 3 inp
+  v0        = fromList 3 $ take 3 inp
+  cv0       = fromList2 3 3 $ take 9 $ drop 3 inp
   v         = XMeas v0 cv0
   w2pt      = inp !! 12
   nt        = round (inp !! 13) ::Int
@@ -26,8 +22,8 @@ hSlurp inp = (v, hl) where
 nxtH :: [Double] -> HMeas
 nxtH i = HMeas h ch where
       (ih, ich) = splitAt 5 i
-      h         = Data.Vector.fromList ih
-      ch        = Data.Matrix.fromList 5 5 $ take 25 ich
+      h         = fromList 5 ih
+      ch        = fromList2 5 5 $ take 25 ich
 
 hFilter :: ( Eq a, Enum a, Num a ) => [b] -> [a] -> [b]
 hFilter hl rng =
@@ -41,12 +37,12 @@ main = do
     let HMeas h0 ch0 = head hl
     print w2pt
     print v0
-    print $ vATBA v0 cv0
+    print $ sw v0 cv0
     print h0
-    print $ vATBA h0 ch0
+    print $ sw h0 ch0
 --    print [h | (HMeas h _) <- hl]
 
-    mapM_ (pmErr "px,py,pz,E ->" . h2p4) hl
+    mapM_ (showErr "px,py,pz,E ->" . h2p4) hl
 
     let pl              = map h2p4 hl
     print $ invMass pl
@@ -61,19 +57,6 @@ main = do
     print $ invMass pl
     let ql5              = map q2p4 $ hFilter ql [0,2,3,4,5]
     print $ invMass ql5
-
--- this does not work:  pmErr pp where pp = h2p4 $ head hl
---  print inp
-
-pmErr :: String -> PMeas -> IO ()
-pmErr s (PMeas p cp) = do
-  putStr s
-  let
-    s2p        = getDiag cp
-    f (x, s2)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-      where dx = sqrt s2
-    in mapM_ f $ Data.Vector.zip p s2p
-  putStrLn " GeV"
 
 inp = [
   3.355679512023926,      3.489715576171875,      7.110095977783203,

@@ -5,12 +5,11 @@ module Types (
              ) where
 
 import Data.Matrix ( Matrix )
-import Data.Vector ( Vector )
 
 type M = Matrix Double
-type V = Vector Double
+type V = Matrix Double
 type M33 = Matrix Double
-type V3 = Vector Double
+type V3 = Matrix Double
 type N = Int
 type Chi2 = Double
 data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
