@@ -56,8 +56,7 @@ main = do
 
     putStrLn            "Fitting Vertex --------------------"
     let Prong n vf ql cl = fit v hl
-    let (XMeas _ m) = vf
-    print $ inv m
+    print vf
     let pl               = map q2p4 ql
     print $ invMass pl
     let ql5              = map q2p4 $ hFilter ql [0,2,3,4,5]

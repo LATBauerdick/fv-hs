@@ -5,7 +5,7 @@ import Data.Matrix ( Matrix, submatrix )
 import Data.Vector ( take )
 import Types ( XMeas (..), HMeas (..), QMeas (..), Prong (..), ABh0 (..) )
 import Coeff ( fvABh0 )
-import Matrix ( inv, mATBA, mABAT, mATB, mAMB, mAPB, vAMB, vAPB, mAv )
+import Matrix ( inv, tr, sw, cv, tov, mATBA, mABAT, mATB, mAMB, mAPB, vAMB, vAPB, mAv )
 import Debug.Trace ( trace )
 debug = flip trace
 
@@ -24,17 +24,23 @@ kfilter v0 hl = v where
   v = foldr kal v0 hl
 
 kal :: HMeas -> XMeas -> XMeas
-kal (HMeas h hh) (XMeas v vv) = v' `debug` (".") where
-  ABh0 aa bb h0 = fvABh0 v h
+kal (HMeas h_ hh) (XMeas v0_ vv0) = vm' `debug` (".") where
+  h = cv h_
+  v0 = cv v0_
+  ABh0 aa bb h0 = fvABh0 v0 h
+  aaT = tr aa
+  bbT = tr bb
   gg  = inv hh
-  uu0 = inv vv
-  ww = inv $ mATBA bb gg
-  gb = mAMB gg (mABAT gg (mABAT bb ww))
-  uu = mAPB uu0 (mATBA aa gb)
+  uu0 = inv vv0
+  ww = inv $ sw bb gg
+  gb = gg - (sw gg (sw bbT ww))
+  uu = uu0 + (sw aa gb)
   cc = inv uu
-  m = vAMB h h0
-  v'' = mAv cc (vAPB (mAv uu0 v) (mAv (mATB aa gb) m))
-  v' = XMeas v'' vv
+  m =  h - h0
+  v = cc * (uu0 * v0 + aaT * gb * m)
+  vv'' = inv . inv $ vv0
+  v_ = tov v
+  vm' = XMeas v_ vv''
 
     -- (loop [v0 v0, U0 U0, A A, B B, h0 h0, 𝜒20 1e10, iter 0]
     --   (let [

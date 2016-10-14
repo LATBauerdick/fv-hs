@@ -15,7 +15,7 @@ type N = Int
 type Chi2 = Double
 data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
 
-data ABh0 = ABh0 M M V
+data ABh0 = ABh0 M M M
 
 type X3 = V
 type C33 = M
