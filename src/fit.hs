@@ -1,7 +1,8 @@
 -- file src/Fit.hs
 module Fit ( fit ) where
 
-import Types ( XMeas (..), HMeas (..), QMeas (..), Prong (..), ABh0 (..) )
+import Types ( XMeas (..), HMeas (..), QMeas (..)
+             , Prong (..), ABh0 (..), Chi2 )
 import Coeff ( fvABh0, fvh )
 import Matrix ( inv, tr, sw, sub, sub2, scalar )
 import Debug.Trace ( trace )
@@ -19,9 +20,11 @@ kfilter v0 hl = v where
 
 ksmooth :: XMeas -> [HMeas] -> Prong
 ksmooth v hl = pr where
+  ƒ :: HMeas -> (QMeas, Chi2)
   ƒ h = ksm h v
-  ql = map ƒ hl
-  pr = Prong 6 v ql [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+  qml = map ƒ hl
+  (ql, chi2l) = unzip qml
+  pr = Prong 6 v ql chi2l
 
 kal :: HMeas -> XMeas -> XMeas
 kal (HMeas h hh) (XMeas v0 vv0) = v' `debug` ("." ++ show chi2)
@@ -46,7 +49,7 @@ kal (HMeas h hh) (XMeas v0 vv0) = v' `debug` ("." ++ show chi2)
 
 
 -- kalman smooth: calculate 3-mom q at kalman filter vertex v
-ksm :: HMeas -> XMeas -> QMeas
+ksm :: HMeas -> XMeas -> (QMeas, Chi2)
 ksm (HMeas h hh) (XMeas v vv) = qm `debug` ("^" ++ show chi2)
   where
     ABh0 aa bb h0 = fvABh0 v h
@@ -60,9 +63,5 @@ ksm (HMeas h hh) (XMeas v vv) = qm `debug` ("^" ++ show chi2)
     dd = (ww + (sw ww (sw bb (sw gg (sw aaT cc)))))
     -- use the simple method to calculate chi2
     chi2 = scalar $ sw (h - (fvh v q)) gg
-    qm = QMeas q dd   --(sub 3 h) (sub2 3 hh)
+    qm = (QMeas q dd, chi2)   --(sub 3 h) (sub2 3 hh)
 
-
---           𝜒2   (scalar (fvsATBA (fvAMB h (fvh v q)) Gh))
---           ]
---           [ q D 𝜒2]))

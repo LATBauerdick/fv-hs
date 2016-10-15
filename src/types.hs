@@ -1,7 +1,7 @@
 -- file src/Fit.hs
 module Types (
                M, V, M33, V3, V5, XMeas (..), HMeas (..), QMeas (..)
-             , PMeas (..), MMeas (..), Prong (..), ABh0 (..)
+             , PMeas (..), MMeas (..), Prong (..), ABh0 (..), Chi2
              ) where
 
 import Data.Matrix ( Matrix )
