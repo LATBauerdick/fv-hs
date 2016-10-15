@@ -3,7 +3,7 @@
 module Main ( main) where
 
 import Types ( M, V, XMeas (..), HMeas (..) , PMeas (..), Prong (..) )
-import Coeff ( w2pt, h2p4, q2p4, invMass, showErr )
+import Coeff ( w2pt, h2p4, q2p4, invMass, showPMeas, showMMeas )
 import Matrix ( inv, sw, fromList, fromList2 )
 import Fit ( fit )
 
@@ -32,37 +32,45 @@ hFilter hl rng =
   [h | (h, i) <- zip hl [0..], i `elem` rng ]
 main :: IO ()
 main = do
-    let (v, hl)     = hSlurp inp
-    let l5 = [0,2,3,4,5]
-    let l5' = [0,1,2,4,5]
-    let XMeas v0 cv0 = v
-    let HMeas h0 ch0 = head hl
-    print w2pt
-    print v0
-    print $ sw v0 cv0
-    print h0
-    print $ sw h0 ch0
+  let (v, hl)     = hSlurp inp
+  let l5 = [0,2,3,4,5]
+  let XMeas v0 cv0 = v
+  let HMeas h0 ch0 = head hl
+  print w2pt
+  print v0
+  print $ sw v0 cv0
+  print h0
+  print $ sw h0 ch0
 --    print [h | (HMeas h _) <- hl]
 
-    mapM_ (showErr "px,py,pz,E ->" . h2p4) hl
+  mapM_ (showPMeas "px,py,pz,E ->" . h2p4) hl
 
-    let pl              = map h2p4 hl
-    print $ invMass pl
+  doFitTest v hl l5
 
-    let pl5             = map h2p4 $ hFilter hl l5
-    print $ invMass pl5
+  let (v, hl)     = hSlurp inp'
+  let l5' = [0,1,2,4,5]
+  doFitTest v hl l5'
 
-    putStrLn            "Fitting Vertex --------------------"
-    let Prong n vf ql cl = fit v hl
---    print vf
-    let pl               = map q2p4 ql
-    print $ invMass pl
-    let ql5              = map q2p4 $ hFilter ql l5
-    print $ invMass ql5
-    putStrLn            "Re-fitting Vertex-----------------"
-    let Prong n vf ql cl = fit v $ hFilter hl l5
-    let pl               = map q2p4 ql
-    print $ invMass pl
+doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
+doFitTest v hl l5 = do
+  let showLen xs = show $ length xs
+
+  let pl              = map h2p4 hl
+  showMMeas ("Inv Mass " ++ showLen pl ++ " helix") $ invMass pl
+  let pl5             = map h2p4 $ hFilter hl l5
+  showMMeas ("Inv Mass " ++ showLen pl5 ++ " helix") $ invMass pl5
+
+  putStrLn            "Fitting Vertex --------------------"
+  let Prong n vf ql cl = fit v hl
+  let pl               = map q2p4 ql
+  showMMeas ("Inv Mass " ++ showLen pl ++ " fit") $ invMass pl
+  let pl5              = map q2p4 $ hFilter ql l5
+  showMMeas ("Inv Mass " ++ showLen pl5 ++ " fit") $ invMass pl5
+
+  putStrLn            "Re-fitting Vertex-----------------"
+  let Prong n vf ql cl = fit v $ hFilter hl l5
+  let pl               = map q2p4 ql
+  showMMeas ("Inv Mass " ++ showLen pl ++ " refit")  $ invMass pl
 
 inp = [
   3.355679512023926,      3.489715576171875,      7.110095977783203,

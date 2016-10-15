@@ -1,6 +1,7 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, fvABh0, fvh, h2p4, q2p4, invMass, showErr ) where
+module Coeff ( w2pt, fvABh0, fvh, h2p4, q2p4, invMass
+             , showPMeas, showMMeas ) where
 
 import Data.Matrix ( (!), getDiag, getCol )
 import Data.Vector ( zip )
@@ -16,13 +17,15 @@ w2pt = 4.5451703E-03
 mπ :: Double
 mπ = 0.1395675E0
 
---fvq :: V -> V -> V
--- should calc q at nearest point of approach to v
---fvq h v = Data.Vector.take 3 h
+showMMeas :: String -> MMeas -> IO ()
+showMMeas s (MMeas m dm) = do
+  putStr s
+  printf "%8.3f ± %8.3f" (m::Double) (dm::Double)
+  putStrLn " GeV"
 
 -- print a imomentum vector with error
-showErr :: String -> PMeas -> IO ()
-showErr s (PMeas p cp) = do
+showPMeas :: String -> PMeas -> IO ()
+showPMeas s (PMeas p cp) = do
   putStr s
   let
     s2p        = getDiag cp
