@@ -1,6 +1,6 @@
 -- file src/Fit.hs
 module Types (
-              M, V, M33, V3, XMeas (..), HMeas (..), QMeas (..)
+               M, V, M33, V3, V5, XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), Prong (..), ABh0 (..)
              ) where
 
@@ -10,6 +10,7 @@ type M = Matrix Double
 type V = Matrix Double
 type M33 = Matrix Double
 type V3 = Matrix Double
+type V5 = Matrix Double
 type N = Int
 type Chi2 = Double
 data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
