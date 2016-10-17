@@ -1,19 +1,29 @@
 -- file src/Fit.hs
 module Types (
-               M, V, M33, V3, V5, XMeas (..), HMeas (..), QMeas (..)
-             , PMeas (..), MMeas (..), Prong (..), ABh0 (..), Chi2
+  M, V, M33, V3, V5, C44, XMeas (..), HMeas (..), QMeas (..)
+             , PMeas (..), MMeas (..), Prong (..), VHMeas (..)
+             , ABh0 (..), Chi2
+             , showXMeas, showPMeas, showMMeas
              ) where
 
-import Data.Matrix ( Matrix )
+import Text.Printf
+import qualified Data.Matrix ( Matrix, getDiag, getCol, zero )
+import qualified Data.Vector (zip)
 
-type M = Matrix Double
-type V = Matrix Double
-type M33 = Matrix Double
-type V3 = Matrix Double
-type V5 = Matrix Double
-type N = Int
-type Chi2 = Double
+type M     = Data.Matrix.Matrix Double
+type V     = Data.Matrix.Matrix Double
+type M33   = Data.Matrix.Matrix Double
+type V3    = Data.Matrix.Matrix Double
+type V5    = Data.Matrix.Matrix Double
+type N     = Int
+type Chi2  = Double
 data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
+
+data VHMeas a = VHMeas XMeas [a] deriving Show
+instance Monoid (VHMeas a) where
+  mappend (VHMeas v1 as1) (VHMeas v2 as2) = VHMeas (v1) ( as1 ++ as2 )
+instance Functor VHMeas where -- apply f to each a
+  fmap f (VHMeas v (a:as)) = VHMeas v ((f a):(fmap f as))
 
 data ABh0 = ABh0 M M M
 
@@ -34,3 +44,34 @@ data PMeas = PMeas P4 C44 deriving Show -- 4-vector and coavariance matrix for m
 
 type D = Double
 data MMeas = MMeas D D deriving Show -- mass and error
+
+-- show instances -- refactor!!
+
+-- print a vertext position vector with errors
+showXMeas :: String -> XMeas -> IO ()
+showXMeas s (XMeas v cv) = do
+  putStr s
+  let
+    s2v        = Data.Matrix.getDiag cv
+    f (x, s2)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+      where dx = sqrt s2
+    in mapM_ f $ Data.Vector.zip (Data.Matrix.getCol 1 v) s2v
+  putStrLn " cm"
+
+showMMeas :: String -> MMeas -> IO ()
+showMMeas s (MMeas m dm) = do
+  putStr s
+  printf "%8.3f ± %8.3f" (m::Double) (dm::Double)
+  putStrLn " GeV"
+
+-- print a 4-momentum vector with errors
+showPMeas :: String -> PMeas -> IO ()
+showPMeas s (PMeas p cp) = do
+  putStr s
+  let
+    s2p        = Data.Matrix.getDiag cp
+    f (x, s2)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+      where dx = sqrt s2
+    in mapM_ f $ Data.Vector.zip (Data.Matrix.getCol 1 p) s2p
+  putStrLn " GeV"
+

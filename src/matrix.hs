@@ -5,12 +5,20 @@ import Debug.Trace ( trace )
 import Text.Printf
 import qualified Data.Matrix (
                      inverse, identity, nrows, transpose, elementwise
-                   , rowVector, colVector, getCol, multStd2
+                             , rowVector, colVector, getCol, multStd2, zero
                    , getMatrixAsVector, submatrix, toList, fromList, (!) )
 
-import Types ( M, V )
+import Types ( M, V, PMeas (..), C44 )
 
 debug = flip trace
+
+
+instance Monoid (PMeas) where
+  mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
+  mempty = PMeas (fromList 4 [0.0,0.0,0.0,0.0]) ((Data.Matrix.zero 4 4)::C44)
+
+-- instance Functor PMeas where
+--   fmap f (PMeas p cp) = f p cp
 
 -- vectors are column-wise, represented as matrix of dimension nx1
 sub :: Int -> M -> M
@@ -21,6 +29,7 @@ scalar :: M -> Double
 scalar m = m Data.Matrix.! (1,1)
 toList :: Int -> M -> [Double]
 toList n m = take n $ Data.Matrix.toList m
+
 fromList :: Int -> [Double] -> M
 fromList rows ds = Data.Matrix.fromList rows 1 ds -- column vector to list
 fromList2 :: Int -> Int -> [Double] -> M

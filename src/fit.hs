@@ -27,7 +27,7 @@ ksmooth v hl = pr where
   pr = Prong 6 v ql chi2l
 
 kal :: HMeas -> XMeas -> XMeas
-kal (HMeas h hh) (XMeas v0 vv0) = v' `debug` ("." ++ show chi2)
+kal (HMeas h hh) (XMeas v0 vv0) = v' `debug` (">" ++ show chi2)
   where
     ABh0 aa bb h0 = fvABh0 v0 h
     aaT = tr aa
@@ -50,7 +50,7 @@ kal (HMeas h hh) (XMeas v0 vv0) = v' `debug` ("." ++ show chi2)
 
 -- kalman smooth: calculate 3-mom q at kalman filter vertex v
 ksm :: HMeas -> XMeas -> (QMeas, Chi2)
-ksm (HMeas h hh) (XMeas v vv) = qm `debug` ("^" ++ show chi2)
+ksm (HMeas h hh) (XMeas v vv) = qm `debug` ("≫" ++ show chi2)
   where
     ABh0 aa bb h0 = fvABh0 v h
     aaT = tr aa
@@ -64,4 +64,3 @@ ksm (HMeas h hh) (XMeas v vv) = qm `debug` ("^" ++ show chi2)
     -- use the simple method to calculate chi2
     chi2 = scalar $ sw (h - (fvh v q)) gg
     qm = (QMeas q dd, chi2)   --(sub 3 h) (sub2 3 hh)
-

@@ -1,38 +1,18 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, fvABh0, fvh, h2p4, q2p4, invMass
-             , showPMeas, showMMeas ) where
+module Coeff ( w2pt, fvABh0, fvh, h2p4, q2p4, invMass, mass
+             ) where
 
-import Data.Matrix ( (!), getDiag, getCol )
-import Data.Vector ( zip )
 import Types ( M, M33, V3, V5, MMeas (..), HMeas (..), QMeas (..), PMeas (..)
   , ABh0 (..) )
 import Matrix ( sub, sub2, toList, fromList, fromList2 )
-import Text.Printf
-import Data.Fixed
+import Data.Fixed ( mod' )
 
 w2pt :: Double
 w2pt = 4.5451703E-03
 
 mπ :: Double
 mπ = 0.1395675E0
-
-showMMeas :: String -> MMeas -> IO ()
-showMMeas s (MMeas m dm) = do
-  putStr s
-  printf "%8.3f ± %8.3f" (m::Double) (dm::Double)
-  putStrLn " GeV"
-
--- print a imomentum vector with error
-showPMeas :: String -> PMeas -> IO ()
-showPMeas s (PMeas p cp) = do
-  putStr s
-  let
-    s2p        = getDiag cp
-    f (x, s2)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-      where dx = sqrt s2
-    in mapM_ f $ Data.Vector.zip (getCol 1 p) s2p
-  putStrLn " GeV"
 
 q2p4 :: QMeas -> PMeas
 q2p4 (QMeas q cq) = h3p q cq
@@ -54,19 +34,20 @@ h3p h3 ch = (PMeas p0 cp0) where
   e = sqrt(px^2 + py^2 + pz^2 + m^2)
   ps = w2pt / w
   dpdk = ps*ps/w2pt
-  xy = 2.0*ps*dpdk*cph*sph*ch!(1,3)
-  sxx = (dpdk*cph)^2 * ch!(1,1) + (ps*sph)^2 * ch!(3,3) + xy
-  sxy = cph*sph*(dpdk*dpdk*ch!(1,1) - ps*ps*ch!(3,3)) +
-           ps*dpdk*(sph*sph-cph*cph)*ch!(1,3)
-  syy = (dpdk*sph)^2 * ch!(1,1) + (ps*cph)^2 * ch!(3,3) - xy
-  sxz = dpdk*dpdk*cph*tl*ch!(1,1) -
-           ps*dpdk*(cph*ch!(1,2)-sph*tl*ch!(1,3)) -
-           ps*ps*sph*ch!(2,3)
-  syz = dpdk*dpdk*sph*tl*ch!(1,1) -
-           ps*dpdk*(sph*ch!(1,2) + cph*tl*ch!(1,3)) +
-           ps*ps*cph*ch!(2,3)
-  szz = (dpdk*tl)^2 * ch!(1,1) + ps*ps*ch!(2,2) -
-           2.0*ps*dpdk*tl*ch!(1,2)
+  [c11, c12, c13, _, c22, c23, _, _, c33] = toList 9 ch
+  xy = 2.0*ps*dpdk*cph*sph*c13
+  sxx = (dpdk*cph)^2 * c11 + (ps*sph)^2 * c33 + xy
+  sxy = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +
+           ps*dpdk*(sph*sph-cph*cph)*c13
+  syy = (dpdk*sph)^2 * c11 + (ps*cph)^2 * c33 - xy
+  sxz = dpdk*dpdk*cph*tl*c11 -
+           ps*dpdk*(cph*c12-sph*tl*c13) -
+           ps*ps*sph*c23
+  syz = dpdk*dpdk*sph*tl*c11 -
+           ps*dpdk*(sph*c12 + cph*tl*c13) +
+           ps*ps*cph*c23
+  szz = (dpdk*tl)^2 * c11 + ps*ps*c22 -
+           2.0*ps*dpdk*tl*c12
   sxe = (px*sxx + py*sxy + pz*sxz)/e
   sye = (px*sxy + py*syy + pz*syz)/e
   sze = (px*sxz + py*syz + pz*szz)/e
@@ -87,16 +68,8 @@ sumP (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
 mass :: PMeas -> MMeas
 mass (PMeas p cp) = mm  where
   [px,py,pz,e] = toList 4 p
-  c11              = cp!(1,1)
-  c12              = cp!(1,2)
-  c13              = cp!(1,3)
-  c14              = cp!(1,4)
-  c22              = cp!(2,2)
-  c23              = cp!(2,3)
-  c24              = cp!(2,4)
-  c33              = cp!(3,3)
-  c34              = cp!(3,4)
-  c44              = cp!(4,4)
+  [c11, c12, c13, c14, _, c22, c23, c24, _, _, c33, c34, _, _, _, c44]
+    = toList 16 cp
   m                = sqrt $ max (e^2-px^2-py^2-pz^2) 0
   sigm0            = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
                        2.0*(px*(c12*py + c13*pz - c14*e)
