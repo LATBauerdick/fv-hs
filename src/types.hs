@@ -3,12 +3,21 @@ module Types (
   M, V, M33, V3, V5, C44, XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), Prong (..), VHMeas (..)
              , ABh0 (..), Chi2
-             , showXMeas, showPMeas, showMMeas
+             , showXMeas, showPMeas, showQMeas, showMMeas
+             , w2pt, mπ
              ) where
 
 import Text.Printf
-import qualified Data.Matrix ( Matrix, getDiag, getCol, zero )
-import qualified Data.Vector (zip)
+import qualified Data.Matrix ( Matrix, getDiag, getCol, toList, zero
+                             , fromLists, transpose )
+import qualified Data.Vector ( zip, fromList, toList )
+
+w2pt :: Double
+w2pt = 4.5451703E-03
+
+mπ :: Double
+mπ = 0.1395675E0
+
 
 type M     = Data.Matrix.Matrix Double
 type V     = Data.Matrix.Matrix Double
@@ -74,4 +83,47 @@ showPMeas s (PMeas p cp) = do
       where dx = sqrt s2
     in mapM_ f $ Data.Vector.zip (Data.Matrix.getCol 1 p) s2p
   putStrLn " GeV"
+
+
+-- print a 4-momentum vector with errors
+showQMeas :: String -> QMeas -> IO ()
+showQMeas s (QMeas q cq) = do
+  putStr s
+  let
+    m = mπ
+    wp = w2pt
+    [w,tl,psi0] = take 3 (Data.Matrix.toList q)
+    pt   = wp / abs w
+    pz = pt*tl
+    psi = psi0*180.0/pi
+    e = sqrt(pt^2  + pz^2 + m^2)
+    [s0,s1,s2]  = Data.Vector.toList (Data.Matrix.getDiag cq)
+    spt = (sqrt s0)*wp
+    spz = (sqrt s2)*wp
+    sptz = 0 -- fix!!!!!!!!!
+    spsi = (sqrt s1)*(180.0/pi)
+    se = sqrt(pt*pt*spt + pz*pz*spz + 2.0*pt*pz*sptz)/e
+    p'           = Data.Vector.fromList [pt, pz, psi, e]
+    sp'         = Data.Vector.fromList [spt,spz,spsi,se]
+    f (x, dx)    = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+    in mapM_ f $ Data.Vector.zip p' sp'
+  putStrLn " GeV"
+    -- cc = cos phi
+    -- ss = sin phi
+    -- xy = 1.0/(1+py*py/px/px)
+    -- j_xyz = Data.Matrix.fromLists [
+    --                     [ cc, 0, -pt*ss, 0 ],
+    --                     [ ss, 0, pt*cc, 0 ],
+    --                     [ 0, 1.0, 0, 0 ],
+    --                     [ 0, 0, 0, 1.0 ]
+    --                   ]
+    -- j_ptphiz = Data.Matrix.fromLists [
+    --                       [ px/pt, py/pt, 0, 0 ],
+    --                       [ 0, 0, 1.0, 0 ],
+    --                       [ -py/px/px*xy, 1.0/px*xy, 0, 0 ],
+    --                       [ 0, 0, 0, 1.0 ]
+    --                      ]
+    -- cp' = (Data.Matrix.transpose j_ptphiz) * cp * j_ptphiz
+    -- s2p          = Data.Matrix.getDiag cp'
+    -- [s0,s1,s2,s3]= Data.Vector.toList s2p
 

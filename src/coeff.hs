@@ -1,30 +1,27 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, fvABh0, fvh, h2p4, q2p4, invMass, mass
+module Coeff ( w2pt, fvABh0, fvh, h2p, h2q, q2p, invMass, mass
              ) where
 
 import Types ( M, M33, V3, V5, MMeas (..), HMeas (..), QMeas (..), PMeas (..)
-  , ABh0 (..) )
+  , ABh0 (..) , w2pt, mπ )
 import Matrix ( sub, sub2, toList, fromList, fromList2 )
 import Data.Fixed ( mod' )
 
-w2pt :: Double
-w2pt = 4.5451703E-03
+h2p :: HMeas -> PMeas
+h2p hm =
+  q2p $ h2q hm
 
-mπ :: Double
-mπ = 0.1395675E0
+h2q :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
+h2q hm = QMeas q cq where
+  (HMeas h ch) = hm
+  q = (sub 3 h)
+  cq = (sub2 3 ch)
 
-q2p4 :: QMeas -> PMeas
-q2p4 (QMeas q cq) = h3p q cq
-
-h2p4 :: HMeas -> PMeas
-h2p4 (HMeas h ch) =
-  h3p (sub 3 h) (sub2 3 ch)
-
-h3p :: V3 -> M33 -> PMeas
-h3p h3 ch = (PMeas p0 cp0) where
+q2p :: QMeas -> PMeas
+q2p (QMeas q0 cq0) = (PMeas p0 cp0) where
   m = mπ
-  [w,tl,psi0] = toList 3 h3
+  [w,tl,psi0] = toList 3 q0
   sph  = sin psi0
   cph  = cos psi0
   pt   = w2pt / abs w
@@ -34,7 +31,7 @@ h3p h3 ch = (PMeas p0 cp0) where
   e = sqrt(px^2 + py^2 + pz^2 + m^2)
   ps = w2pt / w
   dpdk = ps*ps/w2pt
-  [c11, c12, c13, _, c22, c23, _, _, c33] = toList 9 ch
+  [c11, c12, c13, _, c22, c23, _, _, c33] = toList 9 cq0
   xy = 2.0*ps*dpdk*cph*sph*c13
   sxx = (dpdk*cph)^2 * c11 + (ps*sph)^2 * c33 + xy
   sxy = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +

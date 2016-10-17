@@ -1,20 +1,12 @@
 -- file: test/input.hs
-module Input ( hSlurp, dataFiles )
+module Input ( hSlurp, hSlurpAll, dataFiles )
   where
 
 import Types ( HMeas (..), XMeas (..), VHMeas (..) )
 import Matrix ( fromList, fromList2 )
 import Control.Applicative
 import System.Directory
-
-justFiles :: FilePath -> Bool
-justFiles f = f /= "." && f /= ".."
-
-dataFiles :: FilePath -> IO [FilePath]
-dataFiles path = do
-  fileNames <- filter justFiles <$> getDirectoryContents path
-  let addHead = (++) (path ++ "/")
-  return $ map addHead fileNames
+import Data.Monoid
 
 -- slurp in the measurements of vertex and helices
 -- from a list of Doubles
@@ -43,3 +35,19 @@ hSlurp path = do
   return $ hSlurp' $ map readDouble (words ds)
     where readDouble = read :: String -> Double
 
+-- slurp all files named in a list of pathNames
+hSlurpAll :: [String] -> IO (VHMeas HMeas)
+hSlurpAll (x:[]) = hSlurp x
+hSlurpAll (x:xs) = do
+  v0 <- hSlurp x
+  vs <- hSlurpAll xs
+  return $ v0 <> vs
+
+justFiles :: FilePath -> Bool
+justFiles f = f /= "." && f /= ".."
+
+dataFiles :: FilePath -> IO [FilePath]
+dataFiles path = do
+  fileNames <- filter justFiles <$> getDirectoryContents path
+  let addHead = (++) (path ++ "/")
+  return $ map addHead fileNames
