@@ -2,6 +2,8 @@
 --
 module Main ( main) where
 
+import System.Environment
+import System.Exit
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types ( M, V, XMeas (..), HMeas (..), PMeas (..), Prong (..), VHMeas (..)
@@ -9,6 +11,18 @@ import Types ( M, V, XMeas (..), HMeas (..), PMeas (..), Prong (..), VHMeas (..)
 import Coeff ( w2pt, h2p, h2q, q2p, invMass )
 import Matrix ( inv, sw, fromList, fromList2 )
 import Fit ( fit )
+
+main :: IO ()
+main = getArgs >>= parse
+
+parse ["-h"] = usage   >> exit
+parse ["-v"] = version >> exit
+parse []     = test ["1"]
+parse args   = test args
+
+usage   = putStrLn "Usage: fvt [-vh] [test# ..]"
+version = putStrLn "Haskell fvt 0.1"
+exit    = exitWith ExitSuccess
 
 -- filter list of tracks of helices etc given list of indices in [a]
 -- return list with only those b that have  indices that  are in rng [a]
@@ -29,28 +43,29 @@ showMomentum h = do
   showP h
   showQ h
 
-main :: IO ()
-main = do
-  VHMeas v hl <- hSlurp thisFile
-  showXMeas "initial vertex position ->" v
-  mapM_ showMomentum hl
+test :: [String] -> IO ()
+test arg =
+  case arg of
+    ["1"] -> do
+          VHMeas v hl <- hSlurp thisFile
+          showXMeas "initial vertex position ->" v
+          mapM_ showMomentum hl
+          let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
+          doFitTest v hl l5
 
-  let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
-  doFitTest v hl l5
+    ["2"] -> do
+          VHMeas v hl <- hSlurp otherFile
+          mapM_ showMomentum hl
+          let l5 = [0,1,2,4,5]
+          doFitTest v hl l5
 
-  VHMeas v hl <- hSlurp otherFile
-  mapM_ showMomentum hl
-
-  let l5 = [0,1,2,4,5]
-  doFitTest v hl l5
-
--- now slurp in all event data files from ./dat and append helices
-  ps <- dataFiles "dat"
-  VHMeas v hl <- hSlurpAll ps
-
-  mapM_ showMomentum hl
-  doFitTest v hl [0..]
-  showXMeas "ok, let's check it" v
+-- slurp in all event data files from ./dat and append helices
+    ["3"]-> do
+          ps <- dataFiles "dat"
+          VHMeas v hl <- hSlurpAll ps
+          mapM_ showMomentum hl
+          doFitTest v hl [0..]
+          showXMeas "ok, let's check it" v
 
 doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
 doFitTest v hl l5 = do

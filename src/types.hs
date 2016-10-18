@@ -97,16 +97,19 @@ showQMeas s (QMeas q cq) = do
     pz = pt*tl
     psi = psi0*180.0/pi
     e = sqrt(pt^2  + pz^2 + m^2)
-    [s0,s1,s2]  = Data.Vector.toList (Data.Matrix.getDiag cq)
-    spt = (sqrt s0)*wp
-    spz = (sqrt s2)*wp
-    sptz = 0 -- fix!!!!!!!!!
-    spsi = (sqrt s1)*(180.0/pi)
-    se = sqrt(pt*pt*spt + pz*pz*spz + 2.0*pt*pz*sptz)/e
+
+    dpdk = pt*pt/wp
+    [c11, c12, c13, _, c22, c23, _, _, c33] = take 9 $ Data.Matrix.toList cq
+    dpt = sqrt $ (dpdk*dpdk) * c11 + pt*pt * c33
+    dpz = sqrt $ (dpdk*tl)^2 * c11 + pt*pt*c22 - 2.0*wp/w*dpdk*tl*c12
+    dpsi = (sqrt c22)*(180.0/pi)
+    sptz = 0 -- fix!!!!!!!!!!!!!
+    de = sqrt(pt*pt*dpt*dpt + pz*pz*dpz*dpz + 2.0*pt*pz*sptz)/e
+
     p'           = Data.Vector.fromList [pt, pz, psi, e]
-    sp'         = Data.Vector.fromList [spt,spz,spsi,se]
+    dp'         = Data.Vector.fromList [dpt,dpz,dpsi,de]
     f (x, dx)    = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-    in mapM_ f $ Data.Vector.zip p' sp'
+    in mapM_ f $ Data.Vector.zip p' dp'
   putStrLn " GeV"
     -- cc = cos phi
     -- ss = sin phi

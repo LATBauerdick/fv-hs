@@ -9,12 +9,10 @@ import Matrix ( sub, sub2, toList, fromList, fromList2 )
 import Data.Fixed ( mod' )
 
 h2p :: HMeas -> PMeas
-h2p hm =
-  q2p $ h2q hm
+h2p hm = (q2p . h2q) hm
 
 h2q :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
-h2q hm = QMeas q cq where
-  (HMeas h ch) = hm
+h2q (HMeas h ch) = QMeas q cq where
   q = (sub 3 h)
   cq = (sub2 3 ch)
 
