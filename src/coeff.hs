@@ -65,13 +65,13 @@ mass (PMeas p cp) = mm  where
   [px,py,pz,e] = toList 4 p
   [c11, c12, c13, c14, _, c22, c23, c24, _, _, c33, c34, _, _, _, c44]
     = toList 16 cp
-  m                = sqrt $ max (e^2-px^2-py^2-pz^2) 0
-  sigm0            = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
-                       2.0*(px*(c12*py + c13*pz - c14*e)
-                          + py*(c23*pz - c24*e)
-                          - pz*c34*e)
-  sigm             = ( sqrt $ max sigm0 0 ) / m
-  mm               = MMeas m sigm
+  m     = sqrt $ max (e^2-px^2-py^2-pz^2) 0
+  sigm0 = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
+            2.0*(px*(c12*py + c13*pz - c14*e)
+               + py*(c23*pz - c24*e)
+               - pz*c34*e)
+  sigm  = ( sqrt $ max sigm0 0 ) / m
+  mm    = MMeas m sigm
 
 fvh :: V3 -> V3 -> V5
 fvh v q = h where

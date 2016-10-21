@@ -30,17 +30,17 @@ hFilter :: ( Eq a, Enum a, Num a ) => [b] -> [a] -> [b]
 hFilter hl rng =
   [h | (h, i) <- zip hl [0..], i `elem` rng ]
 
-thisFile = "dat/tr05129e001412.dat"
+thisFile  = "dat/tr05129e001412.dat"
 otherFile = "dat/tr05158e004656.dat"
 thirdFile = "dat/tr05166e001984.dat"
 
 showP :: (HMeas -> IO ())
 showP = (showPMeas "px,py,pz,E ->" . h2p)
 showQ :: (HMeas -> IO ())
-showQ =  (showQMeas "pt,pz,ø ,E ->" . h2q)
+showQ =  (showQMeas "pt,pz,𝜑 ,E ->" . h2q)
 showMomentum :: HMeas -> IO ()
 showMomentum h = do
-  showP h
+--  showP h
   showQ h
 
 test :: [String] -> IO ()
@@ -60,12 +60,12 @@ test arg =
           doFitTest v hl l5
 
 -- slurp in all event data files from ./dat and append helices
-    ["3"]-> do
+    ["3"] -> do
           ps <- dataFiles "dat"
           VHMeas v hl <- hSlurpAll ps
           mapM_ showMomentum hl
           doFitTest v hl [0..]
-          showXMeas "ok, let's check it" v
+ --         showXMeas "ok, let's check it" v
 
 doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
 doFitTest v hl l5 = do
