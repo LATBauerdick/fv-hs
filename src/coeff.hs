@@ -1,6 +1,6 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, fvABh0, fvh, h2p, h2q, q2p, invMass, mass
+module Coeff ( w2pt, fvABh0, qv2h, hv2q, h2p, h2q, q2p, invMass, mass
              ) where
 
 import Types ( M, M33, V3, V5, MMeas (..), HMeas (..), QMeas (..), PMeas (..)
@@ -73,8 +73,11 @@ mass (PMeas p cp) = mm  where
   sigm  = ( sqrt $ max sigm0 0 ) / m
   mm    = MMeas m sigm
 
-fvh :: V3 -> V3 -> V5
-fvh v q = h where
+hv2q :: V5 -> V3
+hv2q h = sub 3 h
+
+qv2h :: V3 -> V3 -> V5
+qv2h q v = h where
   -- calculate and return helix parameters h = [w tl psi0 d0 z0]
   -- from v = [vx vy vz] and q = [w tl psi]
   [xx, yy, z] = toList 3 v
@@ -95,14 +98,11 @@ fvh v q = h where
                   else [w, tl, psi, r*sxi, z]
 
 fvABh0 :: M -> M -> ABh0
-fvABh0 v h = ABh0 aa bb h0 where
---  aa = fromList2 5 3 [1.0,0,0, 0,1.0,0, 0,0,1.0, 0,0,0, 0,0,0]
---  bb = fromList2 5 3 [1.0,0,0, 0,1.0,0, 0,0,1.0, 0,0,0, 0,0,0]
---  h0 = h
+fvABh0 v q = ABh0 aa bb h0 where
   [xx, yy, z] = toList 3 v
   r = sqrt $ xx*xx + yy*yy
   phi  = atan2 yy xx
-  [w, tl, psi] = toList 3 h
+  [w, tl, psi] = toList 3 q
   -- some more derived quantities
   xi = mod' (psi - phi + 2.0*pi) (2.0*pi)
   cxi = cos xi
@@ -110,36 +110,36 @@ fvABh0 v h = ABh0 aa bb h0 where
   oow = 1.0 / w
   rw  = r * w
 
-  gamma = atan $ r * cxi / (oow - r * sxi)
+  gamma = atan $ r*cxi/(oow - r*sxi)
   sg    = sin gamma
   cg    = cos gamma
 
   -- calculate transformed quantities
   psi0  = psi - gamma
-  d0    = oow - (oow - r * sxi) / cg
-  z0    = z - tl * gamma / w
+  d0    = oow - (oow - r*sxi)/cg
+  z0    = z - tl*gamma/w
 
   -- calc Jacobian
   [drdx, drdy, rdxidx, rdxidy] =
-    if (r /= 0) then [xx / r, yy / r, yy / r, - xx / r]
+    if (r /= 0) then [xx/r, yy/r, yy/r, -xx/r]
                else [0, 0, 0, 0]
-  dgdvar0 =    1.0 / (1.0 + (rw * rw) - (2.0 * rw * sxi))
-  dgdx    =    dgdvar0 * ((w * cxi * drdx) + (w * (rw - sxi) * rdxidx))
-  dgdy    =    dgdvar0 * ((w * cxi * drdy) + (w * (rw - sxi) * rdxidy))
-  dgdw    =    dgdvar0 * r * cxi
-  dgdpsi  =    dgdvar0 * rw * (rw - sxi)
+  dgdvar0 =    1.0/(1.0 + rw*rw - 2.0*rw*sxi)
+  dgdx    =    dgdvar0*(w*cxi*drdx + w*(rw - sxi)*rdxidx)
+  dgdy    =    dgdvar0*(w*cxi*drdy + w*(rw - sxi)*rdxidy)
+  dgdw    =    dgdvar0*r*cxi
+  dgdpsi  =    dgdvar0*rw*(rw - sxi)
 
   --  fill matrix:
   -- d w / d r, d phi, d z
-  [ a11, a12, a13 ]  =  [ 0, 0, 0 ]
+  [ a11, a12, a13 ]  =  [ 0.0, 0, 0 ]
   -- d tl / d x, d y, d z
-  [ a21, a22, a23 ]  =  [ 0, 0, 0 ]
+  [ a21, a22, a23 ]  =  [ 0.0, 0, 0 ]
   -- d psi0 / d x, d y, d z
   [ a31, a32, a33 ]  =  [ -dgdx, -dgdy, 0 ]
   -- d d0 / d x, d y, d z
   [ a41, a42, a43 ]  =  [ cxi*rdxidx/cg + sxi*drdx/cg
                             - (oow - r*sxi)*sg*dgdx/cg/cg,
-                           cxi*rdxidy/cg + sxi*drdy/cg
+                          cxi*rdxidy/cg + sxi*drdy/cg
                             - (oow - r*sxi)*sg*dgdy/cg/cg,
                            0
                          ]
@@ -154,17 +154,17 @@ fvABh0 v h = ABh0 aa bb h0 where
   -- d psi0 / d w, d tl, d psi
   [ b31, b32, b33 ]  =  [ -dgdw, 0, 1.0 - dgdpsi ]
   -- d d0 / d w, d tl, d psi
-  [ b41, b42, b43 ]  =  [ - oow*oow*(1.0 - 1.0/cg)
-                            - (oow - r*sxi)*sg*dgdw/cg/cg,
+  [ b41, b42, b43 ]  =  [ -oow*oow*(1.0 - 1.0/cg)
+                          - (oow - r*sxi)*sg*dgdw/cg/cg,
                           0,
                           r*cxi/cg - (oow - r*sxi)*sg*dgdpsi/cg/cg ]
   -- d z0 / d w, d tl, d psi
-  [ b51, b52, b53 ]  =  [ tl/w*(gamma/w - dgdw),
+  [ b51, b52, b53 ]  =  [ -tl/w*(dgdw - gamma/w),
                           -gamma/w,
                           -tl/w*dgdpsi
                         ]
   [ v01, v02, v03 ] = toList 3 v
-  [ q01, q02, q03 ] = toList 3 h
+  [ q01, q02, q03 ] = [w, tl, psi]
   h0 = fromList 5 [
       0,
       0,

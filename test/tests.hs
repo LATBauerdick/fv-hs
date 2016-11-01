@@ -48,7 +48,6 @@ test arg =
   case arg of
     ["1"] -> do
           VHMeas v hl <- hSlurp thisFile
-          showXMeas "initial vertex position ->" v
           mapM_ showMomentum hl
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
           doFitTest v hl l5
@@ -71,6 +70,8 @@ doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
 doFitTest v hl l5 = do
   let showLen xs = show $ length xs
 
+  showXMeas "initial vertex position ->" v
+
   let pl              = map h2p hl
   showMMeas ("Inv Mass " ++ showLen pl ++ " helix") $ invMass pl
   let pl5             = map h2p $ hFilter hl l5
@@ -87,3 +88,5 @@ doFitTest v hl l5 = do
   let Prong n vf ql cl = fit v $ hFilter hl l5
   let pl               = map q2p ql
   showMMeas ("Inv Mass " ++ showLen pl ++ " refit")  $ invMass pl
+  showXMeas "fitted vertex position ->" vf
+

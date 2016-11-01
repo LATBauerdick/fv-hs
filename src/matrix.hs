@@ -1,11 +1,12 @@
-module Matrix ( inv, tr, sw, sub, sub2, scalar
+module Matrix ( inv, tr, sw, sub, sub2, scalar, scale
               , toList, fromList, fromList2 ) where
 
 import Debug.Trace ( trace )
 import Text.Printf
-import qualified Data.Matrix ( Matrix,
-                     inverse, identity, nrows, transpose, elementwise
-                             , rowVector, colVector, getCol, multStd2, zero
+import qualified Data.Matrix ( Matrix, inverse
+                             , identity, nrows, transpose, elementwise
+                             , rowVector, colVector, getCol, multStd2
+                             , zero, scaleMatrix
                    , getMatrixAsVector, submatrix, toList, fromList, (!) )
 
 type M     = Data.Matrix.Matrix Double
@@ -27,6 +28,9 @@ fromList :: Int -> [Double] -> M
 fromList rows ds = Data.Matrix.fromList rows 1 ds -- column vector to list
 fromList2 :: Int -> Int -> [Double] -> M
 fromList2 rows cols ds = Data.Matrix.fromList rows cols ds
+
+scale :: Double -> M -> M
+scale s m = Data.Matrix.scaleMatrix s m
 
 tr :: M -> M
 tr m = Data.Matrix.transpose m

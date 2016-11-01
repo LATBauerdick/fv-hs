@@ -3,7 +3,7 @@ module Input ( hSlurp, hSlurpAll, dataFiles )
   where
 
 import Types ( HMeas (..), XMeas (..), VHMeas (..) )
-import Matrix ( fromList, fromList2 )
+import Matrix ( fromList, fromList2, scale )
 import Control.Applicative
 import System.Directory
 import Data.Monoid
@@ -13,7 +13,8 @@ import Data.Monoid
 hSlurp' :: [Double] -> VHMeas HMeas
 hSlurp' inp = (VHMeas v hl) where
   v0        = fromList 3 $ take 3 inp   -- initial vertex pos
-  cv0       = fromList2 3 3 $ take 9 $ drop 3 inp -- cov matrix
+  cv00      = fromList2 3 3 $ take 9 $ drop 3 inp -- cov matrix
+  cv0       = scale 10000.0 cv00
   v         = XMeas v0 cv0
   w2pt      = inp !! 12                 -- how to calc pt from w
   nt        = round (inp !! 13) ::Int    -- number of helices to follow
