@@ -5,8 +5,13 @@ module Coeff ( w2pt, fvABh0, qv2h, hv2q, h2p, h2q, q2p, invMass, mass
 
 import Types ( M, M33, V3, V5, MMeas (..), HMeas (..), QMeas (..), PMeas (..)
   , ABh0 (..) , w2pt, mπ )
-import Matrix ( sub, sub2, toList, fromList, fromList2 )
+import Matrix ( sub, sub2, toList, fromList, fromList2, tr)
 import Data.Fixed ( mod' )
+import Data.Matrix ( prettyMatrix )
+import Debug.Trace ( trace )
+debug = flip trace
+
+
 
 h2p :: HMeas -> PMeas
 h2p hm = (q2p . h2q) hm
@@ -173,4 +178,11 @@ fvABh0 v q = ABh0 aa bb h0 where
       z0 - a51*v01 - a52*v02 - a53*v03 - b51*q01 - b52*q02 - b53*q03]
   aa = fromList2 5 3 [a11,a12,a13,a21,a22,a23,a31,a32,a33,a41,a42,a43,a51,a52,a53]
   bb = fromList2 5 3 [b11,b12,b13,b21,b22,b23,b31,b32,b33,b41,b42,b43,b51,b52,b53]
+  -- aaT = tr aaTT `debug` ( "v0 --->> " ++ (show v) ++
+  --                       "q0 --->> " ++ (show q) ++
+  --                       "aa --->> " ++ prettyMatrix aaTT ++
+  --                       "bb --->> " ++ prettyMatrix bb ++
+  --                       "h0 --->> " ++ (show h0)
+  --                         )
+  -- aa = tr aaT
 

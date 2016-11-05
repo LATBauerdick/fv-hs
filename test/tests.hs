@@ -4,10 +4,11 @@ module Main ( main) where
 
 import System.Environment
 import System.Exit
+import Text.Printf
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types ( M, V, XMeas (..), HMeas (..), PMeas (..), Prong (..), VHMeas (..)
-             , showXMeas, showPMeas, showQMeas, showMMeas )
+             , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas )
 import Coeff ( w2pt, h2p, h2q, q2p, invMass )
 import Matrix ( inv, sw, fromList, fromList2 )
 import Fit ( fit )
@@ -64,13 +65,14 @@ test arg =
           VHMeas v hl <- hSlurpAll ps
           mapM_ showMomentum hl
           doFitTest v hl [0..]
- --         showXMeas "ok, let's check it" v
+ --         putStrLn $ showXMeas "ok, let's check it" v
 
 doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
 doFitTest v hl l5 = do
   let showLen xs = show $ length xs
+  let showQChi2 (qm, chi2, i) = showQMeas ((printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double)) ++ "pt,pz,fi,E ->") qm
 
-  showXMeas "initial vertex position ->" v
+  putStrLn $ showXMeas "initial vertex position ->" v
 
   let pl              = map h2p hl
   showMMeas ("Inv Mass " ++ showLen pl ++ " helix") $ invMass pl
@@ -79,14 +81,15 @@ doFitTest v hl l5 = do
 
   putStrLn            "Fitting Vertex --------------------"
   let Prong n vf ql cl = fit v hl
-  let pl               = map q2p ql
-  showMMeas ("Inv Mass " ++ showLen pl ++ " fit") $ invMass pl
+  putStrLn $ showXMeas "Fitted vertex ->" vf
+  mapM_ showQChi2 $ zip3 ql cl [0..]
+  showMMeas ("Inv Mass " ++ showLen ql ++ " fit") $ invMass $map q2p ql
   let pl5              = map q2p $ hFilter ql l5
   showMMeas ("Inv Mass " ++ showLen pl5 ++ " fit") $ invMass pl5
 
-  putStrLn            "Re-fitting Vertex-----------------"
+  putStrLn            "Refitting Vertex-----------------"
   let Prong n vf ql cl = fit v $ hFilter hl l5
-  let pl               = map q2p ql
-  showMMeas ("Inv Mass " ++ showLen pl ++ " refit")  $ invMass pl
-  showXMeas "fitted vertex position ->" vf
+  putStrLn $ showXMeas "Refitted vertex ->" vf
+  mapM_ showQChi2 $ zip3 ql cl [0..]
+  showMMeas ("Inv Mass " ++ showLen ql ++ " refit")  $ invMass $ map q2p ql
 

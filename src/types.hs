@@ -2,15 +2,16 @@
 module Types (
   M, V, M33, V3, V5, C44, XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), Prong (..), VHMeas (..)
+             , X3, C33, Q3, H5, C55
              , ABh0 (..), Chi2
-             , showXMeas, showPMeas, showQMeas, showMMeas
+             , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
              , w2pt, mπ
              ) where
 
 import Text.Printf
 import qualified Data.Matrix ( Matrix, getDiag, getCol, toList, zero
                              , fromLists, transpose )
-import qualified Data.Vector ( zip, map, fromList, toList )
+import qualified Data.Vector ( zip, map, fromList, toList, drop )
 
 w2pt :: Double
 w2pt = 4.5451703E-03
@@ -63,15 +64,13 @@ data MMeas = MMeas D D deriving Show -- mass and error
 
 -- show instances -- refactor!!
 
--- print a vertext position vector with errors
-showXMeas :: String -> XMeas -> IO ()
-showXMeas s (XMeas v cv) = do
-  putStr s
-  let
-    s2v        = Data.Vector.map sqrt $ Data.Matrix.getDiag cv
-    f (x, dx)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-    in mapM_ f $ Data.Vector.zip (Data.Matrix.getCol 1 v) s2v
-  putStrLn " cm"
+-- return a string showing vertext position vector with errors
+showXMeas :: String -> XMeas -> String
+showXMeas s (XMeas v cv) = s' where
+  s2v        = Data.Vector.map sqrt $ Data.Matrix.getDiag cv
+  f :: String -> (Double, Double) -> String
+  f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+  s' = (foldl f s $ Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
 
 showMMeas :: String -> MMeas -> IO ()
 showMMeas s (MMeas m dm) = do
@@ -89,6 +88,16 @@ showPMeas s (PMeas p cp) = do
     in mapM_ f $ Data.Vector.zip (Data.Matrix.getCol 1 p) sp
   putStrLn " GeV"
 
+
+-- print HMeas as a 5-parameter helix with errors
+showHMeas :: String -> HMeas -> String
+showHMeas s (HMeas h ch) = s' where
+  sh           = Data.Vector.map sqrt $ Data.Matrix.getDiag ch
+  f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+  s'' = s ++ printf "%10.5g ± %10.5g" (x::Double) (dx::Double) where
+    x  = head (Data.Matrix.toList h)
+    dx = head (Data.Vector.toList sh)
+  s' = foldl f s'' (Data.Vector.drop 1 $ Data.Vector.zip (Data.Matrix.getCol 1 h) sh)
 
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
 showQMeas :: String -> QMeas -> IO ()
