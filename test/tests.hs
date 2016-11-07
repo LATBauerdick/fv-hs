@@ -7,11 +7,14 @@ import System.Exit
 import Text.Printf
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
-import Types ( M, V, XMeas (..), HMeas (..), PMeas (..), Prong (..), VHMeas (..)
-             , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas )
+import Types (  M, V
+              , XMeas (..), HMeas (..), PMeas (..), Prong (..), VHMeas (..), QMeas (..)
+              , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
+              , showXMDist, origin
+             )
 import Coeff ( w2pt, h2p, h2q, q2p, invMass )
 import Matrix ( inv, sw, fromList, fromList2 )
-import Fit ( fit )
+import Fit ( fit, fit' )
 
 main :: IO ()
 main = getArgs >>= parse
@@ -23,7 +26,7 @@ parse args   = test args
 
 usage   = putStrLn "Usage: fvt [-vh] [test# ..]"
 version = putStrLn "Haskell fvt 0.1"
-exit    = exitWith ExitSuccess
+exit    = exitSuccess
 
 -- filter list of tracks of helices etc given list of indices in [a]
 -- return list with only those b that have  indices that  are in rng [a]
@@ -34,15 +37,26 @@ hFilter hl rng =
 thisFile  = "dat/tr05129e001412.dat"
 otherFile = "dat/tr05158e004656.dat"
 thirdFile = "dat/tr05166e001984.dat"
+mc0File   = "dat/tr00101e007076.dat"
+mc1File   = "dat/tr00101e008340.dat"
+mc2File   = "dat/tr00101e012040.dat"
 
 showP :: (HMeas -> IO ())
-showP = (showPMeas "px,py,pz,E ->" . h2p)
+showP = showPMeas "px,py,pz,E ->" . h2p
 showQ :: (HMeas -> IO ())
-showQ =  (showQMeas "pt,pz,𝜑 ,E ->" . h2q)
+showQ = showQMeas "pt,pz,𝜑 ,E ->" . h2q
 showMomentum :: HMeas -> IO ()
-showMomentum h = do
---  showP h
-  showQ h
+showMomentum = showQ
+
+showProng :: Prong -> IO ()
+showProng (Prong _ v ql cl) = do
+  let
+      showCl :: String -> [Double] -> String
+      showCl = foldl (\s x -> s++printf "%8.1g" (x::Double))
+      st = showXMDist (printf "chi2tot ->%8.1f, r ->" (sum cl::Double)) v origin
+      sh = showCl (st ++ ", chi2s ->") cl ++ ", Mass ->"
+  --- putStrLn $ showXMeasRadius "xxx" v
+  showMMeas sh $ invMass (map q2p ql)
 
 test :: [String] -> IO ()
 test arg =
@@ -65,12 +79,25 @@ test arg =
           VHMeas v hl <- hSlurpAll ps
           mapM_ showMomentum hl
           doFitTest v hl [0..]
- --         putStrLn $ showXMeas "ok, let's check it" v
+          showProng $ fit' v hl
+
+    [fn] -> do
+          --mapM_ showMomentum hl
+          let
+              listMinus1 :: Int -> Int -> [Int]
+              listMinus1 n i = filter (/= i) [0..n]
+              fitMinus1 :: (VHMeas HMeas) -> Int -> Prong
+              fitMinus1 (VHMeas v hl) = fit' v . hFilter hl . listMinus1 (length hl)
+
+          VHMeas v hl <- hSlurp $ "dat/"++fn
+          let nh = length hl - 1
+          putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
+          mapM_ ( showProng . fitMinus1 (VHMeas v hl) ) [0..nh]
 
 doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
 doFitTest v hl l5 = do
   let showLen xs = show $ length xs
-  let showQChi2 (qm, chi2, i) = showQMeas ((printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double)) ++ "pt,pz,fi,E ->") qm
+  let showQChi2 (qm, chi2, i) = showQMeas (printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double) ++ "pt,pz,fi,E ->") qm
 
   putStrLn $ showXMeas "initial vertex position ->" v
 
@@ -92,4 +119,5 @@ doFitTest v hl l5 = do
   putStrLn $ showXMeas "Refitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   showMMeas ("Inv Mass " ++ showLen ql ++ " refit")  $ invMass $ map q2p ql
+  putStrLn $ showXMDist ((showXMeas "final vertex at" vf)++", r =") vf origin
 

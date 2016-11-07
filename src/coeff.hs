@@ -3,8 +3,9 @@
 module Coeff ( w2pt, fvABh0, qv2h, hv2q, h2p, h2q, q2p, invMass, mass
              ) where
 
-import Types ( M, M33, V3, V5, MMeas (..), HMeas (..), QMeas (..), PMeas (..)
-  , ABh0 (..) , w2pt, mπ )
+import Types ( M, M33, V3, V5
+             , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
+             , ABh0 (..) , w2pt, mπ )
 import Matrix ( sub, sub2, toList, fromList, fromList2, tr)
 import Data.Fixed ( mod' )
 import Data.Matrix ( prettyMatrix )
@@ -78,8 +79,25 @@ mass (PMeas p cp) = mm  where
   sigm  = ( sqrt $ max sigm0 0 ) / m
   mm    = MMeas m sigm
 
-hv2q :: V5 -> V3
-hv2q h = sub 3 h
+hv2q :: V5 -> V3 -> V3
+hv2q h v = q where
+  [xx, yy, _] = toList 3 v
+  r = sqrt $ xx*xx + yy*yy
+  phi  = atan2 yy xx
+  [w0, tl0, psi0, d0, z0] = toList 5 h
+  xi = mod' (psi0 - phi + 2.0*pi) (2.0*pi)
+  cxi = cos xi
+  sxi = sin xi
+  q = fromList 3 $
+        if (w0 /= 0) then
+                  let
+                    oow0 = 1.0/w0
+                    gamma = atan r*cxi/(oow0-r*sxi)
+                    in
+                    [ w0, tl0, psi0 + gamma ]
+                    else [ w0, tl0, psi0 ]
+
+
 
 qv2h :: V3 -> V3 -> V5
 qv2h q v = h where
@@ -98,9 +116,16 @@ qv2h q v = h where
                   let
                     oow = 1.0/w
                     gamma = atan r*cxi/(oow-r*sxi)
+                    d0 = oow - (oow-r*cxi)/(cos gamma)
+                    z0 = z - gamma*oow*tl
                     in
-                    [ w, tl, psi - gamma, oow - (oow - r*sxi)/( cos gamma), z - gamma/w*tl ]
+                    [ w, tl, psi - gamma, d0, z0 ]
                   else [w, tl, psi, r*sxi, z]
+
+vmqm2hm :: XMeas -> QMeas -> HMeas
+vmqm2hm (XMeas v _) (QMeas q _) = HMeas h hh where
+  h = qv2h q v
+  hh = undefined
 
 fvABh0 :: M -> M -> ABh0
 fvABh0 v q = ABh0 aa bb h0 where

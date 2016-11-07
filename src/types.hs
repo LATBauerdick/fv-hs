@@ -5,6 +5,7 @@ module Types (
              , X3, C33, Q3, H5, C55
              , ABh0 (..), Chi2
              , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
+             , showXMDist, origin
              , w2pt, mπ
              ) where
 
@@ -12,7 +13,7 @@ import Text.Printf
 import qualified Data.Matrix ( Matrix, getDiag, getCol, toList, zero
                              , fromLists, transpose )
 import qualified Data.Vector ( zip, map, fromList, toList, drop )
-
+import qualified Matrix ( scalar, sw, tr )
 w2pt :: Double
 w2pt = 4.5451703E-03
 
@@ -71,6 +72,24 @@ showXMeas s (XMeas v cv) = s' where
   f :: String -> (Double, Double) -> String
   f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
   s' = (foldl f s $ Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
+
+showXMDist :: String -> XMeas -> XMeas -> String
+showXMDist s0 (XMeas v0 vv0) (XMeas v1 vv1) = s where
+-- calculate distance between two vertices
+  [x0, y0, z0] = Data.Matrix.toList v0
+  [x1, y1, z1] = Data.Matrix.toList v1
+
+  d    = sqrt((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)
+
+  dd   = Data.Matrix.fromLists [[(x0-x1)/d, (y0-y1)/d, (z0-z1)/d]]
+  tem0 = Matrix.sw (Matrix.tr dd) vv0
+  tem1 = Matrix.sw (Matrix.tr dd) vv1
+  sd   = sqrt (Matrix.scalar tem0 + Matrix.scalar tem1)
+  s    = printf (s0++"%8.3f ± %8.3f cm")(d::Double) (sd::Double)
+
+origin :: XMeas
+origin = (XMeas (Data.Matrix.fromLists [[0.0,0.0,0.0]])
+            ((Data.Matrix.zero 3 3)::C33))
 
 showMMeas :: String -> MMeas -> IO ()
 showMMeas s (MMeas m dm) = do

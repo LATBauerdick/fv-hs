@@ -1,4 +1,4 @@
-module Matrix ( inv, tr, sw, sub, sub2, scalar, scaleDiag
+module Matrix ( inv, tr, sw, sub, sub2, scalar, scaleDiag, scale
               , toList, fromList, fromList2 ) where
 
 import Debug.Trace ( trace )
@@ -31,8 +31,11 @@ fromList rows ds = Data.Matrix.fromList rows 1 ds -- column vector to list
 fromList2 :: Int -> Int -> [Double] -> M
 fromList2 rows cols ds = Data.Matrix.fromList rows cols ds
 
+scale :: Double -> M -> M
+scale s = Data.Matrix.scaleMatrix s
+
 scaleDiag :: Double -> M -> M
-scaleDiag s m = (Data.Matrix.diagonal 0.0 . Data.Matrix.getDiag . Data.Matrix.scaleMatrix  s) m
+scaleDiag s = (Data.Matrix.diagonal 0.0 . Data.Matrix.getDiag . Data.Matrix.scaleMatrix  s)
 
 tr :: M -> M
 tr m = Data.Matrix.transpose m
@@ -56,6 +59,7 @@ inv m = f e where
     mx = (* 1000.0) . maximum  . Data.Matrix.getMatrixAsVector $ mxx
     fdeb mx
       | mx < 1.0 = m'
-      | otherwise = m' `debug` ("^" ++ "inv: max " ++ sx ++ " permille" ) where
-          sx :: String; sx = printf "%8.3f" (mx :: Double)
+      | otherwise = let
+                        sx :: String; sx = printf "%8.3f" (mx :: Double)
+                    in m' --`debug` ("^" ++ "inv: max " ++ sx ++ " permille" )
 
