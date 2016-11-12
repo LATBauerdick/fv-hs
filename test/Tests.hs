@@ -5,6 +5,8 @@ module Main ( main) where
 import System.Environment
 import System.Exit
 import Text.Printf
+-- :set -XQuasiQuotes
+import Data.String.Interpolate
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types (  M, V
@@ -54,6 +56,7 @@ showProng (Prong _ v ql cl) = do
       showCl :: String -> [Double] -> String
       showCl = foldl (\s x -> s++printf "%8.1g" (x::Double))
       st = showXMDist (printf "chi2tot ->%8.1f, r ->" (sum cl::Double)) v origin
+--      st = showXMDist ( [i|chi2tot ->#{sum cl}, r ->|]) v origin
       sh = showCl (st ++ ", chi2s ->") cl ++ ", Mass ->"
   --- putStrLn $ showXMeasRadius "xxx" v
   showMMeas sh $ invMass (map q2p ql)
@@ -89,7 +92,7 @@ test arg =
               fitMinus1 :: (VHMeas HMeas) -> Int -> Prong
               fitMinus1 (VHMeas v hl) = fit' v . hFilter hl . listMinus1 (length hl)
 
-          VHMeas v hl <- hSlurp $ "dat/"++fn
+          VHMeas v hl <- hSlurp $ fn
           let nh = length hl - 1
           putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
           mapM_ ( showProng . fitMinus1 (VHMeas v hl) ) [0..nh]
