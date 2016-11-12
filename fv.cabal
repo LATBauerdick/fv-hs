@@ -33,5 +33,6 @@ executable fvt
   build-depends:      base >= 4.7 && < 5
                     , fv
                     , matrix
+                    , interpolate
                     , vector
                     , directory
