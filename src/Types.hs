@@ -15,8 +15,6 @@ import qualified Data.Matrix ( Matrix, getDiag, getCol, toList, zero
                              , fromLists, transpose )
 import qualified Data.Vector ( zip, map, fromList, toList, drop )
 import qualified Matrix ( scalar, sw, tr, sub, sub2, toList, fromList, fromList2 )
--- w2pt :: Double
--- w2pt = 4.5451703E-03
 
 mπ :: Double
 mπ = 0.1395675E0
@@ -74,11 +72,11 @@ showXMeas s (XMeas v cv) = s' where
   f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
   s' = (foldl f s $ Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
 
+-- calculate distance between two vertices
 showXMDist :: String -> XMeas -> XMeas -> String
 showXMDist s0 (XMeas v0 vv0) (XMeas v1 vv1) = s where
--- calculate distance between two vertices
-  [x0, y0, z0] = Data.Matrix.toList v0
-  [x1, y1, z1] = Data.Matrix.toList v1
+  [x0, y0, z0] = Matrix.toList 3 v0
+  [x1, y1, z1] = Matrix.toList 3 v1
 
   d    = sqrt((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)
 

@@ -64,7 +64,6 @@ showProng (Prong _ v ql cl) = do
       st = showXMDist (printf "chi2tot ->%8.1f, r ->" (sum cl::Double)) v origin
 --      st = showXMDist ( [i|chi2tot ->#{sum cl}, r ->|]) v origin
       sh = showCl (st ++ ", chi2s ->") cl ++ ", Mass ->"
-  --- putStrLn $ showXMeasRadius "xxx" v
   showMMeas sh $ invMass (map q2p ql)
 
 test :: [String] -> IO ()
