@@ -1,11 +1,11 @@
 -- file src/coeff.hs
 --
-module Coeff ( w2pt, fvABh0, qv2h, hv2q, h2p, h2q, q2p, invMass, mass
+module Coeff ( fvABh0, qv2h, hv2q, invMass, mass
              ) where
 
 import Types ( M, M33, V3, V5
              , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
-             , ABh0 (..) , w2pt, mπ )
+             , ABh0 (..) , mπ )
 import Matrix ( sub, sub2, toList, fromList, fromList2, tr)
 import Data.Fixed ( mod' )
 import Data.Matrix ( prettyMatrix )
@@ -14,54 +14,9 @@ debug = flip trace
 
 
 
-h2p :: HMeas -> PMeas
-h2p hm = (q2p . h2q) hm
-
-h2q :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
-h2q (HMeas h ch) = QMeas q cq where
-  q = (sub 3 h)
-  cq = (sub2 3 ch)
-
-q2p :: QMeas -> PMeas
-q2p (QMeas q0 cq0) = (PMeas p0 cp0) where
-  m = mπ
-  [w,tl,psi0] = toList 3 q0
-  sph  = sin psi0
-  cph  = cos psi0
-  pt   = w2pt / abs w
-  px   = pt * cph
-  py   = pt * sph
-  pz   = pt * tl
-  e = sqrt(px^2 + py^2 + pz^2 + m^2)
-  ps = w2pt / w
-  dpdk = ps*ps/w2pt
-  [c11, c12, c13, _, c22, c23, _, _, c33] = toList 9 cq0
-  xy = 2.0*ps*dpdk*cph*sph*c13
-  sxx = (dpdk*cph)^2 * c11 + (ps*sph)^2 * c33 + xy
-  sxy = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +
-           ps*dpdk*(sph*sph-cph*cph)*c13
-  syy = (dpdk*sph)^2 * c11 + (ps*cph)^2 * c33 - xy
-  sxz = dpdk*dpdk*cph*tl*c11 -
-           ps*dpdk*(cph*c12-sph*tl*c13) -
-           ps*ps*sph*c23
-  syz = dpdk*dpdk*sph*tl*c11 -
-           ps*dpdk*(sph*c12 + cph*tl*c13) +
-           ps*ps*cph*c23
-  szz = (dpdk*tl)^2 * c11 + ps*ps*c22 -
-           2.0*ps*dpdk*tl*c12
-  sxe = (px*sxx + py*sxy + pz*sxz)/e
-  sye = (px*sxy + py*syy + pz*syz)/e
-  sze = (px*sxz + py*syz + pz*szz)/e
-  see = (px*px*sxx + py*py*syy + pz*pz*szz +
-         2.0*(px*(py*sxy + pz*sxz) + py*pz*syz))/e/e
-
-  p0 = fromList 4 [px,py,pz,e]
-  cp0 = fromList2 4 4 [sxx, sxy, sxz, sxe, sxy, syy, syz, sye, sxz, syz, szz, sze, sxe, sye, sze, see]
-
 invMass :: [PMeas] -> MMeas
 invMass pl@(h:t) = mass ptot where
   ptot = foldr sumP h t
-
 
 sumP :: PMeas -> PMeas -> PMeas
 sumP (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
@@ -123,7 +78,7 @@ qv2h q v = h where
                   else [w, tl, psi, r*sxi, z]
 
 vmqm2hm :: XMeas -> QMeas -> HMeas
-vmqm2hm (XMeas v _) (QMeas q _) = HMeas h hh where
+vmqm2hm (XMeas v _) (QMeas q _ w2pt) = HMeas h hh w2pt where
   h = qv2h q v
   hh = undefined
 

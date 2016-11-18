@@ -3,7 +3,7 @@ module Input ( hSlurp, hSlurpAll, dataFiles )
   where
 
 import Types ( HMeas (..), XMeas (..), VHMeas (..) )
-import Matrix ( fromList, fromList2, scaleDiag )
+import Matrix ( fromList, fromList2, scaleDiag, diagonal, sw )
 import Control.Applicative
 import System.Directory
 import Data.Monoid
@@ -17,17 +17,21 @@ hSlurp' inp = (VHMeas v hl) where
   -- cv0       = scale 10000.0 cv00
   cv0       = scaleDiag 10000.0 $ fromList2 3 3 $ take 9 $ drop 3 inp -- cov matrix
   v         = XMeas v0 cv0
-  w2pt      = inp !! 12                 -- how to calc pt from w
+  w2pt'     = inp !! 12                 -- how to calc pt from w; 1 in case of CMS
   nt        = round (inp !! 13) ::Int    -- number of helices to follow
   i0        = drop 14 inp
   lst       = (nt-1)*30
   is        = [ drop n i0 | n <-[0,30..lst]]
   hl        = [ nxtH i | i <- is ]      -- list of helix params and cov
+  w2pt      = if w2pt' /= 1.0 then w2pt' else 0.003*3.8 -- CMS case: field is 3.8 T
+  w2        = if w2pt' /= 1.0
+                 then diagonal [ 1.0, 1.0, 1.0, 1.0, 1.0 ]
+                 else diagonal [ w2pt, 1.0, 1.0, 1.0, 1.0 ]
   nxtH :: [Double] -> HMeas
-  nxtH i = HMeas h ch where
+  nxtH i = HMeas h ch w2pt where
       (ih, ich) = splitAt 5 i
-      h         = fromList 5 ih
-      ch        = fromList2 5 5 $ take 25 ich
+      h         = w2 * (fromList 5 ih)
+      ch        = sw w2 (fromList2 5 5 $ take 25 ich)
 
 -- slurps up a bunch of Doubles from a text data file into a list
 -- and parses them w/ hSlurp' to a vertex and a set of helix measurements

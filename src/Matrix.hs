@@ -1,4 +1,4 @@
-module Matrix ( inv, tr, sw, sub, sub2, scalar, scaleDiag, scale
+module Matrix ( inv, tr, sw, sub, sub2, scalar, scaleDiag, diagonal, scale
               , toList, fromList, fromList2 ) where
 
 import Debug.Trace ( trace )
@@ -7,7 +7,7 @@ import qualified Data.Matrix ( Matrix, inverse
                              , identity, nrows, transpose, elementwise
                              , rowVector, colVector, getCol, multStd2
                              , zero, scaleMatrix
-                             , diagonal, getDiag
+                             , diagonal, getDiag, diagonalList
                    , getMatrixAsVector, submatrix, toList, fromList, (!) )
 import qualified Data.Vector (Vector)
 
@@ -33,6 +33,9 @@ fromList2 rows cols ds = Data.Matrix.fromList rows cols ds
 
 scale :: Double -> M -> M
 scale s = Data.Matrix.scaleMatrix s
+
+diagonal :: [Double] -> M
+diagonal d = Data.Matrix.diagonalList (length d) 0.0 d
 
 scaleDiag :: Double -> M -> M
 scaleDiag s = (Data.Matrix.diagonal 0.0 . Data.Matrix.getDiag . Data.Matrix.scaleMatrix  s)

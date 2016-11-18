@@ -13,8 +13,9 @@ import Types (  M, V
               , XMeas (..), HMeas (..), PMeas (..), Prong (..), VHMeas (..), QMeas (..)
               , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
               , showXMDist, origin
+              , h2p, h2q, q2p
              )
-import Coeff ( w2pt, h2p, h2q, q2p, invMass )
+import Coeff ( invMass )
 import Matrix ( inv, sw, fromList, fromList2 )
 import Fit ( fit, fit' )
 
@@ -42,13 +43,18 @@ thirdFile = "dat/tr05166e001984.dat"
 mc0File   = "dat/tr00101e007076.dat"
 mc1File   = "dat/tr00101e008340.dat"
 mc2File   = "dat/tr00101e012040.dat"
+cmsFile   = "dat/tandv.dat"
 
 showP :: (HMeas -> IO ())
 showP = showPMeas "px,py,pz,E ->" . h2p
 showQ :: (HMeas -> IO ())
-showQ = showQMeas "pt,pz,𝜑 ,E ->" . h2q
+showQ = showQMeas "pt,pz,fi,E ->" . h2q
+showH :: (HMeas -> String)
+showH = showHMeas "Helix ->"
 showMomentum :: HMeas -> IO ()
 showMomentum = showQ
+showHelix :: HMeas -> IO ()
+showHelix = putStrLn . showH
 
 showProng :: Prong -> IO ()
 showProng (Prong _ v ql cl) = do
@@ -66,6 +72,7 @@ test arg =
   case arg of
     ["1"] -> do
           VHMeas v hl <- hSlurp thisFile
+          mapM_ showHelix  hl
           mapM_ showMomentum hl
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
           doFitTest v hl l5
