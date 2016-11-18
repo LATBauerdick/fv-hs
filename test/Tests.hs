@@ -6,7 +6,7 @@ import System.Environment
 import System.Exit
 import Text.Printf
 -- :set -XQuasiQuotes
-import Data.String.Interpolate
+-- import Data.String.Interpolate
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types (  M, V
