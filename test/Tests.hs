@@ -99,6 +99,7 @@ test arg =
               fitMinus1 (VHMeas v hl) = fit' v . hFilter hl . listMinus1 (length hl)
 
           VHMeas v hl <- hSlurp $ fn
+          mapM_ showMomentum hl
           let nh = length hl - 1
           putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
           mapM_ ( showProng . fitMinus1 (VHMeas v hl) ) [0..nh]
