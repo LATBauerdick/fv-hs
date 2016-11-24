@@ -12,7 +12,7 @@ debug = flip trace
 
 -- slurp in the measurements of vertex and helices
 -- from a list of Doubles
-hSlurp' :: [Double] -> VHMeas HMeas
+hSlurp' :: [Double] → VHMeas HMeas
 hSlurp' inp = (VHMeas v hl) where
   v0        = fromList 3 $ take 3 inp   -- initial vertex pos
   -- cv00      = fromList2 3 3 $ take 9 $ drop 3 inp -- cov matrix
@@ -34,16 +34,28 @@ hSlurp' inp = (VHMeas v hl) where
                   ch'                         = fromList2 5 5 ich
                   in  HMeas h' ch' w2pt'
             else HMeas h' ch' w0 where
+              -- FV works in terms of a perigee system
+              -- w = omega = 1/R is curvature radius
+              -- tl = tan lambda = tangent of dipping angle (0 for pt-max)
+              -- psi = angle in xy plane
+              -- d0 = distance of closest approach to 0 in xy plan
+              -- z0 = positiion on z axis
+              --
+              -- CMS uses instead
+              -- q/p = charge over momentum
+              -- theta = dipping angle
+              -- etc
+              --
               w0               = 0.003*3.8  -- CMS case: field is 3.8 T, give R in cm
               [h0,h1,h2,h3,h4] = take 5 ih
               st               = sin h1
               ct               = cos h1
               w                = h0 * w0 / ct
-              tl               = ct / st
+              tl               = st / ct
               pt               = w0/w
-              j00              = w0 / st `debug` ((show (pt*tl)) ++ (show ((h1 + (atan tl))*180.0/pi)))
-              j01              = - h0 * w0 * ct/st/st
-              j11              = -1.0 / st / st
+              j00              = w0 / ct -- `debug` ((show (pt*tl)) )
+              j01              = h0 * w0 * st/ct/ct
+              j11              = 1.0 / ct / ct
               j10              = 0
               jj               = fromList2 5 5 [  j00, j01, 0, 0, 0
                                                 , j10, j11, 0, 0, 0

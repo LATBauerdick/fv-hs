@@ -90,6 +90,13 @@ test arg =
           doFitTest v hl [0..]
           showProng $ fit' v hl
 
+-- CMS test file
+    ["4"] -> do
+          VHMeas v hl <- hSlurp cmsFile
+          mapM_ showHelix  hl
+          mapM_ showMomentum hl
+          doFitTest v hl [0..]
+
     [fn] -> do
           --mapM_ showMomentum hl
           let

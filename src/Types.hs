@@ -127,7 +127,7 @@ showQMeas s (QMeas q cq w2pt) = do
     wp = w2pt
     [w,tl,psi0] = take 3 (Data.Matrix.toList q)
     pt   = wp / abs w
-    pz = pt/tl
+    pz = pt*tl
     psi = psi0*180.0/pi
     e = sqrt(pt^2  + pz^2 + m^2)
     jj   = Data.Matrix.fromLists [
@@ -160,7 +160,7 @@ q2p (QMeas q0 cq0 w2pt) = (PMeas p0 cp0) where
   pt   = w2pt / abs w
   px   = pt * cph
   py   = pt * sph
-  pz   = pt / tl
+  pz   = pt * tl
   e = sqrt(px^2 + py^2 + pz^2 + m^2)
   ps = w2pt / w
   dpdk = ps*ps/w2pt
@@ -170,7 +170,6 @@ q2p (QMeas q0 cq0 w2pt) = (PMeas p0 cp0) where
   sxy = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +
            ps*dpdk*(sph*sph-cph*cph)*c13
   syy = (dpdk*sph)^2 * c11 + (ps*cph)^2 * c33 - xy
-  -- check jacobian now that pz = pt/tl????????????????????????
   sxz = dpdk*dpdk*cph*tl*c11 -
            ps*dpdk*(cph*c12-sph*tl*c13) -
            ps*ps*sph*c23
@@ -194,12 +193,12 @@ q2p (QMeas q0 cq0 w2pt) = (PMeas p0 cp0) where
 --     wp = w2pt
 --     [w,tl,psi0] = take 3 (Data.Matrix.toList q)
 --     pt   = wp / abs w
---     pz = pt/tl
+--     pz = pt*tl
 --     psi = psi0*180.0/pi
 --     e = sqrt(pt^2  + pz^2 + m^2)
 --     jj   = Data.Matrix.fromLists [
---             [-wp/w/w, -wp/w/w/tl,0, -(pz*pz + pt*pt)/w/e ]
---           , [0, -wp/w/tl/tl, 0, pt*pt*tl/e]
+--             [-wp/w/w, -wp/w/w*tl,0, -(pz*pz + pt*pt)/w/e ]
+--           , [0, wp/w, 0, pt*pt*tl/e]
 --           , [0, 0, 1.0, 0] ]
 --     cp  = (Data.Matrix.transpose jj) * cq* jj
 --     p   = Data.Vector.fromList [pt, pz, psi, e]
