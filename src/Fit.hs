@@ -3,19 +3,18 @@ module Fit ( fit, fit' ) where
 
 import Types ( XMeas (..), HMeas (..), QMeas (..)
               , Prong (..), ABh0 (..), Chi2
-             ,X3, C33, Q3, H5, C55
-             , showXMeas, showHMeas )
-import Coeff ( fvABh0, qv2h, hv2q )
-import Matrix ( inv, tr, sw, sub, sub2, scalar, toList, fromList, scale)
-import Text.Printf
-import Data.Matrix ( prettyMatrix )
+             ,X3, C33, Q3
+             )
+import Coeff ( fvABh0, hv2q )
+import Matrix ( inv, tr, sw, scalar, scale)
 import Debug.Trace ( trace )
+debug :: a -> String -> a
 debug = flip trace
 
 wght :: Double -> Chi2 -> Chi2 -- weight function with Temperature t
 wght t chi2 = w where
   chi2cut = 9.0
-  w = 1.0/(1.0 + (exp ((chi2-chi2cut)/2.0/t)))
+  w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
 
 fit :: XMeas -> [HMeas] -> Prong
 fit v0 hl = pr where
@@ -52,7 +51,7 @@ ksmoothW v hl wl = pr where
   pr = Prong n v ql chi2l
 
 kfilter :: XMeas -> [HMeas] -> XMeas
-kfilter v0 hl = foldl kal v0 hl where
+kfilter = foldl kal where
   kal :: XMeas -> HMeas -> XMeas
   kal (XMeas v vv) (HMeas h hh w2pt) = kalAdd v (inv vv) (HMeas h (inv hh) w2pt) v (hv2q h v) 1e6 0
 --    `debug` ((showHMeas "kal: add helix " (HMeas h hh)) ++ (showXMeas "\nto vertex " (XMeas v vv)))
@@ -60,17 +59,16 @@ kfilter v0 hl = foldl kal v0 hl where
 kalAdd :: X3 -> C33 -> HMeas -> X3 -> Q3 -> Double -> Int -> XMeas
 kalAdd v0 uu0 (HMeas h gg w2pt) ve qe chi20 iter = vm where
       goodEnough :: Double -> Double -> Int -> Bool
-      goodEnough chi20 chi2 iter =
-        (abs $ chi2 - chi20) < chi2cut || iter > iterMax where
+      goodEnough c0 c i = abs (c - c0) < chi2cut || i > iterMax where
           chi2cut = 0.5
           iterMax = 99 :: Int
       ABh0 aa bb h0 = fvABh0 ve qe
       aaT = tr aa
       bbT = tr bb
       ww = inv $ sw bb gg
-      gb = gg - (sw gg (sw bbT ww))
+      gb = gg - sw gg (sw bbT ww)
 --      gb = gg - (sw (tr (gg * bb)) ww)
-      uu = uu0 + (sw aa gb)
+      uu = uu0 + sw aa gb
       cc = inv uu
       m =  h - h0
       v = cc * (uu0 * v0 + aaT * gb * m)
@@ -78,8 +76,8 @@ kalAdd v0 uu0 (HMeas h gg w2pt) ve qe chi20 iter = vm where
       q = ww * bbT * gg * dm --`debug` ("--> " ++ prettyMatrix uu0 ++ prettyMatrix (sw aa gb) ++ prettyMatrix (cc*uu0*v0) ++ prettyMatrix (cc*aaT*gb*m))
 --      ee = - ww * bbT * gg * aa * cc
 --      dd = ww + (sw ww (sw bb (sw gg (sw aaT cc))))
-      chi2 = scalar $ (sw (dm - bb * q) gg) + (sw (v - v0) uu0)
-      ret = (goodEnough chi20 chi2 iter)
+      chi2 = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
+      ret = goodEnough chi20 chi2 iter
 --               `debug`  showXMeas (printf ">iter %d, chi2%8.1g, dr=%8.3f, v(x,y,z) ->" (iter::Int) (chi2::Double) (dr::Double)) (XMeas v cc) where dr = sqrt (x^2+y^2+z^2) ; [x,y,z]=toList 3 (v-v0)
       vm  = if ret
                then XMeas v cc
@@ -96,7 +94,7 @@ ksmooth v hl = pr where
 
 -- kalman smooth: calculate 3-mom q at kalman filter vertex v
 ksm :: HMeas -> XMeas -> (QMeas, Chi2)
-ksm  (HMeas h gg w2pt) (XMeas x cc) = ((QMeas q dd w2pt), chi2') -- `debug` ("≫" ++ show chi2)
+ksm  (HMeas h gg w2pt) (XMeas x cc) = (QMeas q dd w2pt, chi2') -- `debug` ("≫" ++ show chi2)
   where
     ABh0 aa bb h0 = fvABh0 x (hv2q h x)
     aaT = tr aa
@@ -110,11 +108,11 @@ ksm  (HMeas h gg w2pt) (XMeas x cc) = ((QMeas q dd w2pt), chi2') -- `debug` ("�
     ee = - cc * aaT * gg * bb * ww
     dd = ww + sw ee uu
     r = p - aa*x - bb*q -- `debug` (prettyMatrix (p - aa*x - bb*q ))
-    gb = gg - (sw gg ( sw bbT ww ))
+    gb = gg - sw gg ( sw bbT ww )
     uu' =  uu - sw aa gb
     cc' = inv uu'
     x' = cc' * (uu*x - aaT * gb * p)
     dx = x - x'
-    chi2' = scalar $ (sw dx uu') + sw r gg
+    chi2' = scalar $ sw dx uu' + sw r gg
 
 

@@ -31,9 +31,9 @@ data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from 
 
 data VHMeas a = VHMeas XMeas [a] deriving Show
 instance Monoid (VHMeas a) where
-  mappend (VHMeas v as) (VHMeas v' as') = VHMeas (v) ( as ++ as' ) -- ???
+  mappend (VHMeas v as) (VHMeas _ as') = VHMeas v ( as ++ as' ) -- ???
 instance Functor VHMeas where -- apply f to each a
-  fmap f (VHMeas v (a:as)) = VHMeas v ((f a):(fmap f as))
+  fmap f (VHMeas v (a:as)) = VHMeas v (f a : fmap f as)
 
 data ABh0 = ABh0 M M M
 
@@ -52,10 +52,10 @@ data QMeas = QMeas Q3 C33 Double deriving Show -- 3-vector and covariance matrix
 type P4 = V -- four-vector
 type C44 = M -- 4x4 covariance matrix
 data PMeas = PMeas P4 C44 deriving Show
-instance Monoid (PMeas) where
+instance Monoid PMeas where
   mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
   mempty = PMeas (Data.Matrix.fromLists [[0.0,0.0,0.0,0.0]])
-            ((Data.Matrix.zero 4 4)::C44)
+            (Data.Matrix.zero 4 4 :: C44)
 -- instance Functor PMeas where
 --   fmap f (PMeas p cp) = f p cp
 
@@ -66,11 +66,11 @@ data MMeas = MMeas D D deriving Show -- mass and error
 
 -- return a string showing vertext position vector with errors
 showXMeas :: String -> XMeas -> String
-showXMeas s (XMeas v cv) = s' where
+showXMeas s0 (XMeas v cv) = s' where
   s2v        = Data.Vector.map sqrt $ Data.Matrix.getDiag cv
   f :: String -> (Double, Double) -> String
   f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-  s' = (foldl f s $ Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
+  s' = foldl f s0 ( Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
 
 -- calculate distance between two vertices
 showXMDist :: String -> XMeas -> XMeas -> String
@@ -87,8 +87,8 @@ showXMDist s0 (XMeas v0 vv0) (XMeas v1 vv1) = s where
   s    = printf (s0++"%8.3f ± %8.3f cm")(d::Double) (sd::Double)
 
 origin :: XMeas
-origin = (XMeas (Data.Matrix.fromLists [[0.0,0.0,0.0]])
-            ((Data.Matrix.zero 3 3)::C33))
+origin = XMeas (Data.Matrix.fromLists [[0.0,0.0,0.0]])
+            (Data.Matrix.zero 3 3 :: C33)
 
 showMMeas :: String -> MMeas -> IO ()
 showMMeas s (MMeas m dm) = do
@@ -109,13 +109,13 @@ showPMeas s (PMeas p cp) = do
 
 -- print HMeas as a 5-parameter helix with errors
 showHMeas :: String -> HMeas -> String
-showHMeas s (HMeas h ch w2pt) = s' where
-  sh           = Data.Vector.map sqrt $ Data.Matrix.getDiag ch
-  f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-  s'' = s ++ printf "%10.5g ± %10.5g" (x::Double) (dx::Double) where
+showHMeas s0 (HMeas h ch _) = s' where
+  sh = Data.Vector.map sqrt $ Data.Matrix.getDiag ch
+  s00 = s0 ++ printf "%10.5g ± %10.5g" (x::Double) (dx::Double) where
     x  = head (Data.Matrix.toList h)
     dx = head (Data.Vector.toList sh)
-  s' = foldl f s'' (Data.Vector.drop 1 $ Data.Vector.zip (Data.Matrix.getCol 1 h) sh)
+  s' = foldl f s00 (Data.Vector.drop 1 $ Data.Vector.zip (Data.Matrix.getCol 1 h) sh) where
+    f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
 
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
 showQMeas :: String -> QMeas -> IO ()
@@ -129,7 +129,7 @@ showQMeas s (QMeas q cq w2pt) = do
     pt   = wp / abs w
     pz = pt*tl
     psi = psi0*180.0/pi
-    e = sqrt(pt^2  + pz^2 + m^2)
+    e = sqrt(pt*pt  + pz*pz + m*m)
     jj   = Data.Matrix.fromLists [
             [-wp/w/w, -wp/w/w*tl,0, -(pz*pz + pt*pt)/w/e ]
           , [0, wp/w, 0, pt*pt*tl/e]
@@ -148,11 +148,11 @@ h2p hm = (q2p . h2q) hm
 
 h2q :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
 h2q (HMeas h ch w2pt) = QMeas q cq w2pt where
-  q = (Matrix.sub 3 h)
-  cq = (Matrix.sub2 3 ch)
+  q = Matrix.sub 3 h
+  cq = Matrix.sub2 3 ch
 
 q2p :: QMeas -> PMeas
-q2p (QMeas q0 cq0 w2pt) = (PMeas p0 cp0) where
+q2p (QMeas q0 cq0 w2pt) = PMeas p0 cp0 where
   m = mπ
   [w,tl,psi0] = Matrix.toList 3 q0
   sph  = sin psi0
@@ -161,22 +161,23 @@ q2p (QMeas q0 cq0 w2pt) = (PMeas p0 cp0) where
   px   = pt * cph
   py   = pt * sph
   pz   = pt * tl
-  e = sqrt(px^2 + py^2 + pz^2 + m^2)
+  sqr = \x -> x*x
+  e = sqrt(px*px + py*py + pz*pz + m*m)
   ps = w2pt / w
   dpdk = ps*ps/w2pt
   [c11, c12, c13, _, c22, c23, _, _, c33] = Matrix.toList 9 cq0
   xy = 2.0*ps*dpdk*cph*sph*c13
-  sxx = (dpdk*cph)^2 * c11 + (ps*sph)^2 * c33 + xy
+  sxx = sqr (dpdk*cph) * c11 + sqr (ps*sph) * c33 + xy
   sxy = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +
            ps*dpdk*(sph*sph-cph*cph)*c13
-  syy = (dpdk*sph)^2 * c11 + (ps*cph)^2 * c33 - xy
+  syy = sqr (dpdk*sph) * c11 + sqr (ps*cph) * c33 - xy
   sxz = dpdk*dpdk*cph*tl*c11 -
            ps*dpdk*(cph*c12-sph*tl*c13) -
            ps*ps*sph*c23
   syz = dpdk*dpdk*sph*tl*c11 -
            ps*dpdk*(sph*c12 + cph*tl*c13) +
            ps*ps*cph*c23
-  szz = (dpdk*tl)^2 * c11 + ps*ps*c22 -
+  szz = sqr (dpdk*tl) * c11 + ps*ps*c22 -
            2.0*ps*dpdk*tl*c12
   sxe = (px*sxx + py*sxy + pz*sxz)/e
   sye = (px*sxy + py*syy + pz*syz)/e

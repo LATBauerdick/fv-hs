@@ -3,19 +3,19 @@
 module Coeff ( fvABh0, qv2h, hv2q, invMass, mass
              ) where
 
-import Types ( M, M33, V3, V5
+import Types ( M, V3, V5
              , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
-             , ABh0 (..) , mπ )
-import Matrix ( sub, sub2, toList, fromList, fromList2, tr)
+             , ABh0 (..) )
+import Matrix ( toList, fromList, fromList2 )
 import Data.Fixed ( mod' )
-import Data.Matrix ( prettyMatrix )
 import Debug.Trace ( trace )
+debug :: a -> String -> a
 debug = flip trace
 
 
 
 invMass :: [PMeas] -> MMeas
-invMass pl@(h:t) = mass ptot where
+invMass (h:t) = mass ptot where
   ptot = foldr sumP h t
 
 sumP :: PMeas -> PMeas -> PMeas
@@ -25,13 +25,13 @@ mass :: PMeas -> MMeas
 mass (PMeas p cp) = mm  where
   [px,py,pz,e] = toList 4 p
   [c11, c12, c13, c14, _, c22, c23, c24, _, _, c33, c34, _, _, _, c44]
-    = toList 16 cp
-  m     = sqrt $ max (e^2-px^2-py^2-pz^2) 0
+        = toList 16 cp
+  m     = sqrt $ max (e*e-px*px-py*py-pz*pz) 0
   sigm0 = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
             2.0*(px*(c12*py + c13*pz - c14*e)
                + py*(c23*pz - c24*e)
                - pz*c34*e)
-  sigm  = ( sqrt $ max sigm0 0 ) / m
+  sigm  =  sqrt ( max sigm0 0 ) / m
   mm    = MMeas m sigm
 
 hv2q :: V5 -> V3 -> V3
@@ -44,13 +44,13 @@ hv2q h v = q where
   cxi = cos xi
   sxi = sin xi
   q = fromList 3 $
-        if (w0 /= 0) then
+        if w0 /= 0 then
                   let
                     oow0 = 1.0/w0
                     gamma = atan r*cxi/(oow0-r*sxi)
                     in
                     [ w0, tl0, psi0 + gamma ]
-                    else [ w0, tl0, psi0 ]
+                  else [ w0, tl0, psi0 ]
 
 
 
@@ -106,8 +106,8 @@ fvABh0 v q = ABh0 aa bb h0 where
 
   -- calc Jacobian
   [drdx, drdy, rdxidx, rdxidy] =
-    if (r /= 0) then [xx/r, yy/r, yy/r, -xx/r]
-               else [0, 0, 0, 0]
+    if r /= 0 then [xx/r, yy/r, yy/r, -xx/r]
+             else [0, 0, 0, 0]
   dgdvar0 =    1.0/(1.0 + rw*rw - 2.0*rw*sxi)
   dgdx    =    dgdvar0*(w*cxi*drdx + w*(rw - sxi)*rdxidx)
   dgdy    =    dgdvar0*(w*cxi*drdy + w*(rw - sxi)*rdxidy)

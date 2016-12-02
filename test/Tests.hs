@@ -9,26 +9,28 @@ import Text.Printf
 -- import Data.String.Interpolate
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
-import Types (  M, V
-              , XMeas (..), HMeas (..), PMeas (..), Prong (..), VHMeas (..), QMeas (..)
+import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
               , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
               , showXMDist, origin
               , h2p, h2q, q2p
              )
 import Coeff ( invMass )
-import Matrix ( inv, sw, fromList, fromList2 )
 import Fit ( fit, fit' )
 
 main :: IO ()
 main = getArgs >>= parse
 
+parse :: [String] -> IO ()
 parse ["-h"] = usage   >> exit
 parse ["-v"] = version >> exit
 parse []     = test ["1"]
 parse args   = test args
 
+usage :: IO ()
 usage   = putStrLn "Usage: fvt [-vh] [test# ..]"
+version :: IO ()
 version = putStrLn "Haskell fvt 0.1"
+exit :: IO ()
 exit    = exitSuccess
 
 -- filter list of tracks of helices etc given list of indices in [a]
@@ -70,7 +72,7 @@ test :: [String] -> IO ()
 test arg =
   case arg of
     ["1"] -> do
-          VHMeas v hl <- hSlurp thisFile
+          VHMeas v hl <- hSlurp cmsFile
           mapM_ showHelix  hl
           mapM_ showMomentum hl
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
@@ -102,14 +104,16 @@ test arg =
           let
               listMinus1 :: Int -> Int -> [Int]
               listMinus1 n i = filter (/= i) [0..n]
-              fitMinus1 :: (VHMeas HMeas) -> Int -> Prong
+              fitMinus1 :: VHMeas HMeas -> Int -> Prong
               fitMinus1 (VHMeas v hl) = fit' v . hFilter hl . listMinus1 (length hl)
 
-          VHMeas v hl <- hSlurp $ fn
+          VHMeas v hl <- hSlurp fn
           mapM_ showMomentum hl
           let nh = length hl - 1
           putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
           mapM_ ( showProng . fitMinus1 (VHMeas v hl) ) [0..nh]
+
+    _ -> exit
 
 doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
 doFitTest v hl l5 = do
@@ -136,5 +140,5 @@ doFitTest v hl l5 = do
   putStrLn $ showXMeas "Refitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   showMMeas ("Inv Mass " ++ showLen ql ++ " refit")  $ invMass $ map q2p ql
-  putStrLn $ showXMDist ((showXMeas "final vertex at" vf)++", r =") vf origin
+  putStrLn $ showXMDist (showXMeas "final vertex at" vf ++ ", r =") vf origin
 
