@@ -3,7 +3,7 @@ module Types (
   M, V, M33, V3, V5, C44, XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), Prong (..), VHMeas (..)
              , X3, C33, Q3, H5, C55
-             , ABh0 (..), Chi2
+             , Jaco (..), Chi2
              , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
              , showXMDist, origin
              , h2p, h2q, q2p
@@ -35,7 +35,7 @@ instance Monoid (VHMeas a) where
 instance Functor VHMeas where -- apply f to each a
   fmap f (VHMeas v (a:as)) = VHMeas v (f a : fmap f as)
 
-data ABh0 = ABh0 M M M
+data Jaco = Jaco M M M
 
 type X3 = V
 type C33 = M

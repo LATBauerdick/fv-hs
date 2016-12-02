@@ -2,10 +2,10 @@
 module Fit ( fit, fit' ) where
 
 import Types ( XMeas (..), HMeas (..), QMeas (..)
-              , Prong (..), ABh0 (..), Chi2
+              , Prong (..), Jaco (..), Chi2
              ,X3, C33, Q3
              )
-import Coeff ( fvABh0, hv2q )
+import Coeff ( expand, hv2q )
 import Matrix ( inv, tr, sw, scalar, scale)
 import Debug.Trace ( trace )
 debug :: a -> String -> a
@@ -62,7 +62,7 @@ kalAdd v0 uu0 (HMeas h gg w2pt) ve qe chi20 iter = vm where
       goodEnough c0 c i = abs (c - c0) < chi2cut || i > iterMax where
           chi2cut = 0.5
           iterMax = 99 :: Int
-      ABh0 aa bb h0 = fvABh0 ve qe
+      Jaco aa bb h0 = expand ve qe
       aaT = tr aa
       bbT = tr bb
       ww = inv $ sw bb gg
@@ -74,8 +74,6 @@ kalAdd v0 uu0 (HMeas h gg w2pt) ve qe chi20 iter = vm where
       v = cc * (uu0 * v0 + aaT * gb * m)
       dm = m - aa * v
       q = ww * bbT * gg * dm --`debug` ("--> " ++ prettyMatrix uu0 ++ prettyMatrix (sw aa gb) ++ prettyMatrix (cc*uu0*v0) ++ prettyMatrix (cc*aaT*gb*m))
---      ee = - ww * bbT * gg * aa * cc
---      dd = ww + (sw ww (sw bb (sw gg (sw aaT cc))))
       chi2 = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
       ret = goodEnough chi20 chi2 iter
 --               `debug`  showXMeas (printf ">iter %d, chi2%8.1g, dr=%8.3f, v(x,y,z) ->" (iter::Int) (chi2::Double) (dr::Double)) (XMeas v cc) where dr = sqrt (x^2+y^2+z^2) ; [x,y,z]=toList 3 (v-v0)
@@ -96,7 +94,7 @@ ksmooth v hl = pr where
 ksm :: HMeas -> XMeas -> (QMeas, Chi2)
 ksm  (HMeas h gg w2pt) (XMeas x cc) = (QMeas q dd w2pt, chi2') -- `debug` ("≫" ++ show chi2)
   where
-    ABh0 aa bb h0 = fvABh0 x (hv2q h x)
+    Jaco aa bb h0 = expand x (hv2q h x)
     aaT = tr aa
     bbT = tr bb
     ww = inv $ sw bb gg

@@ -127,7 +127,7 @@ doFitTest v hl l5 = do
   let pl5             = map h2p $ hFilter hl l5
   showMMeas ("Inv Mass " ++ showLen pl5 ++ " helix") $ invMass pl5
 
-  putStrLn            "Fitting Vertex --------------------"
+  putStrLn             "Fitting Vertex --------------------"
   let Prong n vf ql cl = fit v hl
   putStrLn $ showXMeas "Fitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
@@ -135,8 +135,8 @@ doFitTest v hl l5 = do
   let pl5              = map q2p $ hFilter ql l5
   showMMeas ("Inv Mass " ++ showLen pl5 ++ " fit") $ invMass pl5
 
-  putStrLn            "Refitting Vertex-----------------"
-  let Prong n vf ql cl = fit v $ hFilter hl l5
+  putStrLn             "Refitting Vertex-----------------"
+  let Prong _n vf ql cl = fit v $ hFilter hl l5
   putStrLn $ showXMeas "Refitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   showMMeas ("Inv Mass " ++ showLen ql ++ " refit")  $ invMass $ map q2p ql

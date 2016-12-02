@@ -1,11 +1,11 @@
 -- file src/coeff.hs
 --
-module Coeff ( fvABh0, qv2h, hv2q, invMass, mass
+module Coeff ( expand, qv2h, hv2q, invMass, mass
              ) where
 
 import Types ( M, V3, V5
              , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
-             , ABh0 (..) )
+             , Jaco (..) )
 import Matrix ( toList, fromList, fromList2 )
 import Data.Fixed ( mod' )
 import Debug.Trace ( trace )
@@ -82,8 +82,8 @@ vmqm2hm (XMeas v _) (QMeas q _ w2pt) = HMeas h hh w2pt where
   h = qv2h q v
   hh = undefined
 
-fvABh0 :: M -> M -> ABh0
-fvABh0 v q = ABh0 aa bb h0 where
+expand :: M -> M -> Jaco
+expand v q = Jaco aa bb h0 where
   [xx, yy, z] = toList 3 v
   r = sqrt $ xx*xx + yy*yy
   phi  = atan2 yy xx
