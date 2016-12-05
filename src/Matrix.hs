@@ -41,10 +41,10 @@ scaleDiag :: Double -> M -> M
 scaleDiag s = (Data.Matrix.diagonal 0.0 . Data.Matrix.getDiag . Data.Matrix.scaleMatrix  s)
 
 tr :: M -> M
-tr m = Data.Matrix.transpose m
+tr = Data.Matrix.transpose
 
 sw :: M -> M -> M
-sw a b = (Data.Matrix.transpose a) * b* a
+sw a b = (tr a) * b * a
 
 inv' :: M -> M
 inv' m = either invErr id (Data.Matrix.inverse m)
