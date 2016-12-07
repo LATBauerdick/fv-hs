@@ -103,9 +103,7 @@ test arg =
 
     ["r"] -> do
       VHMeas v hl <- hSlurp thisFile
-      let Prong _n vf ql cl = fit v $ hFilter hl [0,2,3,4,5]
-      showMMeas "Inv Mass " $ invMass $ map q2p ql
-      rp 100 (VHMeas v (hFilter hl [0,2,3,4,5]))
+      rp 1000 (VHMeas v (hFilter hl [0,2,3,4,5]))
 
     [fn] -> do
           --mapM_ showMomentum hl

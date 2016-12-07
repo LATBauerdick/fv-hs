@@ -40,50 +40,49 @@ randV :: XMeas -> [Double] -> XMeas
 randV (XMeas v vv) rnd = XMeas v' vv where
   v'  = v3 $ zipWith (+) (l3 v) (l3 (chol vv * v3 rnd))
 
+-- randomize the helices in the supplied VHMeas
+-- taking normal-distributed random numbers off the (infinite) list of Doubles
+-- and return randomized VHMeas and tail of randoms list
 randVH :: VHMeas HMeas -> [Double] -> (VHMeas HMeas, [Double])
-randVH (VHMeas vm hl) rs = (VHMeas vm' hl', rsf) where
-  vm' = vm --randV vm rsv
-  (rsv, rsh) = splitAt 3 rs
-  (rsf, hl') = mapAccumL randH rsh hl
+randVH (VHMeas vm hl) rs = (VHMeas vm hl', rs') where
+  (rs', hl') = mapAccumL randH rs hl
 
+-- randomize a single helix parameters measurment, based on the cov matrix
+-- return randomized helix and "remaining" random numbers
 randH :: [Double] -> HMeas -> ([Double], HMeas)
 randH (r0:r1:r2:r3:r4:rs) (HMeas h hh w0) = (rs, HMeas h' hh w0) where
   h' = v5 $ zipWith (+) (l5 h) (l5 (chol hh * v5 [r0,r1,r2,r3,r4]))
 
 
--- create a list of histogram values (mapping XMeas -> Double using f)
--- as a function of randomized vertices
-drs :: XMeas -> (XMeas -> Double) -> [Double] -> [Double]
-drs v f rs = unfoldr (dr v f) rs
+-- create a list of values for histogramming, randomizing the supplied VHMeas
+-- using the list of normaly distributed random numbers
+-- mapping each randomized VHMeas -> Double using f
+-- also return "remaining" list of random numbers
+histVals :: VHMeas HMeas -> (VHMeas HMeas -> Double) -> [Double] -> [Double]
+histVals vh f rs = unfoldr (randomize vh f) rs
 
-dr :: XMeas -> (XMeas -> Double) -> [Double] -> Maybe (Double, [Double])
-dr v f (r0:r1:r2:rs) = Just (f (randV v [r0,r1,r2]), rs)
-
-getVx :: XMeas -> Double
-getVx (XMeas v _) = (!!) (l3 v) 2
-
-drs' :: VHMeas HMeas -> (VHMeas HMeas -> Double) -> [Double] -> [Double]
-drs' vh f rs = unfoldr (dr' vh f) rs
-
-dr' :: VHMeas HMeas -> (VHMeas HMeas -> Double) -> [Double] -> Maybe (Double, [Double])
-dr' vh f rs = Just (f (vh'), rs') where
+randomize :: VHMeas HMeas -> (VHMeas HMeas -> Double) -> [Double] -> Maybe (Double, [Double])
+randomize vh f rs = Just (f (vh'), rs') where
   (vh', rs') = randVH vh rs
 
+-- calc fitted invariant mass of VHMeas
 fm :: VHMeas HMeas -> Double
 fm (VHMeas v hl) = m where
   Prong _ _ ql _ = fit v hl
-  MMeas m _ = invMass $ map q2p ql
+  MMeas !m _ = invMass $ map q2p ql
 
 rp :: Int -> VHMeas HMeas -> IO ()
 rp cnt (VHMeas v hl) = do
-  g <- newStdGen
-  putStrLn . display . process . take cnt . prep $  normals g
-
-  let hist = histogram binSturges $ take cnt (drs' (VHMeas v hl) fm (normals g))
-  plot "vz.png" hist
   let Prong _ _ ql _ = fit v hl
   showMMeas "Inv Mass " $ invMass $ map q2p ql
 
+  g <- newStdGen
+  let hist = histogram binSturges $ take cnt
+              (histVals (VHMeas v hl) fm (normals g))
+  _ <- plot "invMass.png" hist
+
+  putStrLn . display . process . take cnt . prep $  normals g
+  return ()
   -- putStrLn $ showXMeas "input  " v
   -- let v' = randV v $ take 3 ( normals g )
   -- putStrLn $ showXMeas "smeared" v'
