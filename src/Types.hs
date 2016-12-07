@@ -1,9 +1,11 @@
 -- file src/Fit.hs
 module Types (
-  M, V, M33, V3, V5, C44, XMeas (..), HMeas (..), QMeas (..)
+                M, V, M33, V3, V5, C44
+             , XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), Prong (..), VHMeas (..)
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
+             , v3, l3, v5, l5
              , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
              , showXMDist, origin
              , h2p, h2q, q2p
@@ -62,7 +64,22 @@ instance Monoid PMeas where
 type D = Double
 data MMeas = MMeas D D deriving Show -- mass and error
 
+v3 :: [Double] -> V3
+v3 = Matrix.fromList 3
+l3 :: V3 -> [Double]
+l3 = Matrix.toList 3
+v5 :: [Double] -> V5
+v5 = Matrix.fromList 5
+l5 :: V5 -> [Double]
+l5 = Matrix.toList 5
 -- show instances -- refactor!!
+
+-- XMeas -----------------------------------------------------------
+--
+(+.) :: XMeas -> XMeas -> XMeas
+(+.) (XMeas v1 vv1) (XMeas v2 vv2) = XMeas v vv where
+  v  = v1 + v2
+  vv = vv1 + vv2
 
 -- return a string showing vertext position vector with errors
 showXMeas :: String -> XMeas -> String
@@ -93,8 +110,8 @@ origin = XMeas (Data.Matrix.fromLists [[0.0,0.0,0.0]])
 showMMeas :: String -> MMeas -> IO ()
 showMMeas s (MMeas m dm) = do
   putStr s
-  printf "%8.3f ± %8.3f" (m::Double) (dm::Double)
-  putStrLn " GeV"
+  printf "%8.1f ± %8.1f" (m*1000.0) (dm*1000.0)
+  putStrLn " MeV"
 
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
 showPMeas :: String -> PMeas -> IO ()

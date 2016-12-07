@@ -1,6 +1,6 @@
 -- file: test.hs
 --
-module Main ( main) where
+module Main ( main ) where
 
 import System.Environment
 import System.Exit
@@ -16,6 +16,8 @@ import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
              )
 import Coeff ( invMass )
 import Fit ( fit, fit' )
+
+import Random ( rp )
 
 main :: IO ()
 main = getArgs >>= parse
@@ -72,7 +74,7 @@ test :: [String] -> IO ()
 test arg =
   case arg of
     ["1"] -> do
-          VHMeas v hl <- hSlurp cmsFile
+          VHMeas v hl <- hSlurp thisFile
           mapM_ showHelix  hl
           mapM_ showMomentum hl
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
@@ -93,11 +95,17 @@ test arg =
           showProng $ fit' v hl
 
 -- CMS test file
-    ["4"] -> do
+    ["c"] -> do
           VHMeas v hl <- hSlurp cmsFile
           mapM_ showHelix  hl
           mapM_ showMomentum hl
           doFitTest v hl [0..]
+
+    ["r"] -> do
+      VHMeas v hl <- hSlurp thisFile
+      let Prong _n vf ql cl = fit v $ hFilter hl [0,2,3,4,5]
+      showMMeas "Inv Mass " $ invMass $ map q2p ql
+      rp 100 (VHMeas v (hFilter hl [0,2,3,4,5]))
 
     [fn] -> do
           --mapM_ showMomentum hl

@@ -13,7 +13,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  ghc-options:        -Wall -fno-warn-unused-binds -fno-warn-orphans -XQuasiQuotes
+  ghc-options:        -Wall -fno-warn-unused-binds -fno-warn-orphans
   hs-source-dirs:     src
   exposed-modules:    Fit
                     , Types
@@ -22,19 +22,26 @@ library
   build-depends:      base >= 4.7 && < 5
                     , matrix
                     , interpolate
+                    , random
                     , vector
                     , split
                     , directory
   default-language:   Haskell2010
 
 executable fvt
-  hs-source-dirs:     test
   main-is:            Tests.hs
-  default-language:   Haskell2010
   build-depends:      base >= 4.7 && < 5
                     , fv
                     , matrix
                     , interpolate
+                    , random
+                    , normaldistribution
+                    , gnuplot
+                    , Histogram
                     , vector
                     , split
                     , directory
+  hs-source-dirs:     test
+  other-modules:      Input
+                    , Random
+  default-language:   Haskell2010

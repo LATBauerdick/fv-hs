@@ -1,12 +1,12 @@
 -- file src/Fit.hs
 module Fit ( fit, fit' ) where
 
-import Types ( XMeas (..), HMeas (..), QMeas (..)
+import Types (  XMeas (..), HMeas (..), QMeas (..)
               , Prong (..), Jaco (..), Chi2
-             ,X3, C33, Q3
+              , X3, C33, Q3
              )
 import Coeff ( expand, hv2q )
-import Matrix ( inv, tr, sw, scalar, scale)
+import Matrix ( inv, tr, (^+), sw, scalar, scale)
 import Debug.Trace ( trace )
 debug :: a -> String -> a
 debug = flip trace
@@ -91,7 +91,7 @@ ksm :: HMeas -> XMeas -> (QMeas, Chi2)
 ksm  (HMeas h gg w0) (XMeas x cc) = (QMeas q dd w0, chi2') -- `debug` ("≫" ++ show chi2)
   where
     Jaco aa bb h0 = expand x (hv2q h x)
-    aaT  = tr aa
+    aaT  = tr aa-- (aa ^+)
     bbT  = tr bb
     ww   = inv (sw bb gg)
     p    = h - h0

@@ -1,9 +1,12 @@
-module Matrix ( inv, tr, sw, sub, sub2, scalar, scaleDiag, diagonal, scale
+{-# LANGUAGE PostfixOperators #-}
+
+module Matrix ( inv, tr, (^+), sw, chol
+              , sub, sub2, scalar, scaleDiag, diagonal, scale
               , toList, fromList, fromList2 ) where
 
 import Debug.Trace ( trace )
 import Text.Printf
-import qualified Data.Matrix ( Matrix, inverse
+import qualified Data.Matrix ( Matrix, inverse, cholDecomp
                              , identity, nrows, transpose, elementwise
                              , rowVector, colVector, getCol, multStd2
                              , zero, scaleMatrix
@@ -23,6 +26,7 @@ sub2 :: Int -> M -> M
 sub2 n m = Data.Matrix.submatrix 1 n 1 n m
 scalar :: M -> Double
 scalar m = m Data.Matrix.! (1,1)
+
 toList :: Int -> M -> [Double]
 toList n m = take n $ Data.Matrix.toList m
 
@@ -43,8 +47,14 @@ scaleDiag s = (Data.Matrix.diagonal 0.0 . Data.Matrix.getDiag . Data.Matrix.scal
 tr :: M -> M
 tr = Data.Matrix.transpose
 
+(^+) :: M -> M
+(^+) = Data.Matrix.transpose
+
 sw :: M -> M -> M
 sw a b = (tr a) * b * a
+
+chol :: M -> M
+chol a = Data.Matrix.cholDecomp a
 
 inv' :: M -> M
 inv' m = either invErr id (Data.Matrix.inverse m)
