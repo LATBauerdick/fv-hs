@@ -39,6 +39,7 @@ executable fvt
                     , normaldistribution
                     , gnuplot
                     , Histogram
+                    , statistics
                     , vector
                     , split
                     , directory

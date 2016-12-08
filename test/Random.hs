@@ -1,9 +1,12 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Random ( rp ) where
+module Random ( doRandom ) where
 
 import System.Random
 import Data.Random.Normal
+import Statistics.Sample ( meanVarianceUnb )
+
+import qualified Data.Vector.Unboxed as V ( Vector, fromListN, toList )
 
 import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
 
@@ -66,23 +69,25 @@ randomize vh f rs = Just (f (vh'), rs') where
   (vh', rs') = randVH vh rs
 
 -- calc fitted invariant mass of VHMeas
-fm :: VHMeas HMeas -> Double
-fm (VHMeas v hl) = m where
+fitMass :: VHMeas HMeas -> Double
+fitMass (VHMeas v hl) = m where
   Prong _ _ ql _ = fit v hl
-  MMeas !m _ = invMass $ map q2p ql
+  (MMeas !m _) = invMass $ map q2p ql
 
-rp :: Int -> VHMeas HMeas -> IO ()
-rp cnt (VHMeas v hl) = do
+doRandom :: Int -> VHMeas HMeas -> IO ()
+doRandom cnt (VHMeas v hl) = do
   let Prong _ _ ql _ = fit v hl
-  showMMeas "Inv Mass " $ invMass $ map q2p ql
+  showMMeas "Inv Mass  " $ invMass $ map q2p ql
 
   g <- newStdGen
-  let hist = histogram binSturges $ take cnt
-              (histVals (VHMeas v hl) fm (normals g))
+  let hf :: V.Vector Double
+      hf = V.fromListN cnt (histVals (VHMeas v hl) fitMass (normals g))
+      (mean, var) = meanVarianceUnb hf
+      hist = histogram binSturges (V.toList hf)
+  showMMeas "Mean Mass " (MMeas mean (sqrt var))
   _ <- plot "invMass.png" hist
-
-  putStrLn . display . process . take cnt . prep $  normals g
   return ()
+  -- putStrLn . display . process . take cnt . prep $  normals g
   -- putStrLn $ showXMeas "input  " v
   -- let v' = randV v $ take 3 ( normals g )
   -- putStrLn $ showXMeas "smeared" v'

@@ -17,7 +17,7 @@ import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
 import Coeff ( invMass )
 import Fit ( fit, fit' )
 
-import Random ( rp )
+import Random ( doRandom )
 
 main :: IO ()
 main = getArgs >>= parse
@@ -103,7 +103,7 @@ test arg =
 
     ["r"] -> do
       VHMeas v hl <- hSlurp thisFile
-      rp 1000 (VHMeas v (hFilter hl [0,2,3,4,5]))
+      doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5]))
 
     [fn] -> do
           --mapM_ showMomentum hl
