@@ -14,7 +14,7 @@ import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
              , showXMeas, showMMeas, q2p, v3,l3,v5,l5 )
 import Coeff ( invMass )
 import Matrix ( toList, fromList, chol, scalar )
-import Fit ( fit' )
+import Fit ( fit )
 
 import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
@@ -71,12 +71,12 @@ randomize vh f rs = Just (f (vh'), rs') where
 -- calc fitted invariant mass of VHMeas
 fitMass :: VHMeas -> Double
 fitMass vm = m where
-  Prong _ _ ql _ = fit' vm
+  Prong _ _ ql _ = fit vm
   (MMeas !m _) = invMass $ map q2p ql
 
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
-  let Prong _ _ ql _ = fit' vm
+  let Prong _ _ ql _ = fit vm
   showMMeas "Inv Mass  " $ invMass $ map q2p ql
 
   g <- newStdGen

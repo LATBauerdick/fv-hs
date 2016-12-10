@@ -15,7 +15,7 @@ import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
               , h2p, h2q, q2p
              )
 import Coeff ( invMass )
-import Fit ( fit, fitw, fit' )
+import Fit ( fit, fitw )
 
 import Random ( doRandom )
 
@@ -134,7 +134,7 @@ doFitTest (VHMeas v hl) l5 = do
   showMMeas ("Inv Mass " ++ showLen pl5 ++ " helix") $ invMass pl5
 
   putStrLn             "Fitting Vertex --------------------"
-  let Prong n vf ql cl = fit' (VHMeas v hl)
+  let Prong n vf ql cl = fit (VHMeas v hl)
   putStrLn $ showXMeas "Fitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   showMMeas ("Inv Mass " ++ showLen ql ++ " fit") $ invMass $map q2p ql
@@ -142,7 +142,7 @@ doFitTest (VHMeas v hl) l5 = do
   showMMeas ("Inv Mass " ++ showLen pl5 ++ " fit") $ invMass pl5
 
   putStrLn             "Refitting Vertex-----------------"
-  let Prong _n vf ql cl = fit' (VHMeas v (hFilter hl l5))
+  let Prong _n vf ql cl = fit (VHMeas v (hFilter hl l5))
   putStrLn $ showXMeas "Refitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   showMMeas ("Inv Mass " ++ showLen ql ++ " refit")  $ invMass $ map q2p ql
