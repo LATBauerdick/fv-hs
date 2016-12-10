@@ -108,40 +108,43 @@ ksm  (HMeas h gg w0) (XMeas x cc) = (QMeas q dd w0, chi2') -- `debug` ("≫" ++ 
     dx   = x - x'
     chi2' = scalar (sw dx uu' + sw r gg)
 
+{-
+  data Prong = Prong N XMeas [QMeas] [Chi2] ...
+  data VHMeas = VHMeas XMeas [HMeas] ...
+  instance Monoid VHMeas where ...
+-}
 fit' :: VHMeas -> Prong
 fit' = ksmooth' . kFilter'
 
 kFilter' :: VHMeas -> VHMeas
-kFilter' (VHMeas x ps) = VHMeas (foldl kalAdd' x ps) ps
+ksmooth' :: VHMeas -> Prong
+kFilter' (VHMeas x ps) = VHMeas (foldl kAdd' x ps) ps
 
-kalAdd' :: XMeas -> HMeas -> XMeas
-kalAdd' (XMeas v vv) (HMeas h hh w0) = kfl' x_km1 p_k x_e q_e large zero where
+kAdd' :: XMeas -> HMeas -> XMeas
+kAdd' (XMeas v vv) (HMeas h hh w0) = kfl' x_km1 p_k x_e q_e 1e6 0 where
   x_km1 = XMeas v (inv vv)
-  p_k = HMeas h (inv hh) w0
-  x_e = v
-  q_e = Coeff.hv2q h v
-  large = 1e6
-  zero = 0 :: Int
+  p_k   = HMeas h (inv hh) w0
+  x_e   = v
+  q_e   = Coeff.hv2q h v
 
 kfl' :: XMeas -> HMeas -> X3 -> Q3 -> Double -> Int -> XMeas
 kfl' (XMeas v0 uu0) (HMeas h gg w0) ve qe chi2_0 iter = xm where
   Jaco aa bb h0 = Coeff.expand ve qe
-  aaT  = tr aa
-  bbT  = tr bb
-  ww   = inv (sw bb gg)
-  gb   = gg - sw gg (sw bbT ww)
-  uu   = uu0 + sw aa gb
-  cc   = inv uu
-  m    =  h - h0
-  v    = cc * (uu0 * v0 + aaT * gb * m)
-  dm   = m - aa * v
-  q    = ww * bbT * gg * dm
-  chi2 = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
-  xm   = if goodEnough chi2_0 chi2 iter
+  aaT   = tr aa
+  bbT   = tr bb
+  ww    = inv (sw bb gg)
+  gb    = gg - sw gg (sw bbT ww)
+  uu    = uu0 + sw aa gb
+  cc    = inv uu
+  m     =  h - h0
+  v     = cc * (uu0 * v0 + aaT * gb * m)
+  dm    = m - aa * v
+  q     = ww * bbT * gg * dm
+  chi2  = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
+  xm    = if goodEnough chi2_0 chi2 iter
             then XMeas v cc
             else kfl' (XMeas v0 uu0) (HMeas h gg w0) v q chi2 (iter + 1)
 
-ksmooth' :: VHMeas -> Prong
 ksmooth' (VHMeas v hl) = Prong (length ql) v ql chi2l where
   (ql, chi2l) = unzip $ map (ksm' v) hl
 
