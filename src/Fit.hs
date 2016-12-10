@@ -121,22 +121,21 @@ kAdd (XMeas v vv) (HMeas h hh w0) = kfl x_km1 p_k x_e q_e 1e6 0 where
   p_k   = HMeas h (inv hh) w0
   x_e   = v
   q_e   = Coeff.hv2q h v
-
-kfl :: XMeas -> HMeas -> X3 -> Q3 -> Double -> Int -> XMeas
-kfl (XMeas v0 uu0) (HMeas h gg w0) ve qe chi2_0 iter = xm where
-  Jaco aa bb h0 = Coeff.expand ve qe
-  aaT   = tr aa; bbT = tr bb
-  ww    = inv (sw bb gg)
-  gb    = gg - sw gg (sw bbT ww)
-  uu    = uu0 + sw aa gb; cc = inv uu
-  m     = h - h0
-  v     = cc * (uu0 * v0 + aaT * gb * m)
-  dm    = m - aa * v
-  q     = ww * bbT * gg * dm
-  chi2  = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
-  xm    = if goodEnough chi2_0 chi2 iter
-            then XMeas v cc
-            else kfl (XMeas v0 uu0) (HMeas h gg w0) v q chi2 (iter + 1)
+  kfl (XMeas v0 uu0) (HMeas h gg w0) ve qe chi2_0 iter =
+    if goodEnough chi2_0 chi2 iter
+      then XMeas v cc
+      else kfl (XMeas v0 uu0) (HMeas h gg w0) v q chi2 (iter + 1)
+      where
+        Jaco aa bb h0 = Coeff.expand ve qe
+        aaT   = tr aa; bbT = tr bb
+        ww    = inv (sw bb gg)
+        gb    = gg - sw gg (sw bbT ww)
+        uu    = uu0 + sw aa gb; cc = inv uu
+        m     = h - h0
+        v     = cc * (uu0 * v0 + aaT * gb * m)
+        dm    = m - aa * v
+        q     = ww * bbT * gg * dm
+        chi2  = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
 
 ksmooth (VHMeas v hl) = Prong (length ql) v ql chi2l where
   (ql, chi2l) = unzip $ map (ksm v) hl
