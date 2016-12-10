@@ -125,13 +125,11 @@ kAdd (XMeas v vv) (HMeas h hh w0) = kfl x_km1 p_k x_e q_e 1e6 0 where
 kfl :: XMeas -> HMeas -> X3 -> Q3 -> Double -> Int -> XMeas
 kfl (XMeas v0 uu0) (HMeas h gg w0) ve qe chi2_0 iter = xm where
   Jaco aa bb h0 = Coeff.expand ve qe
-  aaT   = tr aa
-  bbT   = tr bb
+  aaT   = tr aa; bbT = tr bb
   ww    = inv (sw bb gg)
   gb    = gg - sw gg (sw bbT ww)
-  uu    = uu0 + sw aa gb
-  cc    = inv uu
-  m     =  h - h0
+  uu    = uu0 + sw aa gb; cc = inv uu
+  m     = h - h0
   v     = cc * (uu0 * v0 + aaT * gb * m)
   dm    = m - aa * v
   q     = ww * bbT * gg * dm
@@ -147,7 +145,7 @@ ksmooth (VHMeas v hl) = Prong (length ql) v ql chi2l where
 ksm :: XMeas -> HMeas -> (QMeas, Chi2)
 ksm (XMeas x cc) (HMeas h hh w0) = (QMeas q dd w0, chi2) where
     Jaco aa bb h0 = Coeff.expand x (Coeff.hv2q h x)
-    aaT  = tr aa-- (aa ^+)
+    aaT  = tr aa
     bbT  = tr bb
     gg   = inv hh
     ww   = inv (sw bb gg)
