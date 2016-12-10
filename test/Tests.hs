@@ -15,7 +15,7 @@ import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
               , h2p, h2q, q2p
              )
 import Coeff ( invMass )
-import Fit ( fit, fit' )
+import Fit ( fit, fitw, fit' )
 
 import Random ( doRandom )
 
@@ -78,28 +78,28 @@ test arg =
           mapM_ showHelix  hl
           mapM_ showMomentum hl
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
-          doFitTest v hl l5
+          doFitTest (VHMeas v hl) l5
 
     ["2"] -> do
           VHMeas v hl <- hSlurp otherFile
           mapM_ showMomentum hl
           let l5 = [0,1,2,4,5]
-          doFitTest v hl l5
+          doFitTest (VHMeas v hl) l5
 
 -- slurp in all event data files from ./dat and append helices
     ["3"] -> do
           ps <- dataFiles "dat"
           VHMeas v hl <- hSlurpAll ps
           mapM_ showMomentum hl
-          doFitTest v hl [0..]
-          showProng $ fit' v hl
+          doFitTest (VHMeas v hl) [0..]
+          showProng $ fitw v hl
 
 -- CMS test file
     ["c"] -> do
           VHMeas v hl <- hSlurp cmsFile
           mapM_ showHelix  hl
           mapM_ showMomentum hl
-          doFitTest v hl [0..]
+          doFitTest (VHMeas v hl) [0..]
 
     ["r"] -> do
       VHMeas v hl <- hSlurp thisFile
@@ -110,8 +110,8 @@ test arg =
           let
               listMinus1 :: Int -> Int -> [Int]
               listMinus1 n i = filter (/= i) [0..n]
-              fitMinus1 :: VHMeas HMeas -> Int -> Prong
-              fitMinus1 (VHMeas v hl) = fit' v . hFilter hl . listMinus1 (length hl)
+              fitMinus1 :: VHMeas -> Int -> Prong
+              fitMinus1 (VHMeas v hl) = fitw v . hFilter hl . listMinus1 (length hl)
 
           VHMeas v hl <- hSlurp fn
           mapM_ showMomentum hl
@@ -121,8 +121,8 @@ test arg =
 
     _ -> exit
 
-doFitTest :: XMeas -> [HMeas] -> [Int] -> IO ()
-doFitTest v hl l5 = do
+doFitTest :: VHMeas -> [Int] -> IO ()
+doFitTest (VHMeas v hl) l5 = do
   let showLen xs = show $ length xs
   let showQChi2 (qm, chi2, i) = showQMeas (printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double) ++ "pt,pz,fi,E ->") qm
 
@@ -134,7 +134,7 @@ doFitTest v hl l5 = do
   showMMeas ("Inv Mass " ++ showLen pl5 ++ " helix") $ invMass pl5
 
   putStrLn             "Fitting Vertex --------------------"
-  let Prong n vf ql cl = fit v hl
+  let Prong n vf ql cl = fit' (VHMeas v hl)
   putStrLn $ showXMeas "Fitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   showMMeas ("Inv Mass " ++ showLen ql ++ " fit") $ invMass $map q2p ql
@@ -142,7 +142,7 @@ doFitTest v hl l5 = do
   showMMeas ("Inv Mass " ++ showLen pl5 ++ " fit") $ invMass pl5
 
   putStrLn             "Refitting Vertex-----------------"
-  let Prong _n vf ql cl = fit v $ hFilter hl l5
+  let Prong _n vf ql cl = fit' (VHMeas v (hFilter hl l5))
   putStrLn $ showXMeas "Refitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   showMMeas ("Inv Mass " ++ showLen ql ++ " refit")  $ invMass $ map q2p ql

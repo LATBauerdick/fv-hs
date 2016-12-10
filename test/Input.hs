@@ -12,7 +12,7 @@ debug = flip trace
 
 -- slurp in the measurements of vertex and helices
 -- from a list of Doubles
-hSlurp' :: [Double] -> VHMeas HMeas
+hSlurp' :: [Double] -> VHMeas
 hSlurp' inp = VHMeas v hl where
   v0        = fromList 3 $ take 3 inp   -- initial vertex pos
   cv0       = scaleDiag 10000.0 $ fromList2 3 3 $ take 9 $ drop 3 inp -- cov matrix
@@ -62,14 +62,14 @@ hSlurp' inp = VHMeas v hl where
               in HMeas h' ch' w0
 -- slurps up a bunch of Doubles from a text data file into a list
 -- and parses them w/ hSlurp' to a vertex and a set of helix measurements
-hSlurp :: String -> IO (VHMeas HMeas)
+hSlurp :: String -> IO VHMeas
 hSlurp path = do
   ds <- readFile path
   return $ hSlurp' $ map readDouble (words ds)
     where readDouble = read :: String -> Double
 
 -- slurp all files named in a list of pathNames
-hSlurpAll :: [String] -> IO (VHMeas HMeas)
+hSlurpAll :: [String] -> IO VHMeas
 hSlurpAll (x:[]) = hSlurp x
 hSlurpAll (x:xs) = do
   v0 <- hSlurp x

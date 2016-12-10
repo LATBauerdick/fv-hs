@@ -31,11 +31,10 @@ type N     = Int
 type Chi2  = Double
 data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
 
-data VHMeas a = VHMeas XMeas [a] deriving Show
-instance Monoid (VHMeas a) where
-  mappend (VHMeas v as) (VHMeas _ as') = VHMeas v ( as ++ as' ) -- ???
-instance Functor VHMeas where -- apply f to each a
-  fmap f (VHMeas v (a:as)) = VHMeas v (f a : fmap f as)
+data VHMeas = VHMeas XMeas [HMeas] deriving Show
+instance Monoid VHMeas where
+  mappend (VHMeas v hs) (VHMeas _ hs') = VHMeas v ( hs ++ hs' ) -- ???
+  mempty = VHMeas (XMeas (Matrix.fromList 3 [0,0,0]) (Data.Matrix.zero 3 3)) []
 
 data Jaco = Jaco M M M
 

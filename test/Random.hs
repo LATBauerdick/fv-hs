@@ -4,7 +4,7 @@ module Random ( doRandom ) where
 
 import System.Random
 import Data.Random.Normal
-import Statistics.Sample ( meanVarianceUnb )
+import Statistics.Sample ( meanVariance )
 
 import qualified Data.Vector.Unboxed as V ( Vector, fromListN, toList )
 
@@ -14,7 +14,7 @@ import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
              , showXMeas, showMMeas, q2p, v3,l3,v5,l5 )
 import Coeff ( invMass )
 import Matrix ( toList, fromList, chol, scalar )
-import Fit ( fit )
+import Fit ( fit' )
 
 import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
@@ -46,7 +46,7 @@ randV (XMeas v vv) rnd = XMeas v' vv where
 -- randomize the helices in the supplied VHMeas
 -- taking normal-distributed random numbers off the (infinite) list of Doubles
 -- and return randomized VHMeas and tail of randoms list
-randVH :: VHMeas HMeas -> [Double] -> (VHMeas HMeas, [Double])
+randVH :: VHMeas -> [Double] -> (VHMeas, [Double])
 randVH (VHMeas vm hl) rs = (VHMeas vm hl', rs') where
   (rs', hl') = mapAccumL randH rs hl
 
@@ -61,28 +61,28 @@ randH (r0:r1:r2:r3:r4:rs) (HMeas h hh w0) = (rs, HMeas h' hh w0) where
 -- using the list of normaly distributed random numbers
 -- mapping each randomized VHMeas -> Double using f
 -- also return "remaining" list of random numbers
-histVals :: VHMeas HMeas -> (VHMeas HMeas -> Double) -> [Double] -> [Double]
+histVals :: VHMeas -> (VHMeas -> Double) -> [Double] -> [Double]
 histVals vh f rs = unfoldr (randomize vh f) rs
 
-randomize :: VHMeas HMeas -> (VHMeas HMeas -> Double) -> [Double] -> Maybe (Double, [Double])
+randomize :: VHMeas -> (VHMeas -> Double) -> [Double] -> Maybe (Double, [Double])
 randomize vh f rs = Just (f (vh'), rs') where
   (vh', rs') = randVH vh rs
 
 -- calc fitted invariant mass of VHMeas
-fitMass :: VHMeas HMeas -> Double
-fitMass (VHMeas v hl) = m where
-  Prong _ _ ql _ = fit v hl
+fitMass :: VHMeas -> Double
+fitMass vm = m where
+  Prong _ _ ql _ = fit' vm
   (MMeas !m _) = invMass $ map q2p ql
 
-doRandom :: Int -> VHMeas HMeas -> IO ()
-doRandom cnt (VHMeas v hl) = do
-  let Prong _ _ ql _ = fit v hl
+doRandom :: Int -> VHMeas -> IO ()
+doRandom cnt vm = do
+  let Prong _ _ ql _ = fit' vm
   showMMeas "Inv Mass  " $ invMass $ map q2p ql
 
   g <- newStdGen
   let hf :: V.Vector Double
-      hf = V.fromListN cnt (histVals (VHMeas v hl) fitMass (normals g))
-      (mean, var) = meanVarianceUnb hf
+      hf = V.fromListN cnt (histVals vm fitMass (normals g))
+      (mean, var) = meanVariance hf
       hist = histogram binSturges (V.toList hf)
   showMMeas "Mean Mass " (MMeas mean (sqrt var))
   _ <- plot "invMass.png" hist
