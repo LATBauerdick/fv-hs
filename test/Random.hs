@@ -77,7 +77,7 @@ fitMass vm = m where
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
   let Prong _ _ ql _ = fit vm
-  showMMeas "Inv Mass  " $ invMass $ map q2p ql
+  showMMeas "Fit Mass  " $ invMass $ map q2p ql
 
   g <- newStdGen
   let hf :: V.Vector Double
