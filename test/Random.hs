@@ -11,7 +11,7 @@ import qualified Data.Vector.Unboxed as V ( Vector, fromListN, toList )
 import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
 
 import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
-             , showXMeas, showMMeas, q2p, v3,l3,v5,l5 )
+             , showXMeas, q2p, v3,l3,v5,l5 )
 import Coeff ( invMass )
 import Matrix ( toList, fromList, chol, scalar )
 import Fit ( fit )
@@ -51,7 +51,7 @@ randomize vh f rs = Just (f (vh'), rs') where
 -- taking normal-distributed random numbers off the (infinite) list of Doubles
 -- and return randomized VHMeas and tail of randoms list
 randVH :: VHMeas -> [Double] -> (VHMeas, [Double])
-randVH (VHMeas vm hl) rs = (VHMeas vm hl', rs') where
+randVH (VHMeas v hl) rs = (VHMeas v hl', rs') where
   (rs', hl') = mapAccumL randH rs hl
 
 -- randomize a single helix parameters measurment, based on the cov matrix
@@ -64,21 +64,20 @@ randH (r0:r1:r2:r3:r4:rs) (HMeas h hh w0) = (rs, HMeas h' hh w0) where
 fitMass :: VHMeas -> Double
 fitMass vm = m where
   Prong _ _ ql _ = fit vm
-  (MMeas !m _) = invMass $ map q2p ql
+  (MMeas m _) = invMass $ map q2p ql
 {-
 VHMeas v hl <- hSlurp thisFile
 doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5])) -}
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
   let Prong _ _ ql _ = fit vm
-  showMMeas "Fit Mass  " $ invMass $ map q2p ql
+  putStrLn $ "Fit Mass  " ++ (show . invMass . map q2p) ql
 
   g <- newStdGen
   let hf :: V.Vector Double
       hf = V.fromListN cnt (histVals vm fitMass (normals g))
       (mean, var) = meanVariance hf
-  showMMeas "Mean Mass " (MMeas mean (sqrt var))
-
+  putStrLn $ "Mean Mass " ++ show (MMeas mean (sqrt var))
   let hist = histogram binSturges (V.toList hf)
   _ <- plot "invMass.png" hist
   return ()

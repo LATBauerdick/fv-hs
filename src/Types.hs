@@ -6,7 +6,7 @@ module Types (
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
              , v3, l3, v5, l5
-             , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
+             , showXMeas, showPMeas, showQMeas, showHMeas
              , showXMDist, origin
              , h2p, h2q, q2p
              , mπ
@@ -61,7 +61,10 @@ instance Monoid PMeas where
 --   fmap f (PMeas p cp) = f p cp
 
 type D = Double
-data MMeas = MMeas D D deriving Show -- mass and error
+data MMeas = MMeas D D -- mass and error
+instance Show MMeas where
+  show (MMeas m dm) = printf "%8.1f ± %8.1f MeV" (m*1000.0) (dm*1000.0)
+
 
 v3 :: [Double] -> V3
 v3 = Matrix.fromList 3
@@ -105,12 +108,6 @@ showXMDist s0 (XMeas v0 vv0) (XMeas v1 vv1) = s where
 origin :: XMeas
 origin = XMeas (Data.Matrix.fromLists [[0.0,0.0,0.0]])
             (Data.Matrix.zero 3 3 :: C33)
-
-showMMeas :: String -> MMeas -> IO ()
-showMMeas s (MMeas m dm) = do
-  putStr s
-  printf "%8.1f ± %8.1f" (m*1000.0) (dm*1000.0)
-  putStrLn " MeV"
 
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
 showPMeas :: String -> PMeas -> IO ()

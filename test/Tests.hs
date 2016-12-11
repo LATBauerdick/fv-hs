@@ -10,7 +10,7 @@ import Text.Printf
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
-              , showXMeas, showPMeas, showQMeas, showMMeas, showHMeas
+              , showXMeas, showPMeas, showQMeas, showHMeas
               , showXMDist, origin
               , h2p, h2q, q2p
              )
@@ -68,7 +68,7 @@ showProng (Prong _ v ql cl) = do
       st = showXMDist (printf "chi2tot ->%8.1f, r ->" (sum cl::Double)) v origin
 --      st = showXMDist ( [i|chi2tot ->#{sum cl}, r ->|]) v origin
       sh = showCl (st ++ ", chi2s ->") cl ++ ", Mass ->"
-  showMMeas sh $ invMass (map q2p ql)
+  putStrLn $ sh ++ show (invMass (map q2p ql))
 
 test :: [String] -> IO ()
 test arg =
@@ -129,22 +129,22 @@ doFitTest (VHMeas v hl) l5 = do
   putStrLn $ showXMeas "initial vertex position ->" v
 
   let pl              = map h2p hl
-  showMMeas ("Inv Mass " ++ showLen pl ++ " helix") $ invMass pl
+  putStrLn $ ("Inv Mass " ++ showLen pl ++ " helix") ++ show (invMass pl)
   let pl5             = map h2p $ hFilter hl l5
-  showMMeas ("Inv Mass " ++ showLen pl5 ++ " helix") $ invMass pl5
+  putStrLn $ ("Inv Mass " ++ showLen pl5 ++ " helix") ++ show (invMass pl5)
 
   putStrLn             "Fitting Vertex --------------------"
   let Prong n vf ql cl = fit (VHMeas v hl)
   putStrLn $ showXMeas "Fitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
-  showMMeas ("Inv Mass " ++ showLen ql ++ " fit") $ invMass $map q2p ql
+  putStrLn $ "Inv Mass " ++ showLen ql ++ " fit" ++ show (invMass $map q2p ql)
   let pl5              = map q2p $ hFilter ql l5
-  showMMeas ("Inv Mass " ++ showLen pl5 ++ " fit") $ invMass pl5
+  putStrLn $ "Inv Mass " ++ showLen pl5 ++ " fit" ++ show (invMass pl5)
 
   putStrLn             "Refitting Vertex-----------------"
   let Prong _n vf ql cl = fit (VHMeas v (hFilter hl l5))
   putStrLn $ showXMeas "Refitted vertex ->" vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
-  showMMeas ("Inv Mass " ++ showLen ql ++ " refit")  $ invMass $ map q2p ql
+  putStrLn $ "Inv Mass " ++ showLen ql ++ " refit" ++ show (invMass $ map q2p ql)
   putStrLn $ showXMDist (showXMeas "final vertex at" vf ++ ", r =") vf origin
 
