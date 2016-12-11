@@ -36,12 +36,16 @@ display (heads, coins) = "π = "  ++ (show $ 4.0 * fromIntegral heads / fromInte
 prep :: [Double] -> [(Double, Double)]
 prep (a:b:r) = (a,b):prep r
 
--- return randomized XMeas vector according to its covariance matrix,
--- using -> 3 normal distributed random numbers
+-- create a list of values for histogramming, randomizing the supplied VHMeas
+-- using the list of normaly distributed random numbers
+-- mapping each randomized VHMeas -> Double using f
+-- also return "remaining" list of random numbers
+histVals :: VHMeas -> (VHMeas -> Double) -> [Double] -> [Double]
+histVals vh f rs = unfoldr (randomize vh f) rs
 
-randV :: XMeas -> [Double] -> XMeas
-randV (XMeas v vv) rnd = XMeas v' vv where
-  v'  = v3 $ zipWith (+) (l3 v) (l3 (chol vv * v3 rnd))
+randomize :: VHMeas -> (VHMeas -> Double) -> [Double] -> Maybe (Double, [Double])
+randomize vh f rs = Just (f (vh'), rs') where
+  (vh', rs') = randVH vh rs
 
 -- randomize the helices in the supplied VHMeas
 -- taking normal-distributed random numbers off the (infinite) list of Doubles
@@ -55,18 +59,6 @@ randVH (VHMeas vm hl) rs = (VHMeas vm hl', rs') where
 randH :: [Double] -> HMeas -> ([Double], HMeas)
 randH (r0:r1:r2:r3:r4:rs) (HMeas h hh w0) = (rs, HMeas h' hh w0) where
   h' = v5 $ zipWith (+) (l5 h) (l5 (chol hh * v5 [r0,r1,r2,r3,r4]))
-
-
--- create a list of values for histogramming, randomizing the supplied VHMeas
--- using the list of normaly distributed random numbers
--- mapping each randomized VHMeas -> Double using f
--- also return "remaining" list of random numbers
-histVals :: VHMeas -> (VHMeas -> Double) -> [Double] -> [Double]
-histVals vh f rs = unfoldr (randomize vh f) rs
-
-randomize :: VHMeas -> (VHMeas -> Double) -> [Double] -> Maybe (Double, [Double])
-randomize vh f rs = Just (f (vh'), rs') where
-  (vh', rs') = randVH vh rs
 
 -- calc fitted invariant mass of VHMeas
 fitMass :: VHMeas -> Double
@@ -91,18 +83,28 @@ doRandom cnt vm = do
   let hist = histogram binSturges (V.toList hf)
   _ <- plot "invMass.png" hist
   return ()
-  -- putStrLn . display . process . take cnt . prep $  normals g
-  -- putStrLn $ showXMeas "input  " v
-  -- let v' = randV v $ take 3 ( normals g )
-  -- putStrLn $ showXMeas "smeared" v'
-  --
-  -- let (VHMeas _ hl', rnd) = randVH (VHMeas v hl) (normals g)
-  -- let Prong _ _ ql _ = fit v hl'
-  -- showMMeas "Inv Mass " $ invMass $ map q2p ql
-  -- let (VHMeas _ hl', rnd') = randVH (VHMeas v hl) rnd
-  -- let Prong _ _ ql _ = fit v hl'
-  -- showMMeas "Inv Mass " $ invMass $ map q2p ql
-  -- let (VHMeas _ hl', rnd'') = randVH (VHMeas v hl) rnd'
-  -- let Prong _ _ ql _ = fit v hl'
-  -- showMMeas "Inv Mass " $ invMass $ map q2p ql
+
+{-
+  putStrLn . display . process . take cnt . prep $  normals g
+  putStrLn $ showXMeas "input  " v
+  let v' = randV v $ take 3 ( normals g )
+  putStrLn $ showXMeas "smeared" v'
+
+  let (VHMeas _ hl', rnd) = randVH (VHMeas v hl) (normals g)
+  let Prong _ _ ql _ = fit v hl'
+  showMMeas "Inv Mass " $ invMass $ map q2p ql
+  let (VHMeas _ hl', rnd') = randVH (VHMeas v hl) rnd
+  let Prong _ _ ql _ = fit v hl'
+  showMMeas "Inv Mass " $ invMass $ map q2p ql
+  let (VHMeas _ hl', rnd'') = randVH (VHMeas v hl) rnd'
+  let Prong _ _ ql _ = fit v hl'
+  showMMeas "Inv Mass " $ invMass $ map q2p ql
+  return ()
+
+-- return randomized XMeas vector according to its covariance matrix,
+-- using -> 3 normal distributed random numbers
+randV :: XMeas -> [Double] -> XMeas
+randV (XMeas v vv) rnd = XMeas v' vv where
+  v'  = v3 $ zipWith (+) (l3 v) (l3 (chol vv * v3 rnd))
+-}
 
