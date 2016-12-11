@@ -73,7 +73,10 @@ fitMass :: VHMeas -> Double
 fitMass vm = m where
   Prong _ _ ql _ = fit vm
   (MMeas !m _) = invMass $ map q2p ql
-
+{-
+VHMeas v hl <- hSlurp thisFile
+doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5]))
+-}
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
   let Prong _ _ ql _ = fit vm
@@ -83,8 +86,9 @@ doRandom cnt vm = do
   let hf :: V.Vector Double
       hf = V.fromListN cnt (histVals vm fitMass (normals g))
       (mean, var) = meanVariance hf
-      hist = histogram binSturges (V.toList hf)
   showMMeas "Mean Mass " (MMeas mean (sqrt var))
+
+  let hist = histogram binSturges (V.toList hf)
   _ <- plot "invMass.png" hist
   return ()
   -- putStrLn . display . process . take cnt . prep $  normals g
