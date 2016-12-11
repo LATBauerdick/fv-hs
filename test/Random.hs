@@ -67,8 +67,7 @@ fitMass vm = m where
   (MMeas !m _) = invMass $ map q2p ql
 {-
 VHMeas v hl <- hSlurp thisFile
-doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5]))
--}
+doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5])) -}
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
   let Prong _ _ ql _ = fit vm
