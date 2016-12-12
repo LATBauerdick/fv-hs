@@ -75,7 +75,7 @@ randomize vh f rs = Just (f vh', rs') where
 fitMass :: VHMeas -> Double
 fitMass vm = m where
   Prong _ _ ql _ = fit vm
-  (MMeas m _) = invMass $ map q2p ql
+  (MMeas m _) = invMass . map q2p $ ql
 
 -- randomize the helices in the supplied VHMeas
 -- and return randomized VHMeas and remaining randoms list
