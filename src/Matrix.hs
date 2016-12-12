@@ -74,5 +74,5 @@ inv m = f e where
       | mx < 1.0 = m'
       | otherwise = let
                         sx :: String; sx = printf "%8.3f" (mx :: Double)
-                    in m' --`debug` ("^" ++ "inv: max " ++ sx ++ " permille" )
+                    in m' `debug` ("^" ++ "inv: max " ++ sx ++ " permille" )
 
