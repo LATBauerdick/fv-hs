@@ -59,7 +59,8 @@ doRandom cnt vm = do
 
   g <- newStdGen
   let hf :: V.Vector Double
-      hf = V.fromListN cnt $ unfoldr (randomize vm fitMass) . normals $ g
+      hf = V.fromListN cnt $
+              unfoldr (randomize vm fitMass) . normals $ g
       (mean, var) = meanVariance hf
   putStrLn $ "Mean Mass " ++ show (MMeas mean (sqrt var))
   let hist = histogram binSturges (V.toList hf)
@@ -77,8 +78,7 @@ fitMass vm = m where
   (MMeas m _) = invMass $ map q2p ql
 
 -- randomize the helices in the supplied VHMeas
--- taking normal-distributed random numbers off the (infinite) list of Doubles
--- and return randomized VHMeas and tail of randoms list
+-- and return randomized VHMeas and remaining randoms list
 randVH :: VHMeas -> [Double] -> (VHMeas, [Double])
 randVH (VHMeas v hl) rs = (VHMeas v hl', rs') where
   (rs', hl') = mapAccumL randH rs hl
