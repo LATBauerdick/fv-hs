@@ -123,8 +123,8 @@ kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
   q_e   = Coeff.hv2q h v
 
 kAdd' :: XMeas -> HMeas -> X3 -> Q3 -> Double -> Int -> XMeas
-kAdd' (XMeas v0 uu0) (HMeas h gg w0) ve qe 𝜒2_0 iter = x_k where
-  Jaco aa bb h0 = Coeff.expand ve qe
+kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
+  Jaco aa bb h0 = Coeff.expand x_e q_e
   aaT   = tr aa; bbT = tr bb
   ww    = inv (sw bb gg)
   gb    = gg - sw gg (sw bbT ww)
