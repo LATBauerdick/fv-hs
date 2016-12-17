@@ -7,4 +7,7 @@ extra-deps:
 - gnuplot-0.5.4.1
 - normaldistribution-1.1.0.3
 - Histogram-0.1.0.2
-resolver: nightly-2016-10-07
+resolver: lts-7.13
+ghc-options: 
+# All packages
+  "*": -Wall

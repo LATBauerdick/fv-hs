@@ -13,6 +13,7 @@ import qualified Data.Matrix ( Matrix, inverse, cholDecomp
                              , diagonal, getDiag, diagonalList
                    , getMatrixAsVector, submatrix, toList, fromList, (!) )
 import qualified Data.Vector (Vector)
+import Control.Monad.Error
 
 type M     = Data.Matrix.Matrix Double
 type V     = Data.Matrix.Matrix Double
@@ -56,12 +57,38 @@ sw a b = (tr a) * b * a
 chol :: M -> M
 chol a = Data.Matrix.cholDecomp a
 
+-- This is the type of our Inv error representation.
+data InvError = Err { quality::Double, reason::String }
+
+-- We make it an instance of the Error class
+instance Error InvError where
+  noMsg    = Err 0 "Inversion Error"
+  strMsg s = Err 0 s
+
+-- For our monad type constructor, we use Either InvError
+-- which represents failure using Left InvError or a
+-- successful result of type a using Right a.
+type InvMonad = Either InvError
+
+invm :: M -> InvMonad M
+invm m = case Data.Matrix.inverse m of
+            Right m'  -> return m'
+            Left s    -> throwError (Err 0 ("In invm: " ++ s))  `debug` "🚩In inv"
+
+inv :: M -> M
+inv m =  let (Right m') = do { invm m } `catchError` printError
+          in m'
+         where
+           one = (Data.Matrix.identity $ Data.Matrix.nrows m)
+           printError :: InvError -> InvMonad M
+           printError e = return one `debug` ("🚩In inv" ++ (show (quality e)) ++ ": " ++ (reason e))
+
 inv' :: M -> M
 inv' m = either invErr id (Data.Matrix.inverse m)
   where invErr s = (Data.Matrix.identity $ Data.Matrix.nrows m) `debug` ("🚩" ++ s)
 
-inv :: M -> M
-inv m = f e where
+inv''' :: M -> M
+inv''' m = f e where
   e = Data.Matrix.inverse m
   f :: Either String M -> M
   f (Left s) = (Data.Matrix.identity $ Data.Matrix.nrows m) `debug` ("🚩" ++ s) -- can't invert

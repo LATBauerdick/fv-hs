@@ -21,6 +21,7 @@ library
                     , Matrix
   build-depends:      base >= 4.7 && < 5
                     , matrix
+                    , mtl
                     , interpolate
                     , random
                     , vector
@@ -34,6 +35,7 @@ executable fvt
   build-depends:      base >= 4.7 && < 5
                     , fv
                     , matrix
+                    , mtl
                     , interpolate
                     , random
                     , normaldistribution
