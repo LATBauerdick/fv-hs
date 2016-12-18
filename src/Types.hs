@@ -2,12 +2,12 @@
 module Types (
                 M, V, M33, V3, V5, C44
              , XMeas (..), HMeas (..), QMeas (..)
-             , PMeas (..), MMeas (..), Prong (..), VHMeas (..)
+             , PMeas (..), MMeas (..), DMeas (..), Prong (..), VHMeas (..)
+             , Mom (..), Pos (..)
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
              , v3, l3, v5, l5
-             , showXMeas, showPMeas, showQMeas, showHMeas
-             , showXMDist, origin
+             , origin
              , h2p, h2q, q2p
              , mπ
              ) where
@@ -40,14 +40,20 @@ data Jaco = Jaco M M M
 
 type X3 = V
 type C33 = M
-data XMeas = XMeas X3 C33 deriving Show -- 3-vector and covariance matrix for position/vertex measurement
+data XMeas = XMeas X3 C33 -- 3-vector and covariance matrix for position/vertex measurement
+instance Show XMeas where
+  show = showXMeas
 
 type H5 = V
 type C55 = M
-data HMeas = HMeas H5 C55 Double deriving Show -- 5-vector and covariance matrix for helix measurement
+data HMeas = HMeas H5 C55 Double -- 5-vector and covariance matrix for helix measurement
+instance Show HMeas where
+  show = showHMeas
 
 type Q3 = V
-data QMeas = QMeas Q3 C33 Double deriving Show -- 3-vector and covariance matrix for momentum measurement
+data QMeas = QMeas Q3 C33 Double -- 3-vector and covariance matrix for momentum measurement
+instance Show QMeas where
+  show = showQMeas
 
 -- 4-vector and coavariance matrix for momentum px,py,pz and energy
 type P4 = V -- four-vector
@@ -60,11 +66,31 @@ instance Monoid PMeas where
 -- instance Functor PMeas where
 --   fmap f (PMeas p cp) = f p cp
 
-type D = Double
-data MMeas = MMeas D D -- mass and error
+class Mom a where
+  mass :: a -> MMeas
+  energy :: a -> Double
+
+instance Mom PMeas where
+  mass = pmass
+  energy (PMeas p _) = e' where
+    [_,_,_,e'] = Matrix.toList 4 p
+
+instance Mom QMeas where
+  mass qm = pmass $ q2p qm
+
+data MMeas = MMeas Double Double -- mass and error
 instance Show MMeas where
   show (MMeas m dm) = printf "%8.1f ± %8.1f MeV" (m*1000.0) (dm*1000.0)
 
+class Pos a where
+  distance :: a -> a -> DMeas -- distance between two poitions
+
+instance Pos XMeas where
+  distance x1 x2 = xmDist x1 x2
+
+data DMeas = DMeas Double Double -- distance and error
+instance Show DMeas where
+  show (DMeas d sd) = printf ("%8.3f ± %8.3f cm")(d::Double) (sd::Double)
 
 v3 :: [Double] -> V3
 v3 = Matrix.fromList 3
@@ -74,7 +100,6 @@ v5 :: [Double] -> V5
 v5 = Matrix.fromList 5
 l5 :: V5 -> [Double]
 l5 = Matrix.toList 5
--- show instances -- refactor!!
 
 -- XMeas -----------------------------------------------------------
 --
@@ -84,16 +109,16 @@ l5 = Matrix.toList 5
   vv = vv1 + vv2
 
 -- return a string showing vertext position vector with errors
-showXMeas :: String -> XMeas -> String
-showXMeas s0 (XMeas v cv) = s' where
+showXMeas :: XMeas -> String
+showXMeas (XMeas v cv) = s' where
   s2v        = Data.Vector.map sqrt $ Data.Matrix.getDiag cv
   f :: String -> (Double, Double) -> String
   f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-  s' = foldl f s0 ( Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
+  s' = foldl f "" ( Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
 
 -- calculate distance between two vertices
-showXMDist :: String -> XMeas -> XMeas -> String
-showXMDist s0 (XMeas v0 vv0) (XMeas v1 vv1) = s where
+xmDist :: XMeas -> XMeas -> DMeas
+xmDist (XMeas v0 vv0) (XMeas v1 vv1) = DMeas d sd where
   [x0, y0, z0] = Matrix.toList 3 v0
   [x1, y1, z1] = Matrix.toList 3 v1
 
@@ -103,57 +128,51 @@ showXMDist s0 (XMeas v0 vv0) (XMeas v1 vv1) = s where
   tem0 = Matrix.sw (Matrix.tr dd) vv0
   tem1 = Matrix.sw (Matrix.tr dd) vv1
   sd   = sqrt (Matrix.scalar tem0 + Matrix.scalar tem1)
-  s    = printf (s0++"%8.3f ± %8.3f cm")(d::Double) (sd::Double)
 
 origin :: XMeas
 origin = XMeas (Data.Matrix.fromLists [[0.0,0.0,0.0]])
             (Data.Matrix.zero 3 3 :: C33)
 
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
-showPMeas :: String -> PMeas -> IO ()
-showPMeas s (PMeas p cp) = do
-  putStr s
-  let
-    sp         = Data.Vector.map sqrt $ Data.Matrix.getDiag cp
-    f (x, dx)  = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-    in mapM_ f $ Data.Vector.zip (Data.Matrix.getCol 1 p) sp
-  putStrLn " GeV"
+showPMeas :: PMeas -> String
+showPMeas (PMeas p cp) = s' where
+  sp         = Data.Vector.map sqrt $ Data.Matrix.getDiag cp
+  f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+  s' = (foldl f "" $ Data.Vector.zip (Data.Matrix.getCol 1 p) sp) ++ " GeV"
 
 
 -- print HMeas as a 5-parameter helix with errors
-showHMeas :: String -> HMeas -> String
-showHMeas s0 (HMeas h ch _) = s' where
+showHMeas :: HMeas -> String
+showHMeas (HMeas h ch _) = s' where
   sh = Data.Vector.map sqrt $ Data.Matrix.getDiag ch
-  s00 = s0 ++ printf "%10.5g ± %10.5g" (x::Double) (dx::Double) where
+  s00 = printf "%10.3g ± %10.3g" (x::Double) (dx::Double) where
     x  = head (Data.Matrix.toList h)
     dx = head (Data.Vector.toList sh)
   s' = foldl f s00 (Data.Vector.drop 1 $ Data.Vector.zip (Data.Matrix.getCol 1 h) sh) where
     f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
 
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
-showQMeas :: String -> QMeas -> IO ()
-showQMeas s (QMeas q cq w2pt) = do
-  putStr s
-  let
-    f (x, dx)    = printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-    m = mπ
-    wp = w2pt
-    [w,tl,psi0] = take 3 (Data.Matrix.toList q)
-    pt   = wp / abs w
-    pz = pt*tl
-    psi = psi0*180.0/pi
-    e = sqrt(pt*pt  + pz*pz + m*m)
-    jj   = Data.Matrix.fromLists [
+showQMeas :: QMeas -> String
+showQMeas (QMeas q cq w2pt) = s' where
+  f :: String -> (Double, Double) -> String
+  f s (x, dx) = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+  m = mπ
+  wp = w2pt
+  [w,tl,psi0] = take 3 (Data.Matrix.toList q)
+  pt   = wp / abs w
+  pz = pt*tl
+  psi = psi0*180.0/pi
+  e = sqrt(pt*pt  + pz*pz + m*m)
+  jj   = Data.Matrix.fromLists [
             [-wp/w/w, -wp/w/w*tl,0, -(pz*pz + pt*pt)/w/e ]
           , [0, wp/w, 0, pt*pt*tl/e]
           , [0, 0, 1.0, 0] ]
-    cq'  = (Data.Matrix.transpose jj) * cq* jj
-    p'   = Data.Vector.fromList [pt, pz, psi, e]
+  cq'  = (Data.Matrix.transpose jj) * cq* jj
+  p'   = Data.Vector.fromList [pt, pz, psi, e]
 --    dp'  = Data.Vector.map sqrt $ Data.Matrix.getDiag cq'
-    [d1,d2,d3,d4]  = Data.Vector.toList $ Data.Vector.map sqrt $ Data.Matrix.getDiag cq'
-    dp' = Data.Vector.fromList [d1,d2,d3*180.0/pi,d4]
-    in mapM_ f $ Data.Vector.zip p' dp'
-  putStrLn " GeV"
+  [d1,d2,d3,d4]  = Data.Vector.toList $ Data.Vector.map sqrt $ Data.Matrix.getDiag cq'
+  dp' = Data.Vector.fromList [d1,d2,d3*180.0/pi,d4]
+  s' = (foldl f "" $ Data.Vector.zip p' dp' ) ++ " GeV"
 
 
 h2p :: HMeas -> PMeas
@@ -163,6 +182,19 @@ h2q :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
 h2q (HMeas h ch w2pt) = QMeas q cq w2pt where
   q = Matrix.sub 3 h
   cq = Matrix.sub2 3 ch
+
+pmass :: PMeas -> MMeas
+pmass (PMeas p cp) = mm  where
+  [px,py,pz,e] = Matrix.toList 4 p
+  [c11, c12, c13, c14, _, c22, c23, c24, _, _, c33, c34, _, _, _, c44]
+        = Matrix.toList 16 cp
+  m     = sqrt $ max (e*e-px*px-py*py-pz*pz) 0
+  sigm0 = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
+            2.0*(px*(c12*py + c13*pz - c14*e)
+               + py*(c23*pz - c24*e)
+               - pz*c34*e)
+  sigm  =  sqrt ( max sigm0 0 ) / m
+  mm    = MMeas m sigm
 
 q2p :: QMeas -> PMeas
 q2p (QMeas q0 cq0 w2pt) = PMeas p0 cp0 where
@@ -200,20 +232,4 @@ q2p (QMeas q0 cq0 w2pt) = PMeas p0 cp0 where
 
   p0 = Matrix.fromList 4 [px,py,pz,e]
   cp0 = Matrix.fromList2 4 4 [sxx, sxy, sxz, sxe, sxy, syy, syz, sye, sxz, syz, szz, sze, sxe, sye, sze, see]
-
--- q2pt :: QMeas -> PMeas
--- q2pt (QMeas q cq) = (PMeas p cp) where
---     m = mπ
---     wp = w2pt
---     [w,tl,psi0] = take 3 (Data.Matrix.toList q)
---     pt   = wp / abs w
---     pz = pt*tl
---     psi = psi0*180.0/pi
---     e = sqrt(pt^2  + pz^2 + m^2)
---     jj   = Data.Matrix.fromLists [
---             [-wp/w/w, -wp/w/w*tl,0, -(pz*pz + pt*pt)/w/e ]
---           , [0, wp/w, 0, pt*pt*tl/e]
---           , [0, 0, 1.0, 0] ]
---     cp  = (Data.Matrix.transpose jj) * cq* jj
---     p   = Data.Vector.fromList [pt, pz, psi, e]
 

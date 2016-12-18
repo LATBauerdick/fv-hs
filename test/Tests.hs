@@ -10,8 +10,7 @@ import Text.Printf
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
-              , showXMeas, showPMeas, showQMeas, showHMeas
-              , showXMDist, origin
+             , DMeas (..), Pos (..), origin
               , h2p, h2q, q2p
              )
 import Coeff ( invMass )
@@ -49,26 +48,20 @@ mc1File   = "dat/tr00101e008340.dat"
 mc2File   = "dat/tr00101e012040.dat"
 cmsFile   = "dat/tandv.dat"
 
-showP :: (HMeas -> IO ())
-showP = showPMeas "px,py,pz,E ->" . h2p
-showQ :: (HMeas -> IO ())
-showQ = showQMeas "pt,pz,fi,E ->" . h2q
-showH :: (HMeas -> String)
-showH = showHMeas "Helix ->"
 showMomentum :: HMeas -> IO ()
-showMomentum = showQ
+showMomentum h = putStrLn $ "pt,pz,fi,E ->" ++ (show . h2q) h
 showHelix :: HMeas -> IO ()
-showHelix = putStrLn . showH
-
+showHelix h = putStrLn $ "Helix ->" ++ (show h)
 showProng :: Prong -> IO ()
 showProng (Prong _ v ql cl) = do
   let
       showCl :: String -> [Double] -> String
       showCl = foldl (\s x -> s++printf "%8.1g" (x::Double))
-      st = showXMDist (printf "chi2tot ->%8.1f, r ->" (sum cl::Double)) v origin
---      st = showXMDist ( [i|chi2tot ->#{sum cl}, r ->|]) v origin
-      sh = showCl (st ++ ", chi2s ->") cl ++ ", Mass ->"
-  putStrLn $ sh ++ show (invMass (map q2p ql))
+      sc = (printf "chi2tot ->%8.1f" (sum cl::Double))
+      sd = ", r ->"++ (show $ distance v origin)
+      scl = showCl ", chi2s ->" cl
+      sm = ", Mass ->" ++ show (invMass (map q2p ql))
+  putStrLn $ sc ++ sd ++ scl ++ sm
 
 test :: [String] -> IO ()
 test arg =
@@ -79,12 +72,14 @@ test arg =
           mapM_ showMomentum hl
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
           doFitTest (VHMeas v hl) l5
+          showProng $ fitw (VHMeas v (hFilter hl l5))
 
     ["2"] -> do
           VHMeas v hl <- hSlurp otherFile
           mapM_ showMomentum hl
           let l5 = [0,1,2,4,5]
           doFitTest (VHMeas v hl) l5
+          showProng $ fitw (VHMeas v (hFilter hl l5))
 
 -- slurp in all event data files from ./dat and append helices
     ["3"] -> do
@@ -92,7 +87,7 @@ test arg =
           VHMeas v hl <- hSlurpAll ps
           mapM_ showMomentum hl
           doFitTest (VHMeas v hl) [0..]
-          showProng $ fitw v hl
+          showProng $ fitw (VHMeas v hl)
 
 -- CMS test file
     ["c"] -> do
@@ -100,6 +95,7 @@ test arg =
           mapM_ showHelix  hl
           mapM_ showMomentum hl
           doFitTest (VHMeas v hl) [0..]
+          showProng $ fitw (VHMeas v hl)
 
     ["r"] -> do
       VHMeas v hl <- hSlurp thisFile
@@ -108,10 +104,9 @@ test arg =
     [fn] -> do
           --mapM_ showMomentum hl
           let
-              listMinus1 :: Int -> Int -> [Int]
-              listMinus1 n i = filter (/= i) [0..n]
               fitMinus1 :: VHMeas -> Int -> Prong
-              fitMinus1 (VHMeas v hl) = fitw v . hFilter hl . listMinus1 (length hl)
+              fitMinus1 (VHMeas v hl) i = fitw (VHMeas v hl') where
+                hl' = hFilter hl (filter (/= i) [0..(length hl)])
 
           VHMeas v hl <- hSlurp fn
           mapM_ showMomentum hl
@@ -124,9 +119,9 @@ test arg =
 doFitTest :: VHMeas -> [Int] -> IO ()
 doFitTest (VHMeas v hl) l5 = do
   let showLen xs = show $ length xs
-  let showQChi2 (qm, chi2, i) = showQMeas (printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double) ++ "pt,pz,fi,E ->") qm
+  let showQChi2 (qm, chi2, i) = putStrLn $ (printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double) ++ "pt,pz,fi,E ->") ++ show qm
 
-  putStrLn $ showXMeas "initial vertex position ->" v
+  putStrLn $ "initial vertex position ->" ++ show v
 
   let pl              = map h2p hl
   putStrLn $ ("Inv Mass " ++ showLen pl ++ " helix") ++ show (invMass pl)
@@ -135,7 +130,7 @@ doFitTest (VHMeas v hl) l5 = do
 
   putStrLn             "Fitting Vertex --------------------"
   let Prong n vf ql cl = fit (VHMeas v hl)
-  putStrLn $ showXMeas "Fitted vertex ->" vf
+  putStrLn $ "Fitted vertex ->" ++ show vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   putStrLn $ "Inv Mass " ++ showLen ql ++ " fit" ++ show (invMass $map q2p ql)
   let pl5              = map q2p $ hFilter ql l5
@@ -143,8 +138,8 @@ doFitTest (VHMeas v hl) l5 = do
 
   putStrLn             "Refitting Vertex-----------------"
   let Prong _n vf ql cl = fit (VHMeas v (hFilter hl l5))
-  putStrLn $ showXMeas "Refitted vertex ->" vf
+  putStrLn $ "Refitted vertex ->" ++ show vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   putStrLn $ "Inv Mass " ++ showLen ql ++ " refit" ++ show (invMass $ map q2p ql)
-  putStrLn $ showXMDist (showXMeas "final vertex at" vf ++ ", r =") vf origin
+  putStrLn $ ("final vertex at" ++ show vf ++ ", r =") ++ (show $ distance vf origin)
 

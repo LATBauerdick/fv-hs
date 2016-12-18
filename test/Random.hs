@@ -11,7 +11,7 @@ import qualified Data.Vector.Unboxed as V ( Vector, fromListN, toList )
 import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
 
 import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
-             , showXMeas, q2p, v3,l3,v5,l5 )
+             , q2p, v3,l3,v5,l5 )
 import Coeff ( invMass )
 import Matrix ( toList, fromList, chol, scalar )
 import Fit ( fit )
@@ -93,9 +93,9 @@ histVals vh f rs = unfoldr (randomize vh f) rs
 
 {-
   putStrLn . display . process . take cnt . prep $  normals g
-  putStrLn $ showXMeas "input  " v
+  putStrLn $ "input  " ++ show v
   let v' = randV v $ take 3 ( normals g )
-  putStrLn $ showXMeas "smeared" v'
+  putStrLn $ "smeared" ++ show v'
 
   let (VHMeas _ hl', rnd) = randVH (VHMeas v hl) (normals g)
   let Prong _ _ ql _ = fit v hl'

@@ -4,8 +4,9 @@ module Coeff ( expand, qv2h, hv2q, invMass, mass
              ) where
 
 import Types ( M, V3, V5
-             , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
-             , Jaco (..) )
+              , Mom (..)
+              , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
+              , Jaco (..) )
 import Matrix ( toList, fromList, fromList2 )
 import Data.Fixed ( mod' )
 import Debug.Trace ( trace )
@@ -20,19 +21,6 @@ invMass (h:t) = mass ptot where
 
 sumP :: PMeas -> PMeas -> PMeas
 sumP (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
-
-mass :: PMeas -> MMeas
-mass (PMeas p cp) = mm  where
-  [px,py,pz,e] = toList 4 p
-  [c11, c12, c13, c14, _, c22, c23, c24, _, _, c33, c34, _, _, _, c44]
-        = toList 16 cp
-  m     = sqrt $ max (e*e-px*px-py*py-pz*pz) 0
-  sigm0 = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
-            2.0*(px*(c12*py + c13*pz - c14*e)
-               + py*(c23*pz - c24*e)
-               - pz*c34*e)
-  sigm  =  sqrt ( max sigm0 0 ) / m
-  mm    = MMeas m sigm
 
 hv2q :: V5 -> V3 -> V3
 hv2q h v = q where

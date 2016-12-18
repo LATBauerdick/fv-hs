@@ -16,8 +16,8 @@ wght t chi2 = w where
   chi2cut = 9.0
   w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
 
-fitw :: XMeas -> [HMeas] -> Prong -- fit with annealing function
-fitw v0 hl = pr where
+fitw :: VHMeas -> Prong -- fit with annealing function
+fitw (VHMeas v0 hl) = pr where
   v = kfilter' v0 hl
   Prong _ _ _ cl = ksmooth' v hl
   wl = fmap (wght 10.0) cl
