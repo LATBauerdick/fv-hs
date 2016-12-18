@@ -99,13 +99,7 @@ histVals vh f rs = unfoldr (randomize vh f) rs
 
   let (VHMeas _ hl', rnd) = randVH (VHMeas v hl) (normals g)
   let Prong _ _ ql _ = fit v hl'
-  showMMeas "Inv Mass " $ invMass $ map q2p ql
-  let (VHMeas _ hl', rnd') = randVH (VHMeas v hl) rnd
-  let Prong _ _ ql _ = fit v hl'
-  showMMeas "Inv Mass " $ invMass $ map q2p ql
-  let (VHMeas _ hl', rnd'') = randVH (VHMeas v hl) rnd'
-  let Prong _ _ ql _ = fit v hl'
-  showMMeas "Inv Mass " $ invMass $ map q2p ql
+  putStrLn $ "Inv Mass " ++ show (invMass $ map q2p ql)
   return ()
 
 -}

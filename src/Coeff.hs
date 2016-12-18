@@ -1,6 +1,6 @@
 -- file src/coeff.hs
 --
-module Coeff ( expand, qv2h, hv2q, invMass, mass
+module Coeff ( expand, qv2h, hv2q, invMass
              ) where
 
 import Types ( M, V3, V5
@@ -12,8 +12,6 @@ import Data.Fixed ( mod' )
 import Debug.Trace ( trace )
 debug :: a -> String -> a
 debug = flip trace
-
-
 
 invMass :: [PMeas] -> MMeas
 invMass (h:t) = mass ptot where
