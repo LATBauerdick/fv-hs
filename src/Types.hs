@@ -77,6 +77,9 @@ instance Mom PMeas where
 
 instance Mom QMeas where
   mass qm = pmass $ q2p qm
+  energy qm = e' where
+    PMeas p _ = q2p qm
+    [_,_,_,e'] = Matrix.toList 4 p
 
 data MMeas = MMeas Double Double -- mass and error
 instance Show MMeas where
