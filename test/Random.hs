@@ -11,8 +11,7 @@ import qualified Data.Vector.Unboxed as V ( Vector, fromListN, toList )
 import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
 
 import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
-             , q2p, v3,l3,v5,l5 )
-import Coeff ( invMass )
+             , invMass, q2p, v3,l3,v5,l5 )
 import Matrix ( toList, fromList, chol, scalar )
 import Fit ( fit )
 

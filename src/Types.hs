@@ -9,7 +9,7 @@ module Types (
              , v3, l3, v5, l5
              , origin
              , h2p, h2q, q2p
-             , mπ
+             , mπ, invMass
              ) where
 
 import Text.Printf
@@ -65,6 +65,14 @@ instance Monoid PMeas where
             (Data.Matrix.zero 4 4 :: C44)
 -- instance Functor PMeas where
 --   fmap f (PMeas p cp) = f p cp
+
+invMass :: [PMeas] -> MMeas
+invMass (h:t) = mass ptot where
+  ptot = foldr sumP h t
+
+sumP :: PMeas -> PMeas -> PMeas
+sumP (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
+
 
 class Mom a where
   mass :: a -> MMeas

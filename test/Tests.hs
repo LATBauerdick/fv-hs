@@ -10,10 +10,9 @@ import Text.Printf
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
-             , DMeas (..), Pos (..), origin
-              , h2p, h2q, q2p
+              , DMeas (..), Pos (..), origin
+              , invMass, h2p, h2q, q2p
              )
-import Coeff ( invMass )
 import Fit ( fit, fitw )
 
 import Random ( doRandom )
