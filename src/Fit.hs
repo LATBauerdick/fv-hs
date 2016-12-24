@@ -19,13 +19,13 @@ wght t chi2 = w where
 fitw :: VHMeas -> Prong -- fit with annealing function
 fitw (VHMeas v0 hl) = pr where
   v = kfilter' v0 hl
-  Prong _ _ _ cl = ksmooth' v hl
+  Prong _ _ _ cl = kSmooth' v hl
   wl = fmap (wght 10.0) cl
   v' = kfilterW v0 hl wl --`debug` (printf "%8.1f" $head wl)
-  Prong _ _ _ cl' = ksmoothW v' hl wl
+  Prong _ _ _ cl' = kSmoothW v' hl wl
   wl' = fmap (wght 1.0) cl'
   v'' = kfilterW v0 hl wl' --`debug` (printf "%8.1f" $head wl)
-  pr  = ksmoothW v'' hl wl'
+  pr  = kSmoothW v'' hl wl'
 
 
 kfilterW :: XMeas -> [HMeas] -> [Chi2] -> XMeas
@@ -36,8 +36,8 @@ kfilterW v0 hl wl = foldl kal v0 hl' where
   kal (XMeas v vv) (HMeas h gg w0) = kalAdd' v (inv vv) (HMeas h gg w0) v (Coeff.hv2q h v) 1e6 0
 --    `debug` ((showHMeas "kal: add helix " (HMeas h hh)) ++ (showXMeas "\nto vertex " (XMeas v vv)))
 
-ksmoothW :: XMeas -> [HMeas] -> [Chi2] -> Prong
-ksmoothW v hl wl = pr where
+kSmoothW :: XMeas -> [HMeas] -> [Chi2] -> Prong
+kSmoothW v hl wl = pr where
   ff :: HMeas -> Chi2 -> (QMeas, Chi2)
   ff (HMeas h hh w0) w = ksm' (HMeas h (scale w (inv hh)) w0) v
   qml = zipWith ff hl wl
@@ -73,8 +73,8 @@ goodEnough c0 c i = abs (c - c0) < chi2cut || i > iterMax where
   chi2cut = 0.5
   iterMax = 99 :: Int
 
-ksmooth' :: XMeas -> [HMeas] -> Prong
-ksmooth' v hl = pr where
+kSmooth' :: XMeas -> [HMeas] -> Prong
+kSmooth' v hl = pr where
   ƒ :: HMeas -> (QMeas, Chi2)
   ƒ (HMeas h hh w0) = ksm' (HMeas h (inv hh) w0) v
   qml = map ƒ hl
@@ -109,10 +109,10 @@ ksm'  (HMeas h gg w0) (XMeas x cc) = (QMeas q dd w0, chi2') -- `debug` ("≫" ++
   instance Monoid VHMeas where ...
 -}
 fit :: VHMeas -> Prong
-fit = ksmooth . kFilter
+fit = kSmooth . kFilter
 
 kFilter :: VHMeas -> VHMeas
-ksmooth :: VHMeas -> Prong
+kSmooth :: VHMeas -> Prong
 kFilter (VHMeas x ps) = VHMeas (foldl kAdd x ps) ps
 
 kAdd :: XMeas -> HMeas -> XMeas
@@ -138,7 +138,7 @@ kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
             then XMeas v cc
             else kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q 𝜒2 (iter+1)
 
-ksmooth (VHMeas v hl) = Prong (length ql) v ql chi2l where
+kSmooth (VHMeas v hl) = Prong (length ql) v ql chi2l where
   (ql, chi2l) = unzip $ map (ksm v) hl
 
 -- kalman smooth: calculate 3-mom q and chi2 at kalman filter vertex

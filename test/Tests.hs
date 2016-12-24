@@ -97,11 +97,10 @@ test arg =
           showProng $ fitw (VHMeas v hl)
 
     ["r"] -> do
-      VHMeas v hl <- hSlurp thisFile
-      doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5]))
+          VHMeas v hl <- hSlurp thisFile
+          doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5]))
 
     [fn] -> do
-          --mapM_ showMomentum hl
           let
               fitMinus1 :: VHMeas -> Int -> Prong
               fitMinus1 (VHMeas v hl) i = fitw (VHMeas v hl') where
@@ -128,7 +127,7 @@ doFitTest (VHMeas v hl) l5 = do
   putStrLn $ ("Inv Mass " ++ showLen pl5 ++ " helix") ++ show (invMass pl5)
 
   putStrLn             "Fitting Vertex --------------------"
-  let Prong n vf ql cl = fit (VHMeas v hl)
+  let Prong _ vf ql cl = fit (VHMeas v hl)
   putStrLn $ "Fitted vertex ->" ++ show vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   putStrLn $ "Inv Mass " ++ showLen ql ++ " fit" ++ show (invMass $map q2p ql)
