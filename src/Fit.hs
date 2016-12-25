@@ -18,8 +18,8 @@ wght t chi2 = w where
 
 fitw :: VHMeas -> Prong -- fit with annealing function
 fitw (VHMeas v0 hl) = pr where
-  v = kfilter' v0 hl
-  Prong _ _ _ cl = kSmooth' v hl
+  VHMeas v _ = kFilter (VHMeas v0 hl)
+  Prong _ _ _ cl = kSmooth (VHMeas v hl)
   wl = fmap (wght 10.0) cl
   v' = kfilterW v0 hl wl --`debug` (printf "%8.1f" $head wl)
   Prong _ _ _ cl' = kSmoothW v' hl wl
@@ -45,10 +45,10 @@ kSmoothW v hl wl = pr where
   n   = length chi2l
   pr  = Prong n v ql chi2l
 
-kfilter' :: XMeas -> [HMeas] -> XMeas
-kfilter' = foldl kal where
-  kal :: XMeas -> HMeas -> XMeas
-  kal (XMeas v vv) (HMeas h hh w0) = kalAdd' v (inv vv) (HMeas h (inv hh) w0) v (Coeff.hv2q h v) 1e6 0
+-- kfilter' :: XMeas -> [HMeas] -> XMeas
+-- kfilter' = foldl kal where
+--   kal :: XMeas -> HMeas -> XMeas
+--   kal (XMeas v vv) (HMeas h hh w0) = kalAdd' v (inv vv) (HMeas h (inv hh) w0) v (Coeff.hv2q h v) 1e6 0
 
 kalAdd' :: X3 -> C33 -> HMeas -> X3 -> Q3 -> Double -> Int -> XMeas
 kalAdd' v0 uu0 (HMeas h gg w0) ve qe chi2_0 iter = vm where
@@ -73,14 +73,14 @@ goodEnough c0 c i = abs (c - c0) < chi2cut || i > iterMax where
   chi2cut = 0.5
   iterMax = 99 :: Int
 
-kSmooth' :: XMeas -> [HMeas] -> Prong
-kSmooth' v hl = pr where
-  ƒ :: HMeas -> (QMeas, Chi2)
-  ƒ (HMeas h hh w0) = ksm' (HMeas h (inv hh) w0) v
-  qml = map ƒ hl
-  (ql, chi2l) = unzip qml
-  n   = length chi2l
-  pr  = Prong n v ql chi2l
+-- kSmooth' :: XMeas -> [HMeas] -> Prong
+-- kSmooth' v hl = pr where
+--   ƒ :: HMeas -> (QMeas, Chi2)
+--   ƒ (HMeas h hh w0) = ksm' (HMeas h (inv hh) w0) v
+--   qml = map ƒ hl
+--   (ql, chi2l) = unzip qml
+--   n   = length chi2l
+--   pr  = Prong n v ql chi2l
 
 -- kalman smooth: calculate 3-mom q at kalman filter vertex v
 ksm' :: HMeas -> XMeas -> (QMeas, Chi2)
