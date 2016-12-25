@@ -13,7 +13,7 @@ import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
 import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
              , invMass, q2p, v3,l3,v5,l5 )
 import Matrix ( toList, fromList, chol, scalar )
-import Fit ( fit )
+import Fit ( fit, fitw )
 
 import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
@@ -45,7 +45,7 @@ randV (XMeas v vv) rnd = XMeas v' vv where
 -- calc fitted invariant mass of VHMeas
 fitMass :: VHMeas -> Double
 fitMass vm = m where
-  Prong _ _ ql _ = fit vm
+  Prong _ _ ql _ = fitw vm
   (MMeas m _) = invMass . map q2p $ ql
 
 
@@ -54,7 +54,7 @@ VHMeas v hl <- hSlurp thisFile
 doRandom 1000 (VHMeas v (hFilter hl [0,2,3,4,5])) -}
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
-  let Prong _ _ ql _ = fit vm
+  let Prong _ _ ql _ = fitw vm
   putStrLn $ "Fit Mass  " ++ (show . invMass . map q2p) ql
 
   g <- newStdGen

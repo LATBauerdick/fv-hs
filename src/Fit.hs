@@ -18,8 +18,8 @@ wght t chi2 = w where
 
 fitw :: VHMeas -> Prong -- fit with annealing function
 fitw (VHMeas v0 hl) = pr where
-  VHMeas v _ = kFilter (VHMeas v0 hl)
-  Prong _ _ _ cl = kSmooth (VHMeas v hl)
+  -- VHMeas v _ = kFilter (VHMeas v0 hl)
+  Prong _ _ _ cl = kSmooth . kFilter $ (VHMeas v0 hl)
   wl = fmap (wght 10.0) cl
   v' = kfilterW v0 hl wl --`debug` (printf "%8.1f" $head wl)
   Prong _ _ _ cl' = kSmoothW v' hl wl
