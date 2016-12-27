@@ -37,6 +37,7 @@ executable fvt
                     , matrix
                     , mtl
                     , interpolate
+                    , parallel
                     , random
                     , normaldistribution
                     , gnuplot

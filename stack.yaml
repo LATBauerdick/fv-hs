@@ -10,4 +10,4 @@ extra-deps:
 resolver: lts-7.13
 ghc-options: 
 # All packages
-  "*": -Wall
+  "*": -Wall -O2 -threaded -rtsopts -eventlog
