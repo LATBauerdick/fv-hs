@@ -29,8 +29,7 @@ doRandom cnt vm = do
       hf = V.fromList
           . withStrategy (parBuffer 100 rdeepseq)
           . map fitm
-          . take cnt
-          . gen vm . normals $ g
+          . take cnt . gen vm . normals $ g -- produce a list of cnt randomized VHMeas
       (mean, var) = meanVariance hf
   putStrLn $ "Mean Mass " ++ show (MMeas mean (sqrt var))
   let hist = histogram binSturges (V.toList hf)
