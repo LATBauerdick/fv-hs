@@ -31,12 +31,15 @@ type N     = Int
 type Chi2  = Double
 data Prong = Prong { -- a prong results from a vertex fit of N helices
     nProng      :: Int
-  , vertex      :: XMeas
-  , momenta     :: [QMeas] 
-  , chisquares  :: [Chi2]
+  , fitVertex   :: XMeas
+  , fitMomenta  :: [QMeas] 
+  , fitChi2s    :: [Chi2]
                    } deriving Show
 
-data VHMeas = VHMeas XMeas [HMeas] deriving Show
+data VHMeas = VHMeas {
+    vertex      :: XMeas
+  , helices     :: [HMeas]
+                     } deriving Show
 instance Monoid VHMeas where
   mappend (VHMeas v hs) (VHMeas _ hs') = VHMeas v ( hs ++ hs' ) -- ???
   mempty = VHMeas (XMeas (Matrix.fromList 3 [0,0,0]) (Data.Matrix.zero 3 3)) []

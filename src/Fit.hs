@@ -18,8 +18,8 @@ wght t chi2 = w where
 
 fitw :: VHMeas -> Prong -- fit with annealing function
 fitw (VHMeas v0 hl) = pr where
-  ws  = fmap (wght 10.0) $ chisquares . kSmooth . kFilter $ (VHMeas v0 hl)
-  ws' = fmap (wght 1.0) $ chisquares . kSmooth . kFilterW ws $ (VHMeas v0 hl)
+  ws  = fmap (wght 10.0) $ fitChi2s . kSmooth . kFilter $ (VHMeas v0 hl)
+  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth . kFilterW ws $ (VHMeas v0 hl)
   pr  = kSmooth . kFilterW ws' $ (VHMeas v0 hl)
 
 kFilterW :: [Double] -> VHMeas -> VHMeas
