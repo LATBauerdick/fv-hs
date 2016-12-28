@@ -59,12 +59,3 @@ randH :: [Double] -> HMeas -> ([Double], HMeas)
 randH (r0:r1:r2:r3:r4:rs) (HMeas h hh w0) = (rs, HMeas h' hh w0) where
   h' = v5 $ zipWith (+) (l5 h) (l5 (chol hh * v5 [r0,r1,r2,r3,r4]))
 
-{-
--- return randomized XMeas vector according to its covariance matrix,
--- using -> 3 normal distributed random numbers
-randV :: XMeas -> [Double] -> XMeas
-randV (XMeas v vv) rnd = XMeas v' vv where
-  v'  = v3 $ zipWith (+) (l3 v) (l3 (chol vv * v3 rnd))
-
--}
-
