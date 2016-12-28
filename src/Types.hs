@@ -29,7 +29,12 @@ type V3    = Data.Matrix.Matrix Double
 type V5    = Data.Matrix.Matrix Double
 type N     = Int
 type Chi2  = Double
-data Prong = Prong N XMeas [QMeas] [Chi2] deriving Show -- a prong results from a vertex fit of N helices
+data Prong = Prong { -- a prong results from a vertex fit of N helices
+    nProng      :: Int
+  , vertex      :: XMeas
+  , momenta     :: [QMeas] 
+  , chisquares  :: [Chi2]
+                   } deriving Show
 
 data VHMeas = VHMeas XMeas [HMeas] deriving Show
 instance Monoid VHMeas where

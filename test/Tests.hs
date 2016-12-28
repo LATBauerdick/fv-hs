@@ -91,9 +91,9 @@ test arg =
 -- CMS test file
     ["c"] -> do
           VHMeas v hl <- hSlurp cmsFile
-          mapM_ showHelix  hl
-          mapM_ showMomentum hl
-          doFitTest (VHMeas v hl) [0..]
+--          mapM_ showHelix  hl
+--          mapM_ showMomentum hl
+--          doFitTest (VHMeas v hl) [0..]
           showProng $ fitw (VHMeas v hl)
 
     ["r"] -> do
