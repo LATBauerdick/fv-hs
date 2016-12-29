@@ -92,14 +92,15 @@ test arg =
 -- slurp in all event data files from ./dat and append helices
     ["3"] -> do
           fs <- dataFiles "dat"
-          let f = fs!!3
-          vm <- hSlurp $ f
-          putStrLn $ printf "File %s" f
-          mapM_ showMomentum $ helices vm
-          showProng $ fitw vm
-          let nh = length (helices vm) - 1
-          putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
-          mapM_ (\indx -> showProng . fitw . hRemove indx $ vm) [0..nh]
+          mapM_ xxx $ drop 1 fs where
+            xxx f = do
+              vm <- hSlurp $ f
+              putStrLn $ printf "File %s" f
+              mapM_ showMomentum $ helices vm
+              showProng $ fitw vm
+              let nh = length (helices vm) - 1
+              putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
+              mapM_ (\indx -> showProng . fitw . hRemove indx $ vm) [0..nh]
 
 -- slurp in all event data files from ./dat and append helices
     ["4"] -> do

@@ -3,11 +3,11 @@ extra-package-dbs: []
 packages:
 - '.'
 extra-deps:
-- data-accessor-transformers-0.2.1.7
-- gnuplot-0.5.4.1
+  #- data-accessor-transformers-0.2.1.7
+  #- gnuplot-0.5.4.1
+  # - Histogram-0.1.0.2
 - normaldistribution-1.1.0.3
-- Histogram-0.1.0.2
 resolver: lts-7.13
 ghc-options: 
 # All packages
-  "*": -Wall -O2 -threaded -rtsopts -eventlog
+  "*": -Wall

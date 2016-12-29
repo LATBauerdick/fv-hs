@@ -16,8 +16,8 @@ import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
 import Matrix ( toList, fromList, chol, scalar )
 import Fit ( fit, fitw )
 
-import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
-import Graphics.Histogram
+-- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
+-- import Graphics.Histogram
 
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
@@ -31,8 +31,8 @@ doRandom cnt vm = do
           . take cnt . gen vm . normals $ g -- produce a list of cnt randomized VHMeas
       (mean, var) = meanVariance hf
   putStrLn $ "Mean Mass " ++ show (MMeas mean (sqrt var))
-  let hist = histogram binSturges (V.toList hf)
-  _ <- plot "invMass.png" hist
+  -- let hist = histogram binSturges (V.toList hf)
+  -- _ <- plot "invMass.png" hist
   return ()
 
 gen :: VHMeas -> [Double] -> [VHMeas]

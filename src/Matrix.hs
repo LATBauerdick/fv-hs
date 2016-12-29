@@ -1,61 +1,66 @@
 {-# LANGUAGE PostfixOperators #-}
 
-module Matrix ( inv, tr, (^+), sw, chol
+module Matrix ( inv, invMaybe, tr, sw, chol
               , sub, sub2, scalar, scaleDiag, diagonal, scale
               , toList, fromList, fromList2 ) where
 
 import Debug.Trace ( trace )
 import Text.Printf
-import qualified Data.Matrix ( Matrix, inverse, cholDecomp
-                             , identity, nrows, transpose, elementwise
-                             , rowVector, colVector, getCol, multStd2
-                             , zero, scaleMatrix
-                             , diagonal, getDiag, diagonalList
-                   , getMatrixAsVector, submatrix, toList, fromList, (!) )
+import qualified Data.Matrix as M (
+                                Matrix, inverse, cholDecomp
+                              , identity, nrows, transpose, elementwise
+                              , rowVector, colVector, getCol, multStd2
+                              , zero, scaleMatrix
+                              , diagonal, getDiag, diagonalList
+                              , getMatrixAsVector, submatrix
+  , toList, fromList, (!) , (<|>), (<->), combineRows, getElem, ncols
+  , splitBlocks, switchRows, scaleRow
+                                  )
 import qualified Data.Vector (Vector)
+import Data.Maybe ( listToMaybe )
 import Control.Monad.Error
 
-type M     = Data.Matrix.Matrix Double
-type V     = Data.Matrix.Matrix Double
+type M     = M.Matrix Double
+type V     = M.Matrix Double
 
 debug = flip trace
 
 -- vectors are column-wise, represented as matrix of dimension nx1
 sub :: Int -> M -> M
-sub n v = Data.Matrix.submatrix 1 n 1 1 v
+sub n v = M.submatrix 1 n 1 1 v
 sub2 :: Int -> M -> M
-sub2 n m = Data.Matrix.submatrix 1 n 1 n m
+sub2 n m = M.submatrix 1 n 1 n m
 scalar :: M -> Double
-scalar m = m Data.Matrix.! (1,1)
+scalar m = m M.! (1,1)
 
 toList :: Int -> M -> [Double]
-toList n m = take n $ Data.Matrix.toList m
+toList n m = take n $ M.toList m
 
 fromList :: Int -> [Double] -> M
-fromList rows ds = Data.Matrix.fromList rows 1 ds -- column vector to list
+fromList rows ds = M.fromList rows 1 ds -- column vector to list
 fromList2 :: Int -> Int -> [Double] -> M
-fromList2 rows cols ds = Data.Matrix.fromList rows cols ds
+fromList2 rows cols ds = M.fromList rows cols ds
 
 scale :: Double -> M -> M
-scale s = Data.Matrix.scaleMatrix s
+scale s = M.scaleMatrix s
 
 diagonal :: [Double] -> M
-diagonal d = Data.Matrix.diagonalList (length d) 0.0 d
+diagonal d = M.diagonalList (length d) 0.0 d
 
 scaleDiag :: Double -> M -> M
-scaleDiag s = (Data.Matrix.diagonal 0.0 . Data.Matrix.getDiag . Data.Matrix.scaleMatrix  s)
+scaleDiag s = (M.diagonal 0.0 . M.getDiag . M.scaleMatrix  s)
 
 tr :: M -> M
-tr = Data.Matrix.transpose
+tr = M.transpose
 
 (^+) :: M -> M
-(^+) = Data.Matrix.transpose
+(^+) = M.transpose
 
 sw :: M -> M -> M
 sw a b = (tr a) * b * a
 
 chol :: M -> M
-chol a = Data.Matrix.cholDecomp a
+chol a = M.cholDecomp a
 
 -- This is the type of our Inv error representation.
 data InvError = Err { quality::Double, reason::String }
@@ -65,38 +70,92 @@ instance Error InvError where
   noMsg    = Err 0 "Inversion Error"
   strMsg s = Err 0 s
 
+invMaybe :: M -> Maybe M
+invMaybe m = case invsm m of
+               Right im -> Just im
+               Left s -> Nothing `debug` ("Error in Matrix.invsm: " ++ s)
+
+inv :: M -> M
+inv m =  let (Right m') = do { invm m } `catchError` printError
+          in m'
+         where
+           one = (M.identity $ M.nrows m)
+           printError :: InvError -> InvMonad M
+           printError e = return one `debug` ("Error in Matrix.inv: " ++ (show (quality e)) ++ ": " ++ (reason e))
+
 -- For our monad type constructor, we use Either InvError
 -- which represents failure using Left InvError or a
 -- successful result of type a using Right a.
 type InvMonad = Either InvError
 
 invm :: M -> InvMonad M
-invm m = case Data.Matrix.inverse m of
+invm m = case invsm m of
             Right m'  -> return m'
-            Left s    -> throwError (Err 0 ("In invm: " ++ s))  `debug` "🚩In inv"
+            Left s    -> throwError (Err 0 ("In Matrix.invm: " ++ s)) -- `debug` "yyyyyyyy"
 
-inv :: M -> M
-inv m =  let (Right m') = do { invm m } `catchError` printError
-          in m'
-         where
-           one = (Data.Matrix.identity $ Data.Matrix.nrows m)
-           printError :: InvError -> InvMonad M
-           printError e = return one `debug` ("🚩In inv" ++ (show (quality e)) ++ ": " ++ (reason e))
+-- inverse of a square matrix, from Data.Matrix with fix
+--   Uses naive Gaussian elimination formula.
+invsm ::  M -> Either String M
+invsm m = rref'd >>= return . M.submatrix 1 n (n + 1) (n * 2) where
+            n = M.nrows m
+            adjoinedWId = m M.<|> M.identity n
+            rref'd = rref adjoinedWId
+
+rref :: M -> Either String M
+rref m = rm where
+    rm = case ref m of
+           Right r -> rrefRefd r
+           Left s -> Left s
+    rrefRefd mtx
+      | M.nrows mtx == 1    = Right mtx
+      | otherwise =
+            let
+                resolvedRight = foldr (.) id (map resolveRow [1..col-1]) mtx
+                    where
+                    col = M.nrows mtx
+                    resolveRow n = M.combineRows n (-M.getElem n col mtx) col
+                top = M.submatrix 1 (M.nrows resolvedRight - 1) 1 (M.ncols resolvedRight) resolvedRight
+                top' = rrefRefd top
+                bot = M.submatrix (M.nrows resolvedRight) (M.nrows resolvedRight) 1 (M.ncols resolvedRight) resolvedRight
+            in top' >>= return . (M.<-> bot)
+
+ref :: M -> Either String M
+ref mtx
+        | M.nrows mtx == 1
+            = Right clearedLeft
+        | goodRow == 0
+            = Left ("In Matrix.ref: Attempt to invert a non-invertible matrix") -- `debug` "xxxxxxxx"
+        | otherwise =
+            let
+                (tl, tr, bl, br) = M.splitBlocks 1 1 clearedLeft
+                br' = ref br
+            in case br' of 
+                  Right br'' -> Right ((tl M.<|> tr) M.<-> (bl M.<|> br''))
+                  Left s -> Left s
+    where
+      goodRow = case listToMaybe (filter (\i -> M.getElem i 1 mtx /= 0) [1..M.nrows mtx]) of -- ERROR in orig: ncols
+                  Nothing   -> 0
+                  Just x -> x
+      sigAtTop = M.switchRows 1 goodRow mtx
+      normalizedFirstRow = M.scaleRow (1 / M.getElem 1 1 mtx) 1 sigAtTop
+      clearedLeft = foldr (.) id (map combinator [2..M.nrows mtx]) normalizedFirstRow where
+        combinator n = M.combineRows n (-M.getElem n 1 normalizedFirstRow) 1
+
 
 inv' :: M -> M
-inv' m = either invErr id (Data.Matrix.inverse m)
-  where invErr s = (Data.Matrix.identity $ Data.Matrix.nrows m) `debug` ("🚩" ++ s)
+inv' m = either invErr id (M.inverse m)
+  where invErr s = (M.identity $ M.nrows m) `debug` ("🚩" ++ s)
 
 inv''' :: M -> M
 inv''' m = f e where
-  e = Data.Matrix.inverse m
+  e = M.inverse m
   f :: Either String M -> M
-  f (Left s) = (Data.Matrix.identity $ Data.Matrix.nrows m) `debug` ("🚩" ++ s) -- can't invert
+  f (Left s) = (M.identity $ M.nrows m) `debug` ("🚩" ++ s) -- can't invert
   f (Right m') = fdeb mx where
-    mxx = Data.Matrix.elementwise (/)
-                      (Data.Matrix.elementwise (-) (Data.Matrix.multStd2 m m') (Data.Matrix.identity (Data.Matrix.nrows m)))
+    mxx = M.elementwise (/)
+                      (M.elementwise (-) (M.multStd2 m m') (M.identity (M.nrows m)))
                       m
-    mx = (* 1000.0) . maximum  . Data.Matrix.getMatrixAsVector $ mxx
+    mx = (* 1000.0) . maximum  . M.getMatrixAsVector $ mxx
     fdeb mx
       | mx < 1.0 = m'
       | otherwise = let
