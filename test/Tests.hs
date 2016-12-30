@@ -54,7 +54,7 @@ thirdFile = "dat/tr05166e001984.dat"
 mc0File   = "dat/tr00101e007076.dat"
 mc1File   = "dat/tr00101e008340.dat"
 mc2File   = "dat/tr00101e012040.dat"
-cmsFile   = "dat/tandv.dat"
+cmsFile   = "dat/tav-0.dat"
 
 showMomentum :: HMeas -> IO ()
 showMomentum h = putStrLn $ "pt,pz,fi,E ->" ++ (show . h2q) h
@@ -112,10 +112,10 @@ test arg =
 -- CMS test file
     ["c"] -> do
           vm <- hSlurp cmsFile
---          mapM_ showHelix  hl
---          mapM_ showMomentum hl
+--          mapM_ showHelix $ helices vm
+          mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
-          showProng $ fitw vm
+--          showProng $ fitw vm
 
     ["r"] -> do
 --      vm <- hSlurp thisFile
@@ -124,9 +124,10 @@ test arg =
     [fn] -> do
           vm <- hSlurp fn
           mapM_ showMomentum $ helices vm
+          doFitTest vm [0..]
           let nh = length (helices vm) - 1
           putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
-          mapM_ (\indx -> showProng . fitw . hRemove indx $ vm ) [0..nh]
+          --mapM_ (\indx -> showProng . fitw . hRemove indx $ vm ) [0..nh]
 
     _ -> exit
 
