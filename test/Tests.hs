@@ -9,8 +9,8 @@ import Text.Printf
 -- import Data.String.Interpolate
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
-import Types (  XMeas (..), HMeas (..), Prong (..), VHMeas (..)
-              , DMeas (..), Pos (..), origin
+import Types (  HMeas (..), Prong (..), VHMeas (..)
+              , Pos (..)
               , invMass, h2p, h2q, q2p
              )
 import Fit ( fit, fitw )
@@ -61,12 +61,12 @@ showMomentum h = putStrLn $ "pt,pz,fi,E ->" ++ (show . h2q) h
 showHelix :: HMeas -> IO ()
 showHelix h = putStrLn $ "Helix ->" ++ (show h)
 showProng :: Prong -> IO ()
-showProng (Prong _ v ql cl) = do
+showProng (Prong n v ql cl _) = do
   let
       showCl :: String -> [Double] -> String
       showCl = foldl (\s x -> s++printf "%8.1g" (x::Double))
-      sc = (printf "chi2tot ->%8.1f" (sum cl::Double))
-      sd = ", r ->"++ (show $ distance v origin)
+      sc = (printf "chi2tot ->%8.1f, ndof %d" (sum cl::Double)) (n*2::Int)
+      sd = ", r ->"++ (show $ distance v mempty)
       scl = showCl ", chi2s ->" cl
       sm = ", Mass ->" ++ show (invMass (map q2p ql))
   putStrLn $ sc ++ sd ++ scl ++ sm
@@ -89,14 +89,15 @@ test arg =
           doFitTest vm l5
           showProng . fitw . hFilter l5 $ vm
 
--- slurp in all event data files from ./dat and append helices
+-- do tests for each data file
     ["3"] -> do
           fs <- dataFiles "dat"
-          mapM_ xxx $ drop 1 fs where
+          mapM_ xxx $ drop 4 fs where
             xxx f = do
               vm <- hSlurp $ f
               putStrLn $ printf "File %s" f
               mapM_ showMomentum $ helices vm
+              print $ length $ helices vm
               showProng $ fitw vm
               let nh = length (helices vm) - 1
               putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
@@ -144,7 +145,7 @@ doFitTest vm l5 = do
   putStrLn $ ("Inv Mass " ++ showLen pl5 ++ " helix") ++ show (invMass pl5)
 
   putStrLn             "Fitting Vertex --------------------"
-  let Prong _ vf ql cl = fit vm
+  let Prong _ vf ql cl _ = fit vm
   putStrLn $ "Fitted vertex ->" ++ show vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   putStrLn $ "Inv Mass " ++ showLen ql ++ " fit" ++ show (invMass $map q2p ql)
@@ -152,9 +153,9 @@ doFitTest vm l5 = do
   putStrLn $ "Inv Mass " ++ showLen pl5 ++ " fit" ++ show (invMass pl5)
 
   putStrLn             "Refitting Vertex-----------------"
-  let Prong _n vf ql cl = fit . hFilter l5 $ vm
+  let Prong _n vf ql cl _ = fit . hFilter l5 $ vm
   putStrLn $ "Refitted vertex ->" ++ show vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   putStrLn $ "Inv Mass " ++ showLen ql ++ " refit" ++ show (invMass $ map q2p ql)
-  putStrLn $ ("final vertex at" ++ show vf ++ ", r =") ++ (show $ distance vf origin)
+  putStrLn $ ("final vertex at" ++ show vf ++ ", r =") ++ (show $ distance vf mempty)
 

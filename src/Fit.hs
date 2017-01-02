@@ -20,39 +20,36 @@ wght t chi2 = w where
   w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
 
 fit :: VHMeas -> Prong
-fit = kSmooth . kFilter
+fit vm = kSmooth vm . kFilter $ vm
 
 fitw :: VHMeas -> Prong -- fit with annealing function
 fitw vm = pr where
-  ws  = fmap (wght 10.0) $ fitChi2s . kSmooth . kFilter $ vm
-  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth . kFilterW ws $ vm
-  pr  = kSmooth . kFilterW ws' $ vm
+  ws  = fmap (wght 10.0) $ fitChi2s . kSmooth vm . kFilter $ vm
+  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . kFilterW ws $ vm --`debug` (show ws)
+  pr  = kSmooth vm . kFilterW ws' $ vm --`debug` (show ws')
 
-kFilter :: VHMeas -> VHMeas
-kFilter (VHMeas x ps) = VHMeas x' ps' where
-  invCov :: HMeas -> HMeas
-  invCov (HMeas h hh w0) = HMeas h (inv hh) w0
-  ps' = map invCov ps
-  x' = foldl kAdd x ps'
+kFilter :: VHMeas -> XMeas
+kFilter vm = v' where
+  VHMeas v hl = vm
+  v' = foldl kAdd v hl
 
 kAdd :: XMeas -> HMeas -> XMeas
 kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
   x_km1 = XMeas v (inv vv)
-  p_k   = HMeas h hh w0
+  p_k   = HMeas h (inv hh) w0
   x_e   = v
   q_e   = Coeff.hv2q h v
 
-kFilterW :: [Double] -> VHMeas -> VHMeas
-kFilterW ws (VHMeas x ps) = VHMeas x' ps' where
-  invWght :: HMeas -> Double -> HMeas
-  invWght (HMeas h hh w0) w = HMeas h (scale w (inv hh)) w0
-  ps' = zipWith invWght ps ws
-  x' = foldl kAddW x ps'
+kFilterW :: [Double] -> VHMeas -> XMeas
+kFilterW ws vm = v' where
+  VHMeas v hl = vm
+  v' = foldl kAddW v $ zip hl ws
 
-kAddW :: XMeas -> HMeas -> XMeas
-kAddW (XMeas v vv) (HMeas h gg w0) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
+kAddW :: XMeas -> (HMeas, Double) -> XMeas
+kAddW (XMeas v vv) (hm, w) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
   x_km1 = XMeas v (inv vv)
-  p_k   = HMeas h gg w0
+  HMeas h hh w0 = hm
+  p_k   = HMeas h (scale w (inv hh)) w0
   x_e   = v
   q_e   = Coeff.hv2q h v
 
@@ -80,24 +77,28 @@ kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
               x_k'  = if goodEnough 𝜒2_0 𝜒2 iter
                 then XMeas v cc
                 else kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q 𝜒2 (iter+1)
-            Nothing -> (XMeas v0 (inv uu0))
+            Nothing -> (XMeas v0 (inv uu0))  `debug` "... in kAdd'"
 
-kSmooth :: VHMeas -> Prong
-kSmooth (VHMeas v hl) = Prong (length ql) v ql chi2l where
-  (ql, chi2l) = unzip $ mapMaybe (ksm v) hl -- remove Nothings
+kSmooth :: VHMeas -> XMeas -> Prong
+kSmooth vm v | trace ("kSmooth " ++ (show . length . helices $ vm) ++ (show v) ) False = undefined
+kSmooth (VHMeas v0 hl) v = pr' where
+  (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v) hl
+  n = length ql
+  pr' = if n  == length hl
+          then Prong { fitVertex = v, fitMomenta = ql, fitChi2s = chi2l, nProng = length ql, measurements = VHMeas v0 hl }
+          else Prong { fitVertex = v, fitMomenta = ql, fitChi2s = chi2l, nProng = length ql, measurements = VHMeas v0 hl' } `debug` "kSmooth killed helices"
 
--- kalman smooth: calculate 3-mom q and chi2 at kalman filter vertex
--- if we can't invert, return Nothing
-ksm :: XMeas -> HMeas -> Maybe (QMeas, Chi2)
-ksm (XMeas x cc) (HMeas h gg w0) = qc where
-  Jaco aa bb h0 = Coeff.expand x (Coeff.hv2q h x)
-  aaT   = tr aa
-  bbT   = tr bb
-  qc    = case invMaybe (sw bb gg) of
-            Just ww' -> Just (QMeas q dd w0, chi2) where
-              ww    = ww'
+-- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
+-- if we can't invert, return Nothing and this track will not be included
+ksm :: XMeas -> HMeas -> Maybe (QMeas, Chi2, HMeas)
+ksm (XMeas x cc) (HMeas h hh w0) = do
+  let Jaco aa bb h0 = Coeff.expand x (Coeff.hv2q h x)
+      gg = inv hh
+  ww <- invMaybe (sw bb gg)
+  let
               p    = h - h0
               uu   = inv cc
+              aaT  = tr aa; bbT   = tr bb
               q    = ww * bbT * gg * (p - aa * x)
               ee   = - cc * aaT * gg * bb * ww
               dd   = ww + sw ee uu
@@ -108,4 +109,4 @@ ksm (XMeas x cc) (HMeas h gg w0) = qc where
               x'   = cc' * (uu*x - aaT * gb * p)
               dx   = x - x'
               chi2 = scalar (sw dx uu' + sw r gg)
-            Nothing -> Nothing
+  return (QMeas q dd w0, chi2, (HMeas h hh w0))

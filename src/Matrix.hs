@@ -2,7 +2,7 @@
 
 module Matrix ( inv, invMaybe, tr, sw, chol
               , sub, sub2, scalar, scaleDiag, diagonal, scale
-              , toList, fromList, fromList2 ) where
+              , toList, fromList, fromList2, zero ) where
 
 import Debug.Trace ( trace )
 import Text.Printf
@@ -41,6 +41,8 @@ fromList rows ds = M.fromList rows 1 ds -- column vector to list
 fromList2 :: Int -> Int -> [Double] -> M
 fromList2 rows cols ds = M.fromList rows cols ds
 
+zero :: Int -> Int -> M
+zero rows cols = M.zero rows cols
 scale :: Double -> M -> M
 scale s = M.scaleMatrix s
 

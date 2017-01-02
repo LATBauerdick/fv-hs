@@ -7,16 +7,18 @@ module Types (
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
              , v3, l3, v5, l5
-             , origin
              , h2p, h2q, q2p
              , mπ, invMass
              ) where
 
 import Text.Printf
-import qualified Data.Matrix ( Matrix, getDiag, getCol, toList, zero
+import qualified Data.Matrix ( Matrix, getDiag, getCol, toList
                              , fromLists, transpose )
 import qualified Data.Vector ( zip, map, fromList, toList, drop )
-import qualified Matrix ( scalar, sw, tr, sub, sub2, toList, fromList, fromList2 )
+import qualified Matrix ( scalar, sw, tr, sub, sub2
+                        , toList, fromList, fromList2
+                        , zero
+                        )
 
 mπ :: Double
 mπ = 0.1395675E0
@@ -30,10 +32,11 @@ type V5    = Data.Matrix.Matrix Double
 type N     = Int
 type Chi2  = Double
 data Prong = Prong { -- a prong results from a vertex fit of N helices
-    nProng      :: Int
-  , fitVertex   :: XMeas
-  , fitMomenta  :: [QMeas] 
-  , fitChi2s    :: [Chi2]
+    nProng        :: Int
+  , fitVertex     :: XMeas
+  , fitMomenta    :: [QMeas] 
+  , fitChi2s      :: [Chi2]
+  , measurements  :: VHMeas
                    } deriving Show
 
 data VHMeas = VHMeas {
@@ -42,15 +45,9 @@ data VHMeas = VHMeas {
                      } deriving Show
 instance Monoid VHMeas where
   mappend (VHMeas v hs) (VHMeas _ hs') = VHMeas v ( hs ++ hs' ) -- ???
-  mempty = VHMeas (XMeas (Matrix.fromList 3 [0,0,0]) (Data.Matrix.zero 3 3)) []
+  mempty = VHMeas (XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)) []
 
 data Jaco = Jaco M M M
-
-type X3 = V
-type C33 = M
-data XMeas = XMeas X3 C33 -- 3-vector and covariance matrix for position/vertex measurement
-instance Show XMeas where
-  show = showXMeas
 
 type H5 = V
 type C55 = M
@@ -69,18 +66,12 @@ type C44 = M -- 4x4 covariance matrix
 data PMeas = PMeas P4 C44 deriving Show
 instance Monoid PMeas where
   mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
-  mempty = PMeas (Data.Matrix.fromLists [[0.0,0.0,0.0,0.0]])
-            (Data.Matrix.zero 4 4 :: C44)
+  mempty = PMeas (Matrix.zero 4 1) (Matrix.zero 4 4)
 -- instance Functor PMeas where
 --   fmap f (PMeas p cp) = f p cp
 
 invMass :: [PMeas] -> MMeas
-invMass (h:t) = mass ptot where
-  ptot = foldr sumP h t
-
-sumP :: PMeas -> PMeas -> PMeas
-sumP (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
-
+invMass ps = mass (mconcat ps)
 
 class Mom a where
   mass :: a -> MMeas
@@ -101,6 +92,16 @@ data MMeas = MMeas Double Double -- mass and error
 instance Show MMeas where
   show (MMeas m dm) = printf "%8.1f ± %8.1f MeV" (m*1000.0) (dm*1000.0)
 
+-----------------------positions--------------
+type X3 = V
+type C33 = M
+data XMeas = XMeas X3 C33 -- 3-vector and covariance matrix for position/vertex measurement
+instance Show XMeas where
+  show = showXMeas
+instance Monoid XMeas where
+  mappend (XMeas x1 cx1) (XMeas x2 cx2) = XMeas (x1 + x2) (cx1 + cx2)
+  mempty = XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)
+
 class Pos a where
   distance :: a -> a -> DMeas -- distance between two poitions
 
@@ -119,13 +120,6 @@ v5 :: [Double] -> V5
 v5 = Matrix.fromList 5
 l5 :: V5 -> [Double]
 l5 = Matrix.toList 5
-
--- XMeas -----------------------------------------------------------
---
-(+.) :: XMeas -> XMeas -> XMeas
-(+.) (XMeas v1 vv1) (XMeas v2 vv2) = XMeas v vv where
-  v  = v1 + v2
-  vv = vv1 + vv2
 
 -- return a string showing vertext position vector with errors
 showXMeas :: XMeas -> String
@@ -147,10 +141,6 @@ xmDist (XMeas v0 vv0) (XMeas v1 vv1) = DMeas d sd where
   tem0 = Matrix.sw (Matrix.tr dd) vv0
   tem1 = Matrix.sw (Matrix.tr dd) vv1
   sd   = sqrt (Matrix.scalar tem0 + Matrix.scalar tem1)
-
-origin :: XMeas
-origin = XMeas (Data.Matrix.fromLists [[0.0,0.0,0.0]])
-            (Data.Matrix.zero 3 3 :: C33)
 
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
 showPMeas :: PMeas -> String
