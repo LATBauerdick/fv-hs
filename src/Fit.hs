@@ -2,6 +2,7 @@
 module Fit ( fit, fitw ) where
 
 import Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..)
+  , helicesLens, view, over, set
               , Prong (..), Jaco (..), Chi2
               , X3, Q3
              )
@@ -10,6 +11,7 @@ import Matrix ( inv, invMaybe, tr, sw, scalar, scale)
 
 import Data.Maybe ( mapMaybe )
 
+import Text.Printf
 import Debug.Trace ( trace )
 debug :: a -> String -> a
 debug = flip trace
@@ -25,8 +27,10 @@ fit vm = kSmooth vm . kFilter $ vm
 fitw :: VHMeas -> Prong -- fit with annealing function
 fitw vm = pr where
   ws  = fmap (wght 10.0) $ fitChi2s . kSmooth vm . kFilter $ vm
-  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . kFilterW ws $ vm --`debug` (show ws)
-  pr  = kSmooth vm . kFilterW ws' $ vm --`debug` (show ws')
+  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . kFilterW ws $ vm
+          `debug` ("fitw: " ++ (foldl (\ z a -> z ++ printf "%8.3f, " (a::Double))) "weights-> " ws)
+  pr  = kSmooth vm . kFilterW ws' $ vm
+          `debug` ("fitw: " ++ (foldl (\ z a -> z ++ printf "%8.3f, " (a::Double))) "weights-> " ws')
 
 kFilter :: VHMeas -> XMeas
 kFilter vm = v' where
@@ -80,7 +84,7 @@ kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
             Nothing -> (XMeas v0 (inv uu0))  `debug` "... in kAdd'"
 
 kSmooth :: VHMeas -> XMeas -> Prong
-kSmooth vm v | trace ("kSmooth " ++ (show . length . helices $ vm) ++ (show v) ) False = undefined
+kSmooth vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
 kSmooth (VHMeas v0 hl) v = pr' where
   (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v) hl
   n = length ql

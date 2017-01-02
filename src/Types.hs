@@ -1,8 +1,12 @@
 -- file src/Fit.hs
+--
+{-# LANGUAGE RankNTypes #-}
+
 module Types (
                 M, V, M33, V3, V5, C44
              , XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), DMeas (..), Prong (..), VHMeas (..)
+  , helicesLens, view, over, set
              , Mom (..), Pos (..)
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
@@ -12,6 +16,7 @@ module Types (
              ) where
 
 import Text.Printf
+import Data.Foldable
 import qualified Data.Matrix ( Matrix, getDiag, getCol, toList
                              , fromLists, transpose )
 import qualified Data.Vector ( zip, map, fromList, toList, drop )
@@ -29,7 +34,6 @@ type V     = Data.Matrix.Matrix Double
 type M33   = Data.Matrix.Matrix Double
 type V3    = Data.Matrix.Matrix Double
 type V5    = Data.Matrix.Matrix Double
-type N     = Int
 type Chi2  = Double
 data Prong = Prong { -- a prong results from a vertex fit of N helices
     nProng        :: Int
@@ -63,15 +67,20 @@ instance Show QMeas where
 -- 4-vector and coavariance matrix for momentum px,py,pz and energy
 type P4 = V -- four-vector
 type C44 = M -- 4x4 covariance matrix
-data PMeas = PMeas P4 C44 deriving Show
+data PMeas = PMeas P4 C44
+
+instance Show PMeas where
+  show = showPMeas
+
 instance Monoid PMeas where
   mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
   mempty = PMeas (Matrix.zero 4 1) (Matrix.zero 4 4)
+
 -- instance Functor PMeas where
 --   fmap f (PMeas p cp) = f p cp
 
 invMass :: [PMeas] -> MMeas
-invMass ps = mass (mconcat ps)
+invMass ps = mass . fold $ ps
 
 class Mom a where
   mass :: a -> MMeas
@@ -92,7 +101,33 @@ data MMeas = MMeas Double Double -- mass and error
 instance Show MMeas where
   show (MMeas m dm) = printf "%8.1f ± %8.1f MeV" (m*1000.0) (dm*1000.0)
 
+-----------------------initial Lens stuff--------------
+
+newtype Identity a = Identity { runIdentity :: a }
+instance Functor Identity where
+    fmap f (Identity a) = Identity (f a)
+
+newtype Const a b = Const { getConst :: a }
+instance Functor (Const a) where
+  fmap _ (Const a) = Const a
+
+type Lens s a = forall f.Functor f => (a -> f a) -> s -> f s
+
+over :: Lens s a -> (a -> a) -> s -> s
+over ln f s = runIdentity $ ln (Identity . f) s
+
+view :: Lens s a -> s -> a
+view ln s = getConst $ ln Const s
+
+set :: Lens s a -> a -> s -> s
+set ln x = over ln (const x)
+
+helicesLens :: Lens VHMeas [HMeas]
+helicesLens f vm = fmap (\x -> vm { helices = x }) (f ( helices vm ))
+
+
 -----------------------positions--------------
+
 type X3 = V
 type C33 = M
 data XMeas = XMeas X3 C33 -- 3-vector and covariance matrix for position/vertex measurement
