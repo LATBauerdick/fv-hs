@@ -1,5 +1,5 @@
 -- file src/Fit.hs
-module Fit ( fit, fitw ) where
+module Fit ( fit, fitw, ksm ) where
 
 import Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..)
   , helicesLens, view, over, set
@@ -58,6 +58,7 @@ kAddW (XMeas v vv) (hm, w) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
   q_e   = Coeff.hv2q h v
 
 goodEnough :: Double -> Double -> Int -> Bool
+--goodEnough c0 c i | trace ("."++show i ++ "|" ++ printf "%8.1f" (abs (c-c0)) ++ printf "%8.1f" c) False = undefined
 goodEnough c0 c i = abs (c - c0) < chi2cut || i > iterMax where
   chi2cut = 0.5
   iterMax = 99 :: Int
@@ -84,7 +85,7 @@ kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
             Nothing -> (XMeas v0 (inv uu0))  `debug` "... in kAdd'"
 
 kSmooth :: VHMeas -> XMeas -> Prong
-kSmooth vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
+--kSmooth vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
 kSmooth (VHMeas v0 hl) v = pr' where
   (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v) hl
   n = length ql

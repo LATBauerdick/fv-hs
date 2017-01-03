@@ -13,7 +13,7 @@ import Types (  HMeas (..), Prong (..), VHMeas (..)
               , Pos (..)
               , invMass, h2p, h2q, q2p
              )
-import Fit ( fit, fitw )
+import Fit ( fit, fitw, ksm )
 
 import Random ( doRandom )
 
@@ -48,20 +48,35 @@ hFilter is (VHMeas v hl) = VHMeas v (iflt is hl)
 hRemove :: Int -> VHMeas -> VHMeas
 hRemove indx (VHMeas v hl) = VHMeas v (irem indx hl)
 
-thisFile  = "dat/tr05129e001412.dat"
-otherFile = "dat/tr05158e004656.dat"
-thirdFile = "dat/tr05166e001984.dat"
-mc0File   = "dat/tr00101e007076.dat"
-mc1File   = "dat/tr00101e008340.dat"
-mc2File   = "dat/tr00101e012040.dat"
-cmsFile   = "dat/tav-0.dat"
+data DataFileNames = DataFileNames {
+    thisFile  :: String
+  , otherFile :: String
+  , thirdFile :: String
+  , badFile   :: String
+  , mc0File   :: String
+  , mc1File   :: String
+  , mc2File   :: String
+  , cmsFile   :: String
+                                   }
+
+df :: DataFileNames
+df = DataFileNames {
+    thisFile  = "dat/tr05129e001412.dat"
+  , otherFile = "dat/tr05158e004656.dat"
+  , thirdFile = "dat/tr05166e001984.dat"
+  , badFile   = "dat/tr07849e007984.dat"
+  , mc0File   = "dat/tr00101e007076.dat"
+  , mc1File   = "dat/tr00101e008340.dat"
+  , mc2File   = "dat/tr00101e012040.dat"
+  , cmsFile   = "dat/tav-0.dat"
+                                   }
 
 showMomentum :: HMeas -> IO ()
 showMomentum h = putStrLn $ "pt,pz,fi,E ->" ++ (show . h2q) h
 showHelix :: HMeas -> IO ()
 showHelix h = putStrLn $ "Helix ->" ++ (show h)
-showProng :: Prong -> IO ()
-showProng (Prong n v ql cl _) = do
+showProng :: Prong -> IO Prong
+showProng (Prong n v ql cl m) = do
   let
       showCl :: String -> [Double] -> String
       showCl = foldl (\s x -> s++printf "%8.1g" (x::Double))
@@ -70,27 +85,43 @@ showProng (Prong n v ql cl _) = do
       scl = showCl ", chi2s ->" cl
       sm = ", Mass ->" ++ show (invMass (map q2p ql))
   putStrLn $ sc ++ sd ++ scl ++ sm
+  return (Prong n v ql cl m)
 
 test :: [String] -> IO ()
 test arg =
   case arg of
     ["1"] -> do
-          vm <- hSlurp thisFile
+          vm <- hSlurp . thisFile $ df
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
           doFitTest vm l5
-          showProng . fitw . hFilter l5 $ vm
+          _ <- showProng . fitw . hFilter l5 $ vm
+          return ()
 
     ["2"] -> do
-          vm <- hSlurp otherFile
+          vm <- hSlurp . otherFile $ df
           mapM_ showMomentum $ helices vm
           let l5 = [0,1,2,4,5]
           doFitTest vm l5
-          showProng . fitw . hFilter l5 $ vm
+          _ <- showProng . fitw . hFilter l5 $ vm
+          return ()
+
+    ["3"] -> do -- this file has an additional track that makes the fit bad
+          vm <- hSlurp . badFile $ df
+          mapM_ showHelix $ helices vm
+          mapM_ showMomentum $ helices vm
+          let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
+          doFitTest vm l5
+          pr <- showProng . fitw . hFilter l5 $ vm
+          let vf = fitVertex $ pr
+              h = head . helices . hFilter [6] $ vm
+              Just (_, chi2, _) =  ksm vf h
+          putStrLn $ printf "chi2 of track 6 w/r to fit vertex is %8.1f" (chi2::Double)
+          return ()
 
 -- do tests for each data file
-    ["3"] -> do
+    ["4"] -> do
           fs <- dataFiles "dat"
           mapM_ xxx $ drop 4 fs where
             xxx f = do
@@ -98,29 +129,31 @@ test arg =
               putStrLn $ printf "File %s" f
               mapM_ showMomentum $ helices vm
               print $ length $ helices vm
-              showProng $ fitw vm
+              _ <- showProng $ fitw vm
               let nh = length (helices vm) - 1
               putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
               mapM_ (\indx -> showProng . fitw . hRemove indx $ vm) [0..nh]
 
 -- slurp in all event data files from ./dat and append helices
-    ["4"] -> do
+    ["5"] -> do
           ps <- dataFiles "dat"
           vm <- hSlurpAll ps
           doFitTest vm [0..]
-          showProng $ fitw vm
+          _ <- showProng $ fitw vm
+          return ()
 
 -- CMS test file
     ["c"] -> do
-          vm <- hSlurp cmsFile
---          mapM_ showHelix $ helices vm
+          vm <- hSlurp . cmsFile $ df
+--        mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
 --          showProng $ fitw vm
+          return ()
 
     ["r"] -> do
 --      vm <- hSlurp thisFile
-        hSlurp thisFile >>= doRandom 1000 . hFilter [0,2,3,4,5]
+        (hSlurp . thisFile) df >>= doRandom 1000 . hFilter [0,2,3,4,5]
 
     [fn] -> do
           vm <- hSlurp fn
@@ -128,7 +161,7 @@ test arg =
           doFitTest vm [0..]
           let nh = length (helices vm) - 1
           putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
-          --mapM_ (\indx -> showProng . fitw . hRemove indx $ vm ) [0..nh]
+          mapM_ (\indx -> showProng . fitw . hRemove indx $ vm ) [0..nh]
 
     _ -> exit
 
@@ -137,7 +170,7 @@ doFitTest vm l5 = do
   let showLen xs = show $ length xs
   let showQChi2 (qm, chi2, i) = putStrLn $ (printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double) ++ "pt,pz,fi,E ->") ++ show qm
 
-  putStrLn $ "initial vertex position ->" ++ show (vertex vm)
+  putStrLn $ "initial vertex position -> " ++ show (vertex vm)
 
   let pl              = map h2p $ helices vm
   putStrLn $ ("Inv Mass " ++ showLen pl ++ " helix") ++ show (invMass pl)
@@ -146,16 +179,16 @@ doFitTest vm l5 = do
 
   putStrLn             "Fitting Vertex --------------------"
   let Prong _ vf ql cl _ = fit vm
-  putStrLn $ "Fitted vertex ->" ++ show vf
+  putStrLn $ "Fitted vertex -> " ++ show vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   putStrLn $ "Inv Mass " ++ showLen ql ++ " fit" ++ show (invMass $map q2p ql)
-  let pl5              = map q2p $ iflt l5 ql
-  putStrLn $ "Inv Mass " ++ showLen pl5 ++ " fit" ++ show (invMass pl5)
+  let pl5'             = map q2p $ iflt l5 ql
+  putStrLn $ "Inv Mass " ++ showLen pl5' ++ " fit" ++ show (invMass pl5')
 
   putStrLn             "Refitting Vertex-----------------"
-  let Prong _n vf ql cl _ = fit . hFilter l5 $ vm
-  putStrLn $ "Refitted vertex ->" ++ show vf
-  mapM_ showQChi2 $ zip3 ql cl [0..]
-  putStrLn $ "Inv Mass " ++ showLen ql ++ " refit" ++ show (invMass $ map q2p ql)
-  putStrLn $ ("final vertex at" ++ show vf ++ ", r =") ++ (show $ distance vf mempty)
+  let prf = fit . hFilter l5 $ vm
+  putStrLn $ "Refitted vertex -> " ++ show (fitVertex prf)
+  mapM_ showQChi2 $ zip3 (fitMomenta prf) (fitChi2s prf) [0..]
+  putStrLn $ "Inv Mass " ++ (show $ nProng prf) ++ " refit" ++ show (invMass $ map q2p (fitMomenta prf))
+  putStrLn $ "Final vertex -> " ++ show (fitVertex prf)
 

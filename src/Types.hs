@@ -1,4 +1,4 @@
--- file src/Fit.hs
+-- file src/Types.hs
 --
 {-# LANGUAGE RankNTypes #-}
 
@@ -145,7 +145,7 @@ instance Pos XMeas where
 
 data DMeas = DMeas Double Double -- distance and error
 instance Show DMeas where
-  show (DMeas d sd) = printf ("%8.3f ± %8.3f cm")(d::Double) (sd::Double)
+  show (DMeas d sd) = printf ("%6.2f ± %6.2f cm")(d::Double) (sd::Double)
 
 v3 :: [Double] -> V3
 v3 = Matrix.fromList 3
@@ -160,9 +160,12 @@ l5 = Matrix.toList 5
 showXMeas :: XMeas -> String
 showXMeas (XMeas v cv) = s' where
   s2v        = Data.Vector.map sqrt $ Data.Matrix.getDiag cv
-  f :: String -> (Double, Double) -> String
-  f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
-  s' = foldl f "" ( Data.Vector.zip (Data.Matrix.getCol 1 v) s2v) ++ " cm"
+  [x, y, z]  = Matrix.toList 3 v
+  [dx,dy,dz] = Data.Vector.toList s2v
+  f :: Double -> Double -> String -> String
+  f x dx s  = s ++ (printf "%6.2f ± %6.2f" (x::Double) (dx::Double))
+  s' = (f z dz) . (f y dy) . (f x dx) $
+    "r =" ++ (show $ distance (XMeas v cv) mempty) ++ ", "
 
 -- calculate distance between two vertices
 xmDist :: XMeas -> XMeas -> DMeas
