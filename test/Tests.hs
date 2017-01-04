@@ -5,12 +5,14 @@ module Main ( main ) where
 import System.Environment
 import System.Exit
 import Text.Printf
+import Control.Monad ( liftM )
 -- :set -XQuasiQuotes
 -- import Data.String.Interpolate
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
 import Types (  HMeas (..), Prong (..), VHMeas (..)
               , Pos (..)
+  , vBlowup, hFilter, hRemove
               , invMass, h2p, h2q, q2p
              )
 import Fit ( fit, fitw, ksm )
@@ -33,20 +35,6 @@ version = putStrLn "Haskell fvt 0.1"
 exit :: IO ()
 exit    = exitSuccess
 
--- filter list of objects given list of indices in [a]
--- return list with only those b that have  indices that  are in rng [a]
-iflt :: ( Eq a, Enum a, Num a ) => [a] -> [b] -> [b]
-iflt rng hl =
-  [h | (h, i) <- zip hl [0..], i `elem` rng ]
-
-irem :: (Eq a, Enum a, Num a) => a -> [b] -> [b]
-irem indx hl = [ h | (h,i) <- zip hl [0..], i /= indx ]
-
-hFilter :: [Int] -> VHMeas -> VHMeas
-hFilter is (VHMeas v hl) = VHMeas v (iflt is hl)
-
-hRemove :: Int -> VHMeas -> VHMeas
-hRemove indx (VHMeas v hl) = VHMeas v (irem indx hl)
 
 data DataFileNames = DataFileNames {
     thisFile  :: String
@@ -91,7 +79,8 @@ test :: [String] -> IO ()
 test arg =
   case arg of
     ["1"] -> do
-          vm <- hSlurp . thisFile $ df
+          vm <- liftM (vBlowup 10000.0) (hSlurp . thisFile $ df)
+
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
@@ -100,7 +89,7 @@ test arg =
           return ()
 
     ["2"] -> do
-          vm <- hSlurp . otherFile $ df
+          vm <- liftM (vBlowup 10000.0) (hSlurp . otherFile $ df)
           mapM_ showMomentum $ helices vm
           let l5 = [0,1,2,4,5]
           doFitTest vm l5
@@ -108,7 +97,7 @@ test arg =
           return ()
 
     ["3"] -> do -- this file has an additional track that makes the fit bad
-          vm <- hSlurp . badFile $ df
+          vm <- liftM (vBlowup 10000.0) (hSlurp . badFile $ df)
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
@@ -125,7 +114,7 @@ test arg =
           fs <- dataFiles "dat"
           mapM_ xxx $ drop 4 fs where
             xxx f = do
-              vm <- hSlurp $ f
+              vm <- liftM (vBlowup 10000.0) (hSlurp $ f)
               putStrLn $ printf "File %s" f
               mapM_ showMomentum $ helices vm
               print $ length $ helices vm
@@ -137,14 +126,14 @@ test arg =
 -- slurp in all event data files from ./dat and append helices
     ["5"] -> do
           ps <- dataFiles "dat"
-          vm <- hSlurpAll ps
+          vm <- liftM (vBlowup 10000.0) (hSlurpAll ps)
           doFitTest vm [0..]
           _ <- showProng $ fitw vm
           return ()
 
 -- CMS test file
     ["c"] -> do
-          vm <- hSlurp . cmsFile $ df
+          vm <- liftM (vBlowup 10000.0) (hSlurp . cmsFile $ df)
 --        mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
@@ -152,11 +141,11 @@ test arg =
           return ()
 
     ["r"] -> do
---      vm <- hSlurp thisFile
-        (hSlurp . thisFile) df >>= doRandom 1000 . hFilter [0,2,3,4,5]
+--          vm <- liftM (vBlowup 10000.0) (hSlurp thisFile)
+          (hSlurp . thisFile) df >>= doRandom 1000 . hFilter [0,2,3,4,5] . vBlowup 10000.0
 
     [fn] -> do
-          vm <- hSlurp fn
+          vm <- liftM (vBlowup 10000.0) (hSlurp fn)
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
           let nh = length (helices vm) - 1
@@ -174,7 +163,7 @@ doFitTest vm l5 = do
 
   let pl              = map h2p $ helices vm
   putStrLn $ ("Inv Mass " ++ showLen pl ++ " helix") ++ show (invMass pl)
-  let pl5             = map h2p $ iflt l5 (helices vm)
+  let pl5             = map h2p . helices . hFilter l5 $ vm
   putStrLn $ ("Inv Mass " ++ showLen pl5 ++ " helix") ++ show (invMass pl5)
 
   putStrLn             "Fitting Vertex --------------------"
@@ -182,8 +171,10 @@ doFitTest vm l5 = do
   putStrLn $ "Fitted vertex -> " ++ show vf
   mapM_ showQChi2 $ zip3 ql cl [0..]
   putStrLn $ "Inv Mass " ++ showLen ql ++ " fit" ++ show (invMass $map q2p ql)
-  let pl5'             = map q2p $ iflt l5 ql
-  putStrLn $ "Inv Mass " ++ showLen pl5' ++ " fit" ++ show (invMass pl5')
+
+  let m5 = invMass . map q2p . iflt l5 $ ql
+      iflt rng hl = [h | (h, i) <- zip hl [0..], i `elem` rng ]
+  putStrLn $ "Inv Mass " ++ showLen l5 ++ " fit" ++ show m5
 
   putStrLn             "Refitting Vertex-----------------"
   let prf = fit . hFilter l5 $ vm

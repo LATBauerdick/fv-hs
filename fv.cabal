@@ -41,10 +41,13 @@ executable fvt
                     , random
                     , normaldistribution
                     , statistics
+                    , Histogram
+                    , gnuplot
                     , vector
                     , split
                     , directory
   hs-source-dirs:     test
   other-modules:      Input
                     , Random
+                    , Cluster
   default-language:   Haskell2010

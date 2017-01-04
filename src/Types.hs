@@ -6,7 +6,9 @@ module Types (
                 M, V, M33, V3, V5, C44
              , XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), DMeas (..), Prong (..), VHMeas (..)
-  , helicesLens, view, over, set
+  , helicesLens
+  , view, over, set
+  , vBlowup, hFilter, hRemove
              , Mom (..), Pos (..)
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
@@ -22,7 +24,7 @@ import qualified Data.Matrix ( Matrix, getDiag, getCol, toList
 import qualified Data.Vector ( zip, map, fromList, toList, drop )
 import qualified Matrix ( scalar, sw, tr, sub, sub2
                         , toList, fromList, fromList2
-                        , zero
+                        , zero, scaleDiag
                         )
 
 mπ :: Double
@@ -125,7 +127,29 @@ set ln x = over ln (const x)
 helicesLens :: Lens VHMeas [HMeas]
 helicesLens f vm = fmap (\x -> vm { helices = x }) (f ( helices vm ))
 
+vertexLens :: Lens VHMeas XMeas
+vertexLens f vm = fmap (\x -> vm { vertex = x }) (f ( vertex vm ))
 
+vBlowup :: Double -> VHMeas -> VHMeas
+vBlowup scale vm = over vertexLens (blowup scale) vm where
+  blowup :: Double -> XMeas -> XMeas -- blow up diag of cov matrix
+  blowup s (XMeas v cv) = XMeas v cv' where
+    cv' = Matrix.scaleDiag s $ cv
+
+-- filter list of objects given list of indices in [a]
+-- return list with only those b that have  indices that  are in rng [a]
+iflt :: ( Eq a, Enum a, Num a ) => [a] -> [b] -> [b]
+iflt rng hl =
+  [h | (h, i) <- zip hl [0..], i `elem` rng ]
+
+irem :: (Eq a, Enum a, Num a) => a -> [b] -> [b]
+irem indx hl = [ h | (h,i) <- zip hl [0..], i /= indx ]
+
+hFilter :: [Int] -> VHMeas -> VHMeas
+hFilter is (VHMeas v hl) = VHMeas v (iflt is hl)
+
+hRemove :: Int -> VHMeas -> VHMeas
+hRemove indx (VHMeas v hl) = VHMeas v (irem indx hl)
 -----------------------positions--------------
 
 type X3 = V
