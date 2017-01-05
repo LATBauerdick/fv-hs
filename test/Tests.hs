@@ -5,7 +5,6 @@ module Main ( main ) where
 import System.Environment
 import System.Exit
 import Text.Printf
-import Control.Monad ( liftM )
 -- :set -XQuasiQuotes
 -- import Data.String.Interpolate
 
@@ -79,7 +78,7 @@ test :: [String] -> IO ()
 test arg =
   case arg of
     ["1"] -> do
-          vm <- liftM (vBlowup 10000.0) (hSlurp . thisFile $ df)
+          vm <- fmap (vBlowup 10000.0) (hSlurp . thisFile $ df)
 
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
@@ -89,7 +88,7 @@ test arg =
           return ()
 
     ["2"] -> do
-          vm <- liftM (vBlowup 10000.0) (hSlurp . otherFile $ df)
+          vm <- fmap (vBlowup 10000.0) (hSlurp . otherFile $ df)
           mapM_ showMomentum $ helices vm
           let l5 = [0,1,2,4,5]
           doFitTest vm l5
@@ -97,7 +96,7 @@ test arg =
           return ()
 
     ["3"] -> do -- this file has an additional track that makes the fit bad
-          vm <- liftM (vBlowup 10000.0) (hSlurp . badFile $ df)
+          vm <- fmap (vBlowup 10000.0) (hSlurp . badFile $ df)
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
@@ -114,7 +113,7 @@ test arg =
           fs <- dataFiles "dat"
           mapM_ xxx $ drop 4 fs where
             xxx f = do
-              vm <- liftM (vBlowup 10000.0) (hSlurp $ f)
+              vm <- fmap (vBlowup 10000.0) (hSlurp $ f)
               putStrLn $ printf "File %s" f
               mapM_ showMomentum $ helices vm
               print $ length $ helices vm
@@ -126,14 +125,14 @@ test arg =
 -- slurp in all event data files from ./dat and append helices
     ["5"] -> do
           ps <- dataFiles "dat"
-          vm <- liftM (vBlowup 10000.0) (hSlurpAll $ drop 4 ps)
+          vm <- fmap (vBlowup 10000.0) (hSlurpAll $ drop 4 ps)
           doFitTest vm [0..]
           _ <- showProng $ fitw vm
           return ()
 
 -- CMS test file
     ["6"] -> do
-          vm <- liftM (vBlowup 10000.0) (hSlurp . cmsFile $ df)
+          vm <- fmap (vBlowup 10000.0) (hSlurp . cmsFile $ df)
 --        mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
@@ -157,11 +156,11 @@ test arg =
           return ()
 
     ["r"] -> do
---          vm <- liftM (vBlowup 10000.0) (hSlurp thisFile)
+--          vm <- fmap (vBlowup 10000.0) (hSlurp thisFile)
           (hSlurp . thisFile) df >>= doRandom 1000 . hFilter [0,2,3,4,5] . vBlowup 10000.0
 
     [fn] -> do
-          vm <- liftM (vBlowup 10000.0) (hSlurp fn)
+          vm <- fmap (vBlowup 10000.0) (hSlurp fn)
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
           let nh = length (helices vm) - 1
