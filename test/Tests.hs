@@ -126,18 +126,34 @@ test arg =
 -- slurp in all event data files from ./dat and append helices
     ["5"] -> do
           ps <- dataFiles "dat"
-          vm <- liftM (vBlowup 10000.0) (hSlurpAll ps)
+          vm <- liftM (vBlowup 10000.0) (hSlurpAll $ drop 4 ps)
           doFitTest vm [0..]
           _ <- showProng $ fitw vm
           return ()
 
 -- CMS test file
-    ["c"] -> do
+    ["6"] -> do
           vm <- liftM (vBlowup 10000.0) (hSlurp . cmsFile $ df)
 --        mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
 --          showProng $ fitw vm
+          return ()
+
+-- Cluster test
+    ["c"] -> do
+          vm <- hSlurp . thisFile $ df
+          mapM_ showHelix $ helices vm
+          mapM_ showMomentum $ helices vm
+          let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
+          doFitTest (vBlowup 10000.0 vm) l5
+          pr <- showProng . fitw . hFilter l5 . vBlowup 10000.0 $ vm
+          let vf = fitVertex $ pr
+              v0 = vertex vm -- beamspot
+          mapM_ (\h -> let Just (_, chi2, _) = ksm v0 h in putStrLn . show $ chi2 ) $ helices vm
+              -- Just (_, chi2, _) =  ksm v0 h
+          putStrLn $ "beam spot -> " ++ show v0
+          -- putStrLn $ printf "chi2 of track 1 w/r to beam spot is %8.1f" (chi2::Double)
           return ()
 
     ["r"] -> do
@@ -174,7 +190,7 @@ doFitTest vm l5 = do
 
   let m5 = invMass . map q2p . iflt l5 $ ql
       iflt rng hl = [h | (h, i) <- zip hl [0..], i `elem` rng ]
-  putStrLn $ "Inv Mass " ++ showLen l5 ++ " fit" ++ show m5
+  putStrLn $ "Inv Mass " ++ showLen (iflt l5 ql) ++ " fit" ++ show m5
 
   putStrLn             "Refitting Vertex-----------------"
   let prf = fit . hFilter l5 $ vm
