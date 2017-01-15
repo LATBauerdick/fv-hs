@@ -1,6 +1,6 @@
 -- file src/Types.hs
 --
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, DisambiguateRecordFields #-}
 
 module Types (
                 M, V, M33, V3, V5, C44
@@ -9,7 +9,7 @@ module Types (
   , helicesLens
   , view, over, set
   , vBlowup, hFilter, hRemove
-  , zVertex
+  , rVertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix
              , Mom (..), Pos (..)
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
@@ -63,6 +63,25 @@ data HMeas = HMeas H5 C55 Double -- 5-vector and covariance matrix for helix mea
 instance Show HMeas where
   show = showHMeas
 
+d0Helix :: HMeas -> Double
+d0Helix (HMeas h _ _) = d0 where
+  [_, _, _, d0] = Matrix.toList 4 h
+
+z0Helix :: HMeas -> Double
+z0Helix (HMeas h _ _) = z0 where
+  [_, _, _, _, z0] = Matrix.toList 5 h
+
+ptHelix :: HMeas -> Double
+ptHelix (HMeas h _ w0) = pt where
+  [w] = Matrix.toList 1 h
+  pt   = w0 / abs w
+
+pzHelix :: HMeas -> Double
+pzHelix (HMeas h _ w0) = pz where
+  [w,tl] = Matrix.toList 2 h
+  pt   = w0 / abs w
+  pz   = pt * tl
+
 type Q3 = V
 data QMeas = QMeas Q3 C33 Double -- 3-vector and covariance matrix for momentum measurement
 instance Show QMeas where
@@ -100,10 +119,6 @@ instance Mom QMeas where
   energy qm = e' where
     PMeas p _ = q2p qm
     [_,_,_,e'] = Matrix.toList 4 p
-
-data MMeas = MMeas Double Double -- mass and error
-instance Show MMeas where
-  show (MMeas m dm) = printf "%8.1f ± %8.1f MeV" (m*1000.0) (dm*1000.0)
 
 -----------------------initial Lens stuff--------------
 
@@ -152,6 +167,19 @@ hFilter is (VHMeas v hl) = VHMeas v (iflt is hl)
 
 hRemove :: Int -> VHMeas -> VHMeas
 hRemove indx (VHMeas v hl) = VHMeas v (irem indx hl)
+-----------------------measurement------------
+data Meas a = MkMeas {  -- value and error
+      valM :: a
+    , errM :: a
+                   }
+
+data MMeas = MMeas {
+      val :: Double
+    , err :: Double
+                     }
+instance Show MMeas where
+  show m = printf "%8.1f ± %8.1f MeV" ((val m)*1000.0) ((err m)*1000.0)
+
 -----------------------positions--------------
 
 type X3 = V
@@ -192,6 +220,10 @@ showXMeas (XMeas v cv) = s' where
   f x dx s  = s ++ (printf "%6.2f ± %6.2f" (x::Double) (dx::Double))
   s' = (f z dz) . (f y dy) . (f x dx) $
     "(r,z) =" ++ (printf "(%6.2f,%6.2f), x y z =" (sqrt (x*x + y*y)) z)
+
+rVertex :: XMeas -> Double
+rVertex (XMeas v _) = sqrt (x*x + y*y) where
+  [x, y] = Matrix.toList 2 v
 
 zVertex :: XMeas -> Double
 zVertex (XMeas v _) = z where

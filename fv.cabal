@@ -15,12 +15,15 @@ cabal-version:       >=1.10
 library
   ghc-options:
   default-extensions: NoImplicitPrelude
+                    , OverloadedStrings
   hs-source-dirs:     src
   exposed-modules:    Fit
                     , Types
                     , Coeff
                     , Matrix
   build-depends:      base >= 4.7 && < 5
+                    , protolude
+                    , text
                     , matrix
                     , mtl
                     , interpolate
@@ -33,9 +36,12 @@ library
 executable fvt
   ghc-options:
   default-extensions: NoImplicitPrelude
+                    , OverloadedStrings
   main-is:            Tests.hs
   build-depends:      base >= 4.7 && < 5
                     , fv
+                    , protolude
+                    , text
                     , matrix
                     , mtl
                     , interpolate

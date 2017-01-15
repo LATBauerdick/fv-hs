@@ -80,7 +80,7 @@ kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
               dm    = m - aa * v
               q     = ww * bbT * gg * dm
               𝜒2    = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
-              x_k'  = if goodEnough 𝜒2_0 𝜒2 iter
+              x_k'  = if goodEnough 𝜒2_0 𝜒2 iter -- `debug` ("--> kAdd' chi2 is " ++ show 𝜒2)
                 then XMeas v cc
                 else kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q 𝜒2 (iter+1)
             Nothing -> (XMeas v0 (inv uu0))  `debug` "... in kAdd'"
@@ -114,5 +114,9 @@ ksm (XMeas x cc) (HMeas h hh w0) = do
               cc'  = inv uu'
               x'   = cc' * (uu*x - aaT * gb * p)
               dx   = x - x'
-              chi2 = scalar (sw dx uu' + sw r gg)
+              c2 = scalar $ sw r gg
+              c1'  = scalar $ sw dx uu'
+              c1   = if c1' < 0 then 0 `debug` ("--> ksm chi2 is " ++ show c1' ++ ", " ++ show c2 ++ ", " ++ show ((max c1' 0) + c2))
+                                else c1'
+              chi2 = c1 + c2
   return (QMeas q dd w0, chi2, (HMeas h hh w0))

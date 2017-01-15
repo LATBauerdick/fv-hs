@@ -1,18 +1,21 @@
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+
 module Cluster ( doCluster ) where
 
-import Types (  VHMeas (..), vBlowup, Prong (..), HMeas (..)
-  , XMeas (..), zVertex )
-import Fit ( fitw, kAdd, ksm )
+import Types (  VHMeas (..), HMeas (..)
+  , XMeas (..), rVertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix, h2p )
+import Fit ( kAdd, ksm )
 
-import Prelude
+import Protolude
+--import Data.Text
 import Text.Printf ( printf )
-import Control.Monad ( when )
-import Data.Maybe ( mapMaybe )
-import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
+-- import Control.Monad ( when )
+-- import Data.Maybe ( mapMaybe )
+--import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
 
-import Debug.Trace ( trace )
-debug :: a -> String -> a
+-- import Debug.Trace ( trace )
+debug :: a -> [Char] -> a
 debug = flip trace
 
 
@@ -33,5 +36,14 @@ ff v h = z where
   Just (_, chi2, _) =  ksm v h
   z = if (chi2 >= 0.0) && (chi2 < 1000.0) && (abs zv2) < 10.0
         then Just (zVertex v2)
-            `debug` ("vertex track candidate " ++ (printf "chi2 %6.0f, v at " chi2) ++ (show v2))
+            `debug` ("vertex track candidate\n" ++ debugVH chi2 v2 h)
         else Nothing
+            `debug` ("failed track candidate\n" ++ debugVH chi2 v2 h)
+
+  debugVH chi2 v h =
+    printf "-->  chi2=%8.0f\n" chi2
+    ++ printf "--> Helix pt=%8.1f GeV, pz=%8.1f GeV, d0=%8.2f cm, z0=%8.2f cm\n"
+      (ptHelix h) (pzHelix h) (d0Helix h) (z0Helix h)
+    ++ printf "--> Vertex r=%8.2f cm, z=%8.2f cm"
+      (rVertex v2) (zVertex v2)
+
