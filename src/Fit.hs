@@ -1,5 +1,5 @@
 -- file src/Fit.hs
-module Fit ( fit, fitw, ksm ) where
+module Fit ( fit, fitw, ksm, kAdd ) where
 
 import Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..)
   , helicesLens, view, over, set
@@ -9,6 +9,7 @@ import Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..)
 import qualified Coeff ( expand, hv2q )
 import Matrix ( inv, invMaybe, tr, sw, scalar, scale)
 
+import Prelude
 import Data.Maybe ( mapMaybe )
 
 import Text.Printf

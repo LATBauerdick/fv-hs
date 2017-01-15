@@ -2,6 +2,7 @@
 
 module Random ( doRandom ) where
 
+import Prelude
 import Control.Parallel.Strategies
 import System.Random
 import Data.Random.Normal

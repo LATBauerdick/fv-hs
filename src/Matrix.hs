@@ -4,6 +4,7 @@ module Matrix ( inv, invMaybe, tr, sw, chol
               , sub, sub2, scalar, scaleDiag, diagonal, scale
               , toList, fromList, fromList2, zero ) where
 
+import Prelude
 import Debug.Trace ( trace )
 import Text.Printf
 import qualified Data.Matrix as M (

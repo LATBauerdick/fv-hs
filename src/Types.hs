@@ -9,6 +9,7 @@ module Types (
   , helicesLens
   , view, over, set
   , vBlowup, hFilter, hRemove
+  , zVertex
              , Mom (..), Pos (..)
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
@@ -17,6 +18,7 @@ module Types (
              , mπ, invMass
              ) where
 
+import Prelude
 import Text.Printf
 import Data.Foldable
 import qualified Data.Matrix ( Matrix, getDiag, getCol, toList
@@ -189,7 +191,11 @@ showXMeas (XMeas v cv) = s' where
   f :: Double -> Double -> String -> String
   f x dx s  = s ++ (printf "%6.2f ± %6.2f" (x::Double) (dx::Double))
   s' = (f z dz) . (f y dy) . (f x dx) $
-    "r =" ++ (show $ distance (XMeas v cv) mempty) ++ ", "
+    "(r,z) =" ++ (printf "(%6.2f,%6.2f), x y z =" (sqrt (x*x + y*y)) z)
+
+zVertex :: XMeas -> Double
+zVertex (XMeas v _) = z where
+  [_, _, z] = Matrix.toList 3 v
 
 -- calculate distance between two vertices
 xmDist :: XMeas -> XMeas -> DMeas

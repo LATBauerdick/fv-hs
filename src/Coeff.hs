@@ -8,6 +8,8 @@ import Types ( M, V3, V5
               , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
               , Jaco (..) )
 import Matrix ( toList, fromList, fromList2 )
+
+import Prelude
 import Data.Fixed ( mod' )
 import Debug.Trace ( trace )
 debug :: a -> String -> a

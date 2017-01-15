@@ -1,6 +1,7 @@
 -- file: test/Input.hs
 module Input ( hSlurp, hSlurpAll, dataFiles ) where
 
+import Prelude
 import Types ( HMeas (..), XMeas (..), VHMeas (..) )
 import Matrix ( fromList, fromList2, scaleDiag, sw )
 import System.Directory

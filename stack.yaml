@@ -5,8 +5,9 @@ ghc-options:
 packages:
 - '.'
 extra-deps:
+- intero-0.1.16
 - normaldistribution-1.1.0.3
 - Histogram-0.1.0.2
 - gnuplot-0.5.4.1
 - data-accessor-transformers-0.2.1.7
-resolver: lts-7.13
+resolver: lts-7.14

@@ -2,6 +2,7 @@
 --
 module Main ( main ) where
 
+import Prelude
 import System.Environment
 import System.Exit
 import Text.Printf
@@ -14,9 +15,10 @@ import Types (  HMeas (..), Prong (..), VHMeas (..)
   , vBlowup, hFilter, hRemove
               , invMass, h2p, h2q, q2p
              )
-import Fit ( fit, fitw, ksm )
+import Fit ( fit, fitw, ksm, kAdd )
 
 import Random ( doRandom )
+import Cluster ( doCluster )
 
 main :: IO ()
 main = getArgs >>= parse
@@ -141,18 +143,10 @@ test arg =
 
 -- Cluster test
     ["c"] -> do
-          vm <- hSlurp . thisFile $ df
+          vm <- hSlurp . cmsFile $ df
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
-          let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
-          doFitTest (vBlowup 10000.0 vm) l5
-          pr <- showProng . fitw . hFilter l5 . vBlowup 10000.0 $ vm
-          let vf = fitVertex $ pr
-              v0 = vertex vm -- beamspot
-          mapM_ (\h -> let Just (_, chi2, _) = ksm v0 h in putStrLn . show $ chi2 ) $ helices vm
-              -- Just (_, chi2, _) =  ksm v0 h
-          putStrLn $ "beam spot -> " ++ show v0
-          -- putStrLn $ printf "chi2 of track 1 w/r to beam spot is %8.1f" (chi2::Double)
+          doCluster vm
           return ()
 
     ["r"] -> do
