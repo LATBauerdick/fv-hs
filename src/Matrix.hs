@@ -1,6 +1,6 @@
 {-# LANGUAGE PostfixOperators #-}
 
-module Matrix ( inv, invMaybe, tr, sw, chol
+module Matrix ( inv, invMaybe, det, tr, sw, chol
               , sub, sub2, scalar, scaleDiag, diagonal, scale
               , toList, fromList, fromList2, zero ) where
 
@@ -8,7 +8,7 @@ import Prelude
 import Debug.Trace ( trace )
 import Text.Printf
 import qualified Data.Matrix as M (
-                                Matrix, inverse, cholDecomp
+                                Matrix, inverse, cholDecomp, detLU
                               , identity, nrows, transpose, elementwise
                               , rowVector, colVector, getCol, multStd2
                               , zero, scaleMatrix
@@ -64,6 +64,9 @@ sw a b = (tr a) * b * a
 
 chol :: M -> M
 chol a = M.cholDecomp a
+
+det :: M -> Double
+det m = M.detLU m
 
 -- This is the type of our Inv error representation.
 data InvError = Err { quality::Double, reason::String }

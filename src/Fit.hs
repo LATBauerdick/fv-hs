@@ -2,12 +2,12 @@
 module Fit ( fit, fitw, ksm, kAdd ) where
 
 import Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..)
-  , helicesLens, view, over, set
+--  , helicesLens, view, over, set
               , Prong (..), Jaco (..), Chi2
               , X3, Q3
              )
 import qualified Coeff ( expand, hv2q )
-import Matrix ( inv, invMaybe, tr, sw, scalar, scale)
+import Matrix ( inv, invMaybe, det, tr, sw, scalar, scale)
 
 import Prelude
 import Data.Maybe ( mapMaybe )
@@ -28,9 +28,11 @@ fit vm = kSmooth vm . kFilter $ vm
 fitw :: VHMeas -> Prong -- fit with annealing function
 fitw vm = pr where
   ws  = fmap (wght 10.0) $ fitChi2s . kSmooth vm . kFilter $ vm
-  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . kFilterW ws $ vm
+  -- ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . kFilterW ws $ vm
+  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . kFilterW (repeat 1.0) $ vm
           `debug` ("fitw: " ++ (foldl (\ z a -> z ++ printf "%8.3f, " (a::Double))) "weights-> " ws)
-  pr  = kSmooth vm . kFilterW ws' $ vm
+  -- pr  = kSmooth vm . kFilterW ws' $ vm
+  pr  = kSmooth vm . kFilterW (repeat 1.0) $ vm
           `debug` ("fitw: " ++ (foldl (\ z a -> z ++ printf "%8.3f, " (a::Double))) "weights-> " ws')
 
 kFilter :: VHMeas -> XMeas
@@ -109,14 +111,19 @@ ksm (XMeas x cc) (HMeas h hh w0) = do
               ee   = - cc * aaT * gg * bb * ww
               dd   = ww + sw ee uu
               r    = p - aa*x - bb*q
+              ch   = scalar $ sw r gg
+
               gb   = gg - sw gg (sw bbT ww)
               uu'  =  uu - sw aa gb
-              cc'  = inv uu'
-              x'   = cc' * (uu*x - aaT * gb * p)
-              dx   = x - x'
-              c2 = scalar $ sw r gg
-              c1'  = scalar $ sw dx uu'
-              c1   = if c1' < 0 then 0 `debug` ("--> ksm chi2 is " ++ show c1' ++ ", " ++ show c2 ++ ", " ++ show ((max c1' 0) + c2))
-                                else c1'
-              chi2 = c1 + c2
+              duu  = det uu'
+              bad  = duu < 0
+              cx   = if bad then 1000.0 `debug` ("--> ksm bad" ++ show uu')
+                            else cx'' where
+                              cc'  = inv uu' -- `debug` ("--> ksm " ++ show uu')
+                              x'   = cc' * (uu*x - aaT * gb * p)
+                              dx   = x - x'
+                              cx'  = scalar $ sw dx uu'
+                              cx'' = if cx' < 0 then 2000.0 `debug` ("--> ksm chi2 is " ++ show cx' ++ ", " ++ show ch ++ ", " ++ show ((max cx' 0) + ch))
+                                                else cx'
+              chi2 = cx + ch
   return (QMeas q dd w0, chi2, (HMeas h hh w0))
