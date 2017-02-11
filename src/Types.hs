@@ -29,6 +29,14 @@ import qualified Matrix ( scalar, sw, tr, sub, sub2
                         , zero, scaleDiag
                         )
 
+{-
+import Data.Monoid
+import Data.Text.Lazy (Text)
+import Data.Text.Lazy.IO as TL
+import Text.PrettyPrint.Leijen.Text hiding ((<$>), (<>), Pretty(..))
+import qualified Text.PrettyPrint.Leijen.Text as PP
+-}
+
 mπ :: Double
 mπ = 0.1395675E0
 
@@ -42,7 +50,7 @@ type Chi2  = Double
 data Prong = Prong { -- a prong results from a vertex fit of N helices
     nProng        :: Int
   , fitVertex     :: XMeas
-  , fitMomenta    :: [QMeas] 
+  , fitMomenta    :: [QMeas]
   , fitChi2s      :: [Chi2]
   , measurements  :: VHMeas
                    } deriving Show
@@ -94,6 +102,16 @@ data PMeas = PMeas P4 C44
 
 instance Show PMeas where
   show = showPMeas
+
+-----------------------------------------------------------------
+{-
+class Pretty a where
+  pretty :: Int -> a -> Doc
+
+instance Pretty PMeas where
+  pretty _ p  = text $ showPMeas p
+-}
+-----------------------------------------------------------------
 
 instance Monoid PMeas where
   mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)

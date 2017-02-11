@@ -24,6 +24,7 @@ library
   build-depends:      base >= 4.7 && < 5
                     , protolude
                     , text
+                    , wl-pprint-text  >= 1.1 && <1.2
                     , matrix
                     , mtl
                     , interpolate
@@ -42,6 +43,7 @@ executable fvt
                     , fv
                     , protolude
                     , text
+                    , wl-pprint-text  >= 1.1 && <1.2
                     , matrix
                     , mtl
                     , interpolate
