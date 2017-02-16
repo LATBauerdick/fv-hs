@@ -26,9 +26,33 @@ doCluster vm = do
       zs = mapMaybe (zFit v0) $ helices vm
   putStrLn $ "beam spot -> " ++ show v0
   -- let hist = histogram binSturges zs
-  let hist = histogramNumBins 200 zs
+  let hist = histogramNumBins 40 zs
   _ <- plot "cluster-z.png" hist
   return ()
+
+{-
+fitCluster :: VHMeas -> IO ()
+fitCluster vm = do
+  let v0 = vertex vm
+      hl = helices vm
+  foldl addOne v0 hl
+
+addOne :: XMeas -> HMeas -> Maybe (Qmeas, Chi2, HMeas)
+addOne v h t = do -- add only if chi2 at temperature t is reasonable
+  let v' = kAdd v h
+      XMeas x0 cx0 = v
+      XMeas x1 cx1 = v'
+      chi2  = scalar . sw (x1-x0) $ inv cx0
+      w = wght t chi2
+      v'' = if (w > 0.9)
+               then v'
+               else v
+
+  Just (q, chi2, _) <- ksm v' h
+  if (chi2 < cut) then return Just (q, chi2, h)
+                  else return Nothing
+-}
+
 
 zFit :: XMeas -> HMeas -> Maybe Double
 zFit v h = z where

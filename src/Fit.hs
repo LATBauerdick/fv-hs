@@ -36,9 +36,7 @@ fitw vm = pr where
           `debug` ("fitw: " ++ (foldl (\ z a -> z ++ printf "%8.3f, " (a::Double))) "weights-> " ws')
 
 kFilter :: VHMeas -> XMeas
-kFilter vm = v' where
-  VHMeas v hl = vm
-  v' = foldl kAdd v hl
+kFilter (VHMeas v hl) = foldl kAdd v hl
 
 kAdd :: XMeas -> HMeas -> XMeas
 kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
@@ -91,39 +89,40 @@ kSmooth :: VHMeas -> XMeas -> Prong
 --kSmooth vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
 kSmooth (VHMeas v0 hl) v = pr' where
   (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v) hl
-  n = length ql
-  pr' = if n  == length hl
-          then Prong { fitVertex = v, fitMomenta = ql, fitChi2s = chi2l, nProng = length ql, measurements = VHMeas v0 hl }
-          else Prong { fitVertex = v, fitMomenta = ql, fitChi2s = chi2l, nProng = length ql, measurements = VHMeas v0 hl' } `debug` "kSmooth killed helices"
+  (n, n') = (length hl, length ql)
+  n'' = if n == n' then n else n' `debug` "kSmooth killed helices"
+  pr' = Prong { fitVertex = v, fitMomenta = ql, fitChi2s = chi2l, nProng = n'', measurements = VHMeas v0 hl' }
 
 -- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
 -- if we can't invert, return Nothing and this track will not be included
 ksm :: XMeas -> HMeas -> Maybe (QMeas, Chi2, HMeas)
-ksm (XMeas x cc) (HMeas h hh w0) = do
-  let Jaco aa bb h0 = Coeff.expand x (Coeff.hv2q h x)
-      gg = inv hh
+ksm (XMeas x cc) hm = do
+  let
+      HMeas h hh w0 = hm
+      Jaco aa bb h0 = Coeff.expand x (Coeff.hv2q h x)
+      gg   = inv hh
   ww <- invMaybe (sw bb gg)
   let
-              p    = h - h0
-              uu   = inv cc
-              aaT  = tr aa; bbT   = tr bb
-              q    = ww * bbT * gg * (p - aa * x)
-              ee   = - cc * aaT * gg * bb * ww
-              dd   = ww + sw ee uu
-              r    = p - aa*x - bb*q
-              ch   = scalar $ sw r gg
+      p    = h - h0
+      uu   = inv cc
+      aaT  = tr aa; bbT   = tr bb
+      q    = ww * bbT * gg * (p - aa * x)
+      ee   = - cc * aaT * gg * bb * ww
+      dd   = ww + sw ee uu
+      r    = p - aa*x - bb*q
+      ch   = scalar $ sw r gg
 
-              gb   = gg - sw gg (sw bbT ww)
-              uu'  =  uu - sw aa gb
-              duu  = det uu'
-              bad  = duu < 0
-              cx   = if bad then 1000.0 `debug` ("--> ksm bad" ++ show uu')
-                            else cx'' where
-                              cc'  = inv uu' -- `debug` ("--> ksm " ++ show uu')
-                              x'   = cc' * (uu*x - aaT * gb * p)
-                              dx   = x - x'
-                              cx'  = scalar $ sw dx uu'
-                              cx'' = if cx' < 0 then 2000.0 `debug` ("--> ksm chi2 is " ++ show cx' ++ ", " ++ show ch ++ ", " ++ show ((max cx' 0) + ch))
-                                                else cx'
-              chi2 = cx + ch
-  return (QMeas q dd w0, chi2, (HMeas h hh w0))
+      gb   = gg - sw gg (sw bbT ww)
+      uu'  =  uu - sw aa gb
+      duu  = det uu'
+      bad  = duu < 0
+      cx   = if bad then 1000.0 `debug` ("--> ksm bad" ++ show uu')
+                    else cx'' where
+                      cc'  = inv uu' -- `debug` ("--> ksm " ++ show uu')
+                      x'   = cc' * (uu*x - aaT * gb * p)
+                      dx   = x - x'
+                      cx'  = scalar $ sw dx uu'
+                      cx'' = if cx' < 0 then 2000.0 `debug` ("--> ksm chi2 is " ++ show cx' ++ ", " ++ show ch ++ ", " ++ show ((max cx' 0) + ch))
+                                        else cx'
+      chi2 = cx + ch
+  return (QMeas q dd w0, chi2, hm)
