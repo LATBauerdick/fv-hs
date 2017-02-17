@@ -2,20 +2,24 @@
 
 module Cluster ( doCluster ) where
 
-import Types (  VHMeas (..), HMeas (..)
+import Types (  VHMeas (..), HMeas (..), Prong (..)
   , XMeas (..), rVertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix, h2p )
 import Fit ( kAdd, ksm )
 import Matrix ( sw, scalar, inv )
 
-import Protolude
+--import Protolude
 --import Data.Text
+
+import Prelude
+import Data.Maybe ( mapMaybe )
+
 import Text.Printf ( printf )
 -- import Control.Monad ( when )
 -- import Data.Maybe ( mapMaybe )
 --import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
 
--- import Debug.Trace ( trace )
+import Debug.Trace ( trace )
 debug :: a -> [Char] -> a
 debug = flip trace
 
@@ -28,7 +32,30 @@ doCluster vm = do
   -- let hist = histogram binSturges zs
   let hist = histogramNumBins 40 zs
   _ <- plot "cluster-z.png" hist
+  print $ vTree vm
   return ()
+
+
+data HTree a = Empty | Node a (HTree a) deriving (Show)
+
+vTree :: VHMeas -> HTree Prong
+vTree vm = Node p vRight where
+  (p,vm') = cluster vm
+  vRight = case vm' of
+             Nothing -> Empty
+             Just vm'' -> vTree vm''
+
+
+cluster :: VHMeas -> (Prong, Maybe VHMeas)
+cluster (VHMeas v hl) = ( (kSmooth (VHMeas v hl) . foldl kAdd v $ hl), Nothing )
+
+kSmooth :: VHMeas -> XMeas -> Prong
+--kSmooth vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
+kSmooth (VHMeas v0 hl) v = pr' where
+  (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v) hl
+  (n, n') = (length hl, length ql)
+  n'' = if n == n' then n else n' `debug` "kSmooth killed helices"
+  pr' = Prong { fitVertex = v, fitMomenta = ql, fitChi2s = chi2l, nProng = n'', measurements = VHMeas v0 hl' }
 
 {-
 fitCluster :: VHMeas -> IO ()
