@@ -12,6 +12,7 @@ import Matrix ( sw, scalar, inv )
 
 import Prelude
 import Data.Maybe ( mapMaybe )
+import Data.List ( sortOn )
 
 import Text.Printf ( printf )
 -- import Control.Monad ( when )
@@ -32,22 +33,53 @@ doCluster vm = do
   -- let hist = histogram binSturges zs
   let hist = histogramNumBins 40 zs
   _ <- plot "cluster-z.png" hist
-  print $ vTree vm
+  putStrLn "---------------------------------------------------"
+  putStrLn "---------------------------------------------------"
+  putStrLn "---------------------------------------------------"
+  putStrLn "---------------------------------------------------"
+  print . vTree . cleanup $ vm
   return ()
 
+cleanup :: VHMeas -> VHMeas
+-- remove vm helices that are incompatible with vm vertex
+cleanup (VHMeas v hl) = (VHMeas v hl') where
+  hl' = sortOn z0Helix . mapMaybe (fff v) $ hl
+  fff :: XMeas -> HMeas -> Maybe HMeas
+  fff v h = mh where
+-- first check chi2 of this helix w/r to vertex position v
+    v2 = kAdd v h
+    zv2 = zVertex v2
+    XMeas x0 cx0 = v
+    XMeas x1 cx1 = v2
+    chi2  = scalar . sw (x1-x0) $ inv cx0
+    chi2' = scalar . sw (x1-x0) $ inv cx1
+    mh = if (chi2 >= 0.0) && (chi2 < 1000.0) && (abs zv2) < 10.0
+          then Just h
+            `debug` ("h does belong to beam spot \n" ++ debugVH chi2 chi2' v2 h)
+          else Nothing
+            `debug` ("h does not belong to beam spot\n" ++ debugVH chi2 chi2' v2 h)
+
+debugVH chi2 chi2' v h =
+    printf "-->  chi2=%8.1f (%8.0f)\n" chi2 chi2'
+    ++ printf "--> Helix pt=%8.1f GeV, pz=%8.1f GeV, d0=%8.2f cm, z0=%8.2f cm\n"
+      (ptHelix h) (pzHelix h) (d0Helix h) (z0Helix h)
+    ++ printf "--> Vertex r=%8.2f cm, z=%8.2f cm"
+      (rVertex v) (zVertex v)
 
 data HTree a = Empty | Node a (HTree a) deriving (Show)
 
 vTree :: VHMeas -> HTree Prong
 vTree vm = Node p vRight where
-  (p,vm') = cluster vm
-  vRight = case vm' of
+  (p,vmr) = cluster vm
+  vRight = case vmr of
              Nothing -> Empty
-             Just vm'' -> vTree vm''
+             Just vm' -> vTree vm'
 
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
-cluster (VHMeas v hl) = ( (kSmooth (VHMeas v hl) . foldl kAdd v $ hl), Nothing )
+cluster (VHMeas v hl) = ( p, r ) where
+  p = kSmooth (VHMeas v hl) . foldl kAdd v $ hl
+  r = Nothing
 
 kSmooth :: VHMeas -> XMeas -> Prong
 --kSmooth vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
@@ -96,11 +128,4 @@ zFit v h = z where
             `debug` ("vertex track candidate\n" ++ debugVH chi2 chi2' v2 h)
         else Nothing
             `debug` ("failed track candidate\n" ++ debugVH chi2 chi2' v2 h)
-
-  debugVH chi2 chi2' v h =
-    printf "-->  chi2=%8.1f (%8.0f)\n" chi2 chi2'
-    ++ printf "--> Helix pt=%8.1f GeV, pz=%8.1f GeV, d0=%8.2f cm, z0=%8.2f cm\n"
-      (ptHelix h) (pzHelix h) (d0Helix h) (z0Helix h)
-    ++ printf "--> Vertex r=%8.2f cm, z=%8.2f cm"
-      (rVertex v2) (zVertex v2)
 
