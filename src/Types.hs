@@ -6,10 +6,11 @@ module Types (
                 M, V, M33, V3, V5, C44
              , XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), DMeas (..), Prong (..), VHMeas (..)
+  , XFit (..), QFit (..)
   , helicesLens
   , view, over, set
   , vBlowup, hFilter, hRemove
-  , rVertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix
+  , rVertex, chi2Vertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix
              , Mom (..), Pos (..)
              , X3, C33, Q3, H5, C55
              , Jaco (..), Chi2
@@ -209,6 +210,14 @@ instance Monoid XMeas where
   mappend (XMeas x1 cx1) (XMeas x2 cx2) = XMeas (x1 + x2) (cx1 + cx2)
   mempty = XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)
 
+data XFit = XFit X3 C33 Double
+instance Show XFit where
+  show (XFit x xx c2) = showXMeas (XMeas x xx)
+
+data QFit = QFit Q3 C33 Double Double
+instance Show QFit where
+  show (QFit q qq w2pt c2) = showQMeas (QMeas q qq w2pt)
+
 class Pos a where
   distance :: a -> a -> DMeas -- distance between two poitions
 
@@ -239,12 +248,15 @@ showXMeas (XMeas v cv) = s' where
   s' = (f z dz) . (f y dy) . (f x dx) $
     "(r,z) =" ++ (printf "(%6.2f,%6.2f), x y z =" (sqrt (x*x + y*y)) z)
 
-rVertex :: XMeas -> Double
-rVertex (XMeas v _) = sqrt (x*x + y*y) where
+rVertex :: XFit -> Double
+rVertex (XFit v _ _) = sqrt (x*x + y*y) where
   [x, y] = Matrix.toList 2 v
 
-zVertex :: XMeas -> Double
-zVertex (XMeas v _) = z where
+chi2Vertex :: XFit -> Double
+chi2Vertex (XFit _ _ c2) = c2
+
+zVertex :: XFit -> Double
+zVertex (XFit v _ _) = z where
   [_, _, z] = Matrix.toList 3 v
 
 -- calculate distance between two vertices
@@ -269,6 +281,7 @@ showPMeas (PMeas p cp) = s' where
 
 
 -- print HMeas as a 5-parameter helix with errors
+
 showHMeas :: HMeas -> String
 showHMeas (HMeas h ch _) = s' where
   sh = Data.Vector.map sqrt $ Data.Matrix.getDiag ch

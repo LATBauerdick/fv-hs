@@ -1,6 +1,6 @@
 -- file src/coeff.hs
 --
-module Coeff ( expand, qv2h, hv2q
+module Coeff ( expand, qv2h, hv2q, gamma
              ) where
 
 import Types ( M, V3, V5
@@ -33,7 +33,20 @@ hv2q h v = q where
                     [ w0, tl0, psi0 + gamma ]
                   else [ w0, tl0, psi0 ]
 
-
+gamma :: HMeas -> XMeas -> Double
+-- angle gamma which is the difference of the x-y-plane direction angle psi0 of
+-- helix h, defined at v=0, to the direction angle at vertex v away from 0
+gamma (HMeas h _ _) (XMeas v _) = g where
+  [w0, tl0, psi0] = toList 3 h
+  g = case w0 of
+        0.0 -> 0.0
+        _ -> atan r*cxi/(1.0/w0-r*sxi) where
+              [xx, yy, _] = toList 3 v
+              r = sqrt $ xx*xx + yy*yy
+              phi  = atan2 yy xx
+              xi = mod' (psi0 - phi + 2.0*pi) (2.0*pi)
+              cxi = cos xi
+              sxi = sin xi
 
 qv2h :: V3 -> V3 -> V5
 qv2h q v = h where

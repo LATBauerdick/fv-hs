@@ -1,7 +1,7 @@
 -- file src/Fit.hs
-module Fit ( fit, fitw, ksm, kAdd ) where
+module Fit ( fit, fitw, ksm, kAddF, kAdd ) where
 
-import Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..)
+import Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..), XFit (..)
 --  , helicesLens, view, over, set
               , Prong (..), Jaco (..), Chi2
               , X3, Q3
@@ -44,6 +44,27 @@ kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
   p_k   = HMeas h (inv hh) w0
   x_e   = v
   q_e   = Coeff.hv2q h v
+
+kAddF :: XFit -> HMeas -> XFit
+kAddF (XFit v vv _) (HMeas h hh w0) = kAddF' v (inv vv) h (inv hh) v (Coeff.hv2q h v) 1e6 0
+
+kAddF' v0 uu0 h gg x_e q_e 𝜒2_0 iter = x_k where
+    Jaco aa bb h0 = Coeff.expand x_e q_e
+    aaT   = tr aa; bbT = tr bb
+    x_k   = case invMaybe (sw bb gg) of
+              Nothing  -> (XFit v0 (inv uu0) 1e6)  `debug` "... in kAdd'"
+              Just ww' -> x_k' where 
+                ww    = ww'
+                gb    = gg - sw gg (sw bbT ww)
+                uu    = uu0 + sw aa gb; cc = inv uu
+                m     = h - h0
+                v     = cc * (uu0 * v0 + aaT * gb * m)
+                dm    = m - aa * v
+                q     = ww * bbT * gg * dm
+                𝜒2    = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
+                x_k'  = if goodEnough 𝜒2_0 𝜒2 iter `debug` (printf "--> kAddF' chi2 is %9.1f" 𝜒2)
+                          then XFit v cc 𝜒2
+                          else kAddF' v0 uu0 h gg v q 𝜒2 (iter+1)
 
 kFilterW :: [Double] -> VHMeas -> XMeas
 kFilterW ws vm = v' where
