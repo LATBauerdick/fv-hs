@@ -10,4 +10,4 @@ extra-deps:
 - Histogram-0.1.0.2
 - gnuplot-0.5.4.1
 - data-accessor-transformers-0.2.1.7
-resolver: lts-7.14
+resolver: lts-7.19

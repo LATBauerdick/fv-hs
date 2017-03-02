@@ -51,6 +51,7 @@ executable fvt
                     , random
                     , normaldistribution
                     , statistics
+                    , gamma
                     , Histogram
                     , gnuplot
                     , vector

@@ -62,7 +62,7 @@ kAddF' v0 uu0 h gg x_e q_e 𝜒2_0 iter = x_k where
                 dm    = m - aa * v
                 q     = ww * bbT * gg * dm
                 𝜒2    = scalar $ sw (dm - bb * q) gg + sw (v - v0) uu0
-                x_k'  = if goodEnough 𝜒2_0 𝜒2 iter `debug` (printf "--> kAddF' chi2 is %9.1f" 𝜒2)
+                x_k'  = if goodEnough 𝜒2_0 𝜒2 iter -- `debug` (printf "--> kAddF' chi2 is %9.1f, %9.1f" 𝜒2 (scalar $ sw (v-v0) uu0))
                           then XFit v cc 𝜒2
                           else kAddF' v0 uu0 h gg v q 𝜒2 (iter+1)
 
