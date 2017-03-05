@@ -12,10 +12,10 @@ import qualified Data.Vector.Unboxed as V ( Vector, fromList, toList )
 
 import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
 
-import Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
+import FV.Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
              , invMass, q2p, v3,l3,v5,l5 )
-import Matrix ( toList, fromList, chol, scalar )
-import Fit ( fit, fitw )
+import FV.Matrix ( toList, fromList, chol, scalar )
+import FV.Fit ( fit, fitw )
 
 import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram

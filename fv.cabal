@@ -12,19 +12,22 @@ category:            HEP
 build-type:          Simple
 cabal-version:       >=1.10
 
+source-repository head
+  type:     git
+  location: https://github.com/LATBauerdick/fv.hs
+
 library
   ghc-options:
   default-extensions: NoImplicitPrelude
                     , OverloadedStrings
   hs-source-dirs:     src
-  exposed-modules:    Fit
-                    , Types
-                    , Coeff
-                    , Matrix
+  exposed-modules:    FV.Fit
+                    , FV.Types
+                    , FV.Coeff
+                    , FV.Matrix
   build-depends:      base >= 4.7 && < 5
                     , protolude
                     , text
-                    , wl-pprint-text  >= 1.1 && <1.2
                     , matrix
                     , mtl
                     , interpolate
@@ -43,7 +46,6 @@ executable fvt
                     , fv
                     , protolude
                     , text
-                    , wl-pprint-text  >= 1.1 && <1.2
                     , matrix
                     , mtl
                     , interpolate

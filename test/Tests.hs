@@ -10,12 +10,12 @@ import Text.Printf
 -- import Data.String.Interpolate
 
 import Input ( hSlurp, dataFiles, hSlurpAll )
-import Types (  HMeas (..), Prong (..), VHMeas (..)
+import FV.Types (  HMeas (..), Prong (..), VHMeas (..)
               , Pos (..)
   , vBlowup, hFilter, hRemove
               , invMass, h2p, h2q, q2p
              )
-import Fit ( fit, fitw, ksm, kAdd )
+import FV.Fit ( fit, fitw, ksm, kAdd )
 
 import Random ( doRandom )
 import Cluster ( doCluster )

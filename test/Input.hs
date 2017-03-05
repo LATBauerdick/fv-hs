@@ -2,8 +2,8 @@
 module Input ( hSlurp, hSlurpAll, dataFiles ) where
 
 import Prelude
-import Types ( HMeas (..), XMeas (..), VHMeas (..) )
-import Matrix ( fromList, fromList2, scaleDiag, sw )
+import FV.Types ( HMeas (..), XMeas (..), VHMeas (..) )
+import FV.Matrix ( fromList, fromList2, scaleDiag, sw )
 import System.Directory
 import qualified Data.List.Split ( chunksOf )
 import Data.Monoid

@@ -2,12 +2,12 @@
 
 module Cluster ( doCluster ) where
 
-import Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
+import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
   , XMeas (..), XFit (..)
   , rVertex, chi2Vertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix, h2p )
-import Fit ( kAdd, kAddF, ksm )
-import Matrix ( sw, scalar, inv )
-import Coeff ( qv2h, gamma )
+import FV.Fit ( kAdd, kAddF, ksm )
+import FV.Matrix ( sw, scalar, inv )
+import FV.Coeff ( qv2h, gamma )
 
 --import Protolude
 --import Data.Text
@@ -39,7 +39,7 @@ doCluster vm = do
   let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
   _ <- plot "pd.png" histp
 
-  let Node p0 ht = vTree $ (cleanup vm)
+  let Node p0 ht = vTree $ cleanup vm
   print $ fitChi2s p0
   print $ fitVertex p0
   print $ nProng p0
@@ -61,19 +61,20 @@ zs (VHMeas v hl) = filter (\x -> (abs x)<10.0) $ map (zVertex . kAddF (xFit v)) 
 cleanup :: VHMeas -> VHMeas
 -- remove vm helices that are incompatible with vm vertex
 cleanup (VHMeas v hl) = (VHMeas v hl') where
-  hl' = sortOn z0Helix . mapMaybe (fff v) $ hl
-  fff :: XMeas -> HMeas -> Maybe HMeas
-  fff v h = mh where
+  hl' = sortOn z0Helix . mapMaybe (filtProb 0.01 v) $ hl
+
+filtProb :: Double -> XMeas -> HMeas -> Maybe HMeas
+filtProb cut v h = mh where
 -- check chi2 of this helix w/r to vertex position v
-    vf  = kAddF (xFit v) h
-    zvf = zVertex vf
-    chi2f = chi2Vertex vf
-    prob = Math.Gamma.q 1.0 (chi2f/2.0) -- chi2 distribution with NDOF=2
-    good = (prob > 0.01) && (abs zvf) < 10.0
-    mh = if good
+  vf  =   kAddF (xFit v) h
+  zvf =   zVertex vf
+  chi2f = chi2Vertex vf
+  prob =  Math.Gamma.q 1.0 (chi2f/2.0) -- chi2 distribution with NDOF=2
+  good =  (prob > cut) && (abs zvf) < 10.0
+  mh =    if good
             -- `debug` (printf "--> chi2=%8.1f prob=%8.4f z=%9.3f gamma=%9.3f" chi2f prob zvf (180.0/pi*(Coeff.gamma h (xMeas vf))))
-          then Just h
-          else Nothing
+            then Just h
+            else Nothing
 
 data HTree a = Empty | Node a (HTree a) deriving (Show)
 
@@ -87,9 +88,23 @@ vTree vm = Node p vRight where
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster (VHMeas v hl) = ( p, r ) where
-  v1 = foldl kAdd v hl
-  p = ks (VHMeas v hl) . foldl kAdd v $ hl
-  r = Nothing
+  v1        = foldl kAdd v hl
+  ll        = zip (map (ksm v) hl) hl
+  hlnothing = [ h | (k, h) <- ll, isNothing k]
+  hljust    = [ h | (k, h) <- ll, isJust k]
+  qljust    = [ q | (Just (q, _, _), h) <- ll]
+  c2just    = [ c | (Just (_, c, _), h) <- ll]
+  hlfilt    = mapMaybe (filtProb 0.00000000000000000001 v1) hl `debug` (printf "--> nothing=%5d just=%5d %5d" (length hlnothing) (length hljust) (length qljust))
+
+  (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v1) hlfilt
+  p = Prong { fitVertex = v1, fitMomenta = ql, fitChi2s = chi2l, nProng = (length ql), measurements = VHMeas v hl' }
+--  p = ks (VHMeas v hl) v1
+--  r = Nothing
+
+  p000 = Prong { fitVertex = v1, fitMomenta = qljust, fitChi2s = c2just, nProng = (length c2just), measurements = VHMeas v hljust }
+  r = case (length hlnothing) of
+        0 -> Nothing
+        _ -> Just (VHMeas v hlnothing)
 
 --ks vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
 ks (VHMeas v0 hl) v = pr' where
