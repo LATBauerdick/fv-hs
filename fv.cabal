@@ -25,14 +25,23 @@ library
                     , FV.Types
                     , FV.Coeff
                     , FV.Matrix
+                    , FVT.Input
+                    , FVT.Random
+                    , FVT.Cluster
+                    , FVT.Test
   build-depends:      base >= 4.7 && < 5
-                    , protolude
                     , text
                     , matrix
                     , mtl
                     , interpolate
                     , random
                     , vector
+                    , parallel
+                    , normaldistribution
+                    , statistics
+                    , gamma
+                    , Histogram
+                    , gnuplot
                     , split
                     , directory
   default-language:   Haskell2010
@@ -41,26 +50,8 @@ executable fvt
   ghc-options:
   default-extensions: NoImplicitPrelude
                     , OverloadedStrings
-  main-is:            Tests.hs
+  main-is:            FVT.hs
   build-depends:      base >= 4.7 && < 5
                     , fv
-                    , protolude
-                    , text
-                    , matrix
-                    , mtl
-                    , interpolate
-                    , parallel
-                    , random
-                    , normaldistribution
-                    , statistics
-                    , gamma
-                    , Histogram
-                    , gnuplot
-                    , vector
-                    , split
-                    , directory
   hs-source-dirs:     test
-  other-modules:      Input
-                    , Random
-                    , Cluster
   default-language:   Haskell2010

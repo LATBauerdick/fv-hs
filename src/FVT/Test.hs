@@ -1,15 +1,12 @@
 -- file: test.hs
 --
-module Main ( main ) where
+module FVT.Test ( test ) where
 
 import Prelude
-import System.Environment
-import System.Exit
 import Text.Printf
 -- :set -XQuasiQuotes
 -- import Data.String.Interpolate
 
-import Input ( hSlurp, dataFiles, hSlurpAll )
 import FV.Types (  HMeas (..), Prong (..), VHMeas (..)
               , Pos (..)
   , vBlowup, hFilter, hRemove
@@ -17,25 +14,9 @@ import FV.Types (  HMeas (..), Prong (..), VHMeas (..)
              )
 import FV.Fit ( fit, fitw, ksm, kAdd )
 
-import Random ( doRandom )
-import Cluster ( doCluster )
-
-main :: IO ()
-main = getArgs >>= parse
-
-parse :: [String] -> IO ()
-parse ["-h"] = usage   >> exit
-parse ["-v"] = version >> exit
-parse []     = test ["1"]
-parse args   = test args
-
-usage :: IO ()
-usage   = putStrLn "Usage: fvt [-vh] [test# ..]"
-version :: IO ()
-version = putStrLn "Haskell fvt 0.1"
-exit :: IO ()
-exit    = exitSuccess
-
+import FVT.Input ( hSlurp, dataFiles, hSlurpAll )
+import FVT.Random ( doRandom )
+import FVT.Cluster ( doCluster )
 
 data DataFileNames = DataFileNames {
     thisFile  :: String
@@ -161,7 +142,8 @@ test arg =
           putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
           mapM_ (\indx -> showProng . fitw . hRemove indx $ vm ) [0..nh]
 
-    _ -> exit
+    _ -> do
+      return ()
 
 doFitTest :: VHMeas -> [Int] -> IO ()
 doFitTest vm l5 = do

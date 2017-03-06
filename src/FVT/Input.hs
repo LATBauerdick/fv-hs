@@ -1,5 +1,5 @@
 -- file: test/Input.hs
-module Input ( hSlurp, hSlurpAll, dataFiles ) where
+module FVT.Input ( hSlurp, hSlurpAll, dataFiles ) where
 
 import Prelude
 import FV.Types ( HMeas (..), XMeas (..), VHMeas (..) )

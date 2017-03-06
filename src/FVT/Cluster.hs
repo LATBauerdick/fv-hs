@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 
-module Cluster ( doCluster ) where
+module FVT.Cluster ( doCluster ) where
 
 import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
   , XMeas (..), XFit (..)
@@ -9,7 +9,6 @@ import FV.Fit ( kAdd, kAddF, ksm )
 import FV.Matrix ( sw, scalar, inv )
 import FV.Coeff ( qv2h, gamma )
 
---import Protolude
 --import Data.Text
 
 import Prelude

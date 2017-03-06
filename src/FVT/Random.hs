@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Random ( doRandom ) where
+module FVT.Random ( doRandom ) where
 
 import Prelude
 import Control.Parallel.Strategies
