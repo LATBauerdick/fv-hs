@@ -15,5 +15,6 @@ cabal.sandbox.config
 *.prof
 *.aux
 *.hp
+*.png
 *.eventlog
 .stack-work/
