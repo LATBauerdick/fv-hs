@@ -148,3 +148,37 @@ ksm (XMeas x cc) hm = do
                                         else cx'
       chi2 = cx + ch
   return (QMeas q dd w0, chi2, hm)
+
+-- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
+-- if we can't invert, return Nothing and this track will not be included
+ksm' :: XMeas -> HMeas -> Maybe (QMeas, Chi2)
+ksm' (XMeas x cc) (HMeas h hh w0) = do
+  let
+      Jaco aa bb h0 = Coeff.expand x (Coeff.hv2q h x)
+      gg   = inv hh
+  ww <- invMaybe (sw bb gg)
+  let
+      p    = h - h0
+      uu   = inv cc
+      aaT  = tr aa; bbT   = tr bb
+      q    = ww * bbT * gg * (p - aa * x)
+      ee   = - cc * aaT * gg * bb * ww
+      dd   = ww + sw ee uu
+      r    = p - aa*x - bb*q
+      ch   = scalar $ sw r gg
+
+      gb   = gg - sw gg (sw bbT ww)
+      uu'  =  uu - sw aa gb
+      duu  = det uu'
+      bad  = duu < 0
+      cx   = if bad then 1000.0 `debug` ("--> ksm bad" ++ show uu')
+                    else cx'' where
+                      cc'  = inv uu' -- `debug` ("--> ksm " ++ show uu')
+                      x'   = cc' * (uu*x - aaT * gb * p)
+                      dx   = x - x'
+                      cx'  = scalar $ sw dx uu'
+                      cx'' = if cx' < 0 then 2000.0 `debug` ("--> ksm chi2 is " ++ show cx' ++ ", " ++ show ch ++ ", " ++ show ((max cx' 0) + ch))
+                                        else cx'
+      chi2 = cx + ch
+  return (QMeas q dd w0, chi2)
+

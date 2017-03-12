@@ -12,7 +12,7 @@ import FV.Types (  HMeas (..), Prong (..), VHMeas (..)
   , vBlowup, hFilter, hRemove
               , invMass, h2p, h2q, q2p
              )
-import FV.Fit ( fit, fitw, ksm, kAdd )
+import FV.Fit ( fit, fitw, ksm )
 
 import FVT.Input ( hSlurp, dataFiles, hSlurpAll )
 import FVT.Random ( doRandom )

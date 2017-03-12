@@ -1,38 +1,37 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 
-module FVT.Cluster ( doCluster ) where
+module FVT.Cluster ( doCluster, fsmw ) where
 
 import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
   , XMeas (..), XFit (..)
-  , rVertex, chi2Vertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix, h2p )
+  , chi2Vertex, zVertex, z0Helix )
 import FV.Fit ( kAdd, kAddF, ksm )
-import FV.Matrix ( sw, scalar, inv )
-import FV.Coeff ( qv2h, gamma )
+import FV.Matrix ( fromList, toList )
+import FV.Types ( X3 )
 
 --import Data.Text
 
 import Prelude
 import Data.Maybe ( mapMaybe, isNothing, isJust )
-import Data.List ( sortOn )
+import Data.List ( sortOn, foldl' )
 import qualified Math.Gamma ( q )
 
 import Text.Printf ( printf )
 -- import Control.Monad ( when )
 -- import Data.Maybe ( mapMaybe )
---import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
+-- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
 
 import Debug.Trace ( trace )
-debug :: a -> [Char] -> a
+debug :: a -> String -> a
 debug = flip trace
-
 
 doCluster :: VHMeas -> IO ()
 doCluster vm = do
   let v0 = vertex vm -- beamspot
   putStrLn $ "beam spot -> " ++ show v0
 
-  let histz = histogramNumBins 10 $ zs vm
+  let histz = histogramNumBins 20 $ zs vm
   _ <- plot "cluster-z.png" histz
 
   let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
@@ -49,8 +48,6 @@ doCluster vm = do
 
 xFit :: XMeas -> XFit
 xFit (XMeas v vv) = XFit v vv 1e6
-xMeas :: XFit -> XMeas
-xMeas (XFit v vv _) = XMeas v vv
 
 probs :: VHMeas -> [Double]
 probs (VHMeas v hl) = filter (\x -> x>0.01) $ map (Math.Gamma.q 1.0 . chi2Vertex . kAddF (xFit v)) hl
@@ -71,7 +68,6 @@ filtProb cut v h = mh where
   prob =  Math.Gamma.q 1.0 (chi2f/2.0) -- chi2 distribution with NDOF=2
   good =  (prob > cut) && (abs zvf) < 10.0
   mh =    if good
-            -- `debug` (printf "--> chi2=%8.1f prob=%8.4f z=%9.3f gamma=%9.3f" chi2f prob zvf (180.0/pi*(Coeff.gamma h (xMeas vf))))
             then Just h
             else Nothing
 
@@ -87,12 +83,17 @@ vTree vm = Node p vRight where
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster (VHMeas v hl) = ( p, r ) where
-  v1        = foldl kAdd v hl
+  zs  = filter (\x -> (abs x)<10.0) . map (zVertex . kAddF (xFit v)) $ hl
+  z0 = fsmw (length zs) zs
+  XMeas x0 cx0 = v
+  [xx0, yx0] = FV.Matrix.toList 2 x0
+  v0 = XMeas (FV.Matrix.fromList 3 [xx0, yx0, z0]) cx0 `debug` (printf "--> cluster z0=%9.3f " z0)
+  v1        = foldl kAdd v0 hl `debug` (show v0)
   ll        = zip (map (ksm v) hl) hl
   hlnothing = [ h | (k, h) <- ll, isNothing k]
   hljust    = [ h | (k, h) <- ll, isJust k]
-  qljust    = [ q | (Just (q, _, _), h) <- ll]
-  c2just    = [ c | (Just (_, c, _), h) <- ll]
+  qljust    = [ q | (Just (q, _, _), _) <- ll]
+  c2just    = [ c | (Just (_, c, _), _) <- ll]
   hlfilt    = mapMaybe (filtProb 0.00000000000000000001 v1) hl `debug` (printf "--> nothing=%5d just=%5d %5d" (length hlnothing) (length hljust) (length qljust))
 
   (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v1) hlfilt
@@ -106,16 +107,63 @@ cluster (VHMeas v hl) = ( p, r ) where
         _ -> Just (VHMeas v hlnothing)
 
 --ks vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
-ks (VHMeas v0 hl) v = pr' where
-  ll :: [(Maybe (QMeas, Double, HMeas), HMeas)]
-  ll = zip (map (ksm v) hl) hl
-  hlnothing = [ h | (k, h) <- ll, isNothing k]
-  hljust    = [ h | (k, h) <- ll, isJust k]
-  (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v) hl
-  (n, n') = (length hl, length ql)
-  n'' = if n == n' then n else n' `debug` "kSmooth killed helices"
-  pr' = Prong { fitVertex = v, fitMomenta = ql, fitChi2s = chi2l, nProng = n'', measurements = VHMeas v0 hl' }
 
+-- -------------------------------------------------------
+-- use robust Mode finding to get initial vertex position
+-- -------------------------------------------------------
+-- Fraction-of Sample Mode with Weight method,
+-- see Frühwirth & Waltenberger CMS Note 2007/008
+--newtype WeightedPoint = WeightedPoint Double
+type WeightedPoint = Double
+fsmw :: Int -> [WeightedPoint] -> WeightedPoint
+fsmw 1 [x] = x
+fsmw 2 [x0, x1] = 0.5 * (x1+x0)
+fsmw 3 [x0, x1, x2] = case ( 2*x1-x0-x2 ) of
+                       xx | xx < 0 -> (x0+x1)/2.0
+                       xx | xx > 0 -> (x1+x2)/2.0
+                       xx | xx == 0 -> x1
+-- fsmw 4 [x0, x1, x2, x3] = x where
+--   w  = weightOfInterval [x0, x1, x2, x3]
+--   w0 = weightOfInterval [x0, x1, x2]
+--   w1 = weightOfInterval [x1, x2, x3]
+--   x  = if w0/w < w1/w then fsmw 3 [x0, x1, x2] else fsmw 3 [x1, x2, x3] `debug` (show w ++ ", " ++ show w0 ++ ", " ++ show w1)
+fsmw n xs = h where
+  h = if n>6 then hsm n xs -- for large n, fall back to no-weight hsm formula
+          else fsmw n' xs' where
+            alpha :: Double; alpha = 0.5
+            n' = ceiling (fromIntegral n * alpha)
+            findMin :: (WeightedPoint, Int) -> (WeightedPoint, Int) -> (WeightedPoint, Int)
+            findMin (w0, j0) (w, j) = if w<w0 || w0<0 then (w, j) else (w0, j0)
+            (_, j') = foldl' findMin (-1.0, 0) . zip (map ( \j ->  weightOfInterval . take n' . drop j $ xs ) $ [0..n-n']) $ [0..]
+            xs' = take n' . drop (j') $ xs -- `debug` ("fsmw--> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs)
+
+-- HalfSampleMode 
+-- see Bickel & Frühwirth, On a Fast, Robust Estimator of the Mode, 2006
+-- http://ideas.repec.org/a/eee/csdana/v50y2006i12p3500-3530.html
+hsm :: Int -> [WeightedPoint] -> WeightedPoint
+hsm n xs = fsmw n' xs' where
+  alpha :: Double; alpha = 0.5
+  n' = ceiling (fromIntegral n * alpha)
+  xns = drop (n'-1) xs
+  wmin = (last xs - head xs)
+  findMin :: (WeightedPoint, Int) -> (WeightedPoint, Int) -> (WeightedPoint, Int)
+  findMin (w0, j0) (w, j) = if w<w0 then (w, j) else (w0, j0)
+  calcWeight :: WeightedPoint -> WeightedPoint -> WeightedPoint
+  calcWeight = (-)
+  (_, j') = foldl' findMin (wmin, 0) . zip (zipWith calcWeight xns xs) $ [0..]
+  xs' = take n' . drop (j') $ xs --`debug` ("hsm---> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs ++ ", " ++ show xns)
+
+wDist :: WeightedPoint -> WeightedPoint -> WeightedPoint
+wDist x0 x1 = 1.0 / sqrt (x1 - x0 + dmin) where dmin = 0.001 -- 10 µm
+weightOfInterval :: [WeightedPoint] -> WeightedPoint
+weightOfInterval xs = w where --`debug` ("weightOfInterval--> " ++ show xs ++ ", " ++ show ws ++ ", " ++ show w) where
+  ws = [ wDist x0 x1 | x0 <- xs , x1 <- xs, x1>x0]
+  w  = (last xs - head xs) / sum ws
+
+
+
+
+{-
 -- gamma function P(a, x) from https://wiki.haskell.org/Gamma_and_Beta_function
 -- approximation is taken from [Lanczos, C. 1964 SIAM Journal on Numerical Analysis,
 -- ser. B, vol. 1, pp. 86-96]
@@ -197,6 +245,5 @@ moments (n, m1, m2, m3, m4) x = (n', m1', m2', m3', m4')
             m2' = m2 + t
 
 mvsk (n, m1, m2, m3, m4) = (m1, m2/(n-1.0), (sqrt n)*m3/m2**1.5, n*m4/m2**2 - 3.0)
-
-
+-}
 
