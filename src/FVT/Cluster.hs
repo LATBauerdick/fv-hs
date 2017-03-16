@@ -1,11 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# DisambiguateRecordFields #-}
 
 module FVT.Cluster ( doCluster, fsmw ) where
 
 import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
-  , XMeas (..), XFit (..)
+  , XMeas (..), XFit (..), Chi2
   , chi2Vertex, zVertex, z0Helix )
-import FV.Fit ( kAdd, kAddF, ksm )
+import FV.Fit ( kAdd, kAddF, ksm, ksm' )
 import FV.Matrix ( fromList, toList )
 import FV.Types ( X3 )
 
@@ -38,6 +41,8 @@ doCluster vm = do
   _ <- plot "pd.png" histp
 
   let Node p0 ht = vTree $ cleanup vm
+  putStrLn "---------------------------------------------------------"
+  print p0
   print $ fitChi2s p0
   print $ fitVertex p0
   print $ nProng p0
@@ -80,28 +85,48 @@ vTree vm = Node p vRight where
              Nothing -> Empty
              Just vm' -> vTree vm'
 
+wght :: Double -> Chi2 -> Double -- weight function with Temperature t
+wght t chi2 = w where
+  chi2cut = 9.0
+  w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster (VHMeas v hl) = ( p, r ) where
+
+-- FSMW method to fund initial z for primary vertex
   zs  = filter (\x -> (abs x)<10.0) . map (zVertex . kAddF (xFit v)) $ hl
   z0 = fsmw (length zs) zs
+-- constract vertex v0 at z=z0 as starting point, using cov matrix from v
   XMeas x0 cx0 = v
   [xx0, yx0] = FV.Matrix.toList 2 x0
   v0 = XMeas (FV.Matrix.fromList 3 [xx0, yx0, z0]) cx0 `debug` (printf "--> cluster z0=%9.3f " z0)
-  v1        = foldl kAdd v0 hl `debug` (show v0)
-  ll        = zip (map (ksm v) hl) hl
-  hlnothing = [ h | (k, h) <- ll, isNothing k]
-  hljust    = [ h | (k, h) <- ll, isJust k]
-  qljust    = [ q | (Just (q, _, _), _) <- ll]
-  c2just    = [ c | (Just (_, c, _), _) <- ll]
-  hlfilt    = mapMaybe (filtProb 0.00000000000000000001 v1) hl `debug` (printf "--> nothing=%5d just=%5d %5d" (length hlnothing) (length hljust) (length qljust))
+  -- filter hl for v1, with starting point v0
+  v1        = foldl kAdd v0 hl `debug` ("--> v0=" ++ show v0)
+  -- cut any track with prob < 0.001 w/r to v1
+  hlfilt    = map (filtProb 0.0 v1) hl
+  -- re-do filter with initial position and filtered helices
+  v2        = foldl (\v h -> case h of
+                               Just h' -> kAdd v h'
+                               Nothing -> v) v0 hlfilt
+  -- smooth with v2
+  ll        = zip (map (ksm' v2) hlfilt) hl `debug` ("--> v2=" ++ show v2)
+  hlnothing = [ h | (Nothing, h) <- ll]
+  (qljust, c2just, hljust)
+            = unzip3 [ (q,c,h) | (Just (q, c), h) <- ll]
+  fitVertex = v2 `debug` (printf "--> nothing=%5d just=%5d filt=%5d" (length hlnothing) (length hljust) (length hlfilt))
+  fitMomenta = qljust
+  fitChi2s = c2just
+  nProng = (length qljust)
+  measurements = VHMeas v hljust
+  p0 = Prong  {..} `debug` ("--> nProng=" ++ show nProng)
+-- to geth weights ws  = fmap (wght 256.0) $ fitChi2s . kSmooth vm . kFilter $ vm
+  annealingSchedule = [256.0, 64.0, 16.0, 4.0, 1.0]
+  t0 = head annealingSchedule
+  ws = fmap (wght t0) c2s
+  c2s = [] -- FV.Types.fitChi2s p0
+  p00 = Prong {nProng = 0, ..}
+  p = if sum ws == 0 then p00 else p0
 
-  (ql, chi2l, hl') = unzip3 $ mapMaybe (ksm v1) hlfilt
-  p = Prong { fitVertex = v1, fitMomenta = ql, fitChi2s = chi2l, nProng = (length ql), measurements = VHMeas v hl' }
---  p = ks (VHMeas v hl) v1
---  r = Nothing
-
-  p000 = Prong { fitVertex = v1, fitMomenta = qljust, fitChi2s = c2just, nProng = (length c2just), measurements = VHMeas v hljust }
   r = case (length hlnothing) of
         0 -> Nothing
         _ -> Just (VHMeas v hlnothing)
@@ -137,7 +162,7 @@ fsmw n xs = h where
             (_, j') = foldl' findMin (-1.0, 0) . zip (map ( \j ->  weightOfInterval . take n' . drop j $ xs ) $ [0..n-n']) $ [0..]
             xs' = take n' . drop (j') $ xs -- `debug` ("fsmw--> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs)
 
--- HalfSampleMode 
+-- HalfSampleMode
 -- see Bickel & Frühwirth, On a Fast, Robust Estimator of the Mode, 2006
 -- http://ideas.repec.org/a/eee/csdana/v50y2006i12p3500-3530.html
 hsm :: Int -> [WeightedPoint] -> WeightedPoint
@@ -199,7 +224,7 @@ test_erf = maximum [ abs(erf x - y)  | (x, y) <- zip xs ys ] < epsilon
 
 -- standard normal CDF https://www.johndcook.com/blog/haskell-phi/
 phi :: Double -> Double
-phi x = y 
+phi x = y
     where
         a1 =  0.254829592
         a2 = -0.284496736
@@ -221,10 +246,10 @@ test_phi = maximum [ abs(phi x - y) | (x, y) <- zip xs ys ] < epsilon
     where
         epsilon = 1.5e-7 -- accuracy promised by A&S
         xs = [-3, -1, 0.0, 0.5, 2.1 ]
-        ys = [0.00134989803163, 
-              0.158655253931, 
-              0.5, 
-              0.691462461274, 
+        ys = [0.00134989803163,
+              0.158655253931,
+              0.5,
+              0.691462461274,
               0.982135579437]
 
 

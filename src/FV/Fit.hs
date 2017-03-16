@@ -1,5 +1,5 @@
 -- file src/Fit.hs
-module FV.Fit ( fit, fitw, ksm, kAddF, kAdd ) where
+module FV.Fit ( fit, fitw, ksm, ksm', kAddF, kAdd ) where
 
 import FV.Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..), XFit (..)
 --  , helicesLens, view, over, set
@@ -138,7 +138,7 @@ ksm (XMeas x cc) hm = do
       uu'  =  uu - sw aa gb
       duu  = det uu'
       bad  = duu < 0
-      cx   = if bad then 1000.0 `debug` ("--> ksm bad" ++ show uu')
+      cx   = if bad then 1000.0 `debug` ("--> ksm bad" ++ show duu ++ show uu')
                     else cx'' where
                       cc'  = inv uu' -- `debug` ("--> ksm " ++ show uu')
                       x'   = cc' * (uu*x - aaT * gb * p)
@@ -151,8 +151,9 @@ ksm (XMeas x cc) hm = do
 
 -- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
 -- if we can't invert, return Nothing and this track will not be included
-ksm' :: XMeas -> HMeas -> Maybe (QMeas, Chi2)
-ksm' (XMeas x cc) (HMeas h hh w0) = do
+ksm' :: XMeas -> Maybe HMeas -> Maybe (QMeas, Chi2)
+ksm' _ Nothing = Nothing
+ksm' (XMeas x cc) (Just (HMeas h hh w0)) = do
   let
       Jaco aa bb h0 = Coeff.expand x (Coeff.hv2q h x)
       gg   = inv hh
@@ -171,7 +172,7 @@ ksm' (XMeas x cc) (HMeas h hh w0) = do
       uu'  =  uu - sw aa gb
       duu  = det uu'
       bad  = duu < 0
-      cx   = if bad then 1000.0 `debug` ("--> ksm bad" ++ show uu')
+      cx   = if bad then 1000.0 `debug` ("--> ksm' bad" ++ show uu')
                     else cx'' where
                       cc'  = inv uu' -- `debug` ("--> ksm " ++ show uu')
                       x'   = cc' * (uu*x - aaT * gb * p)
