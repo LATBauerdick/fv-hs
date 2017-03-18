@@ -61,30 +61,30 @@ test :: [String] -> IO ()
 test arg =
   case arg of
     ["1"] -> do
-          vm <- fmap (vBlowup 10000.0) (hSlurp . thisFile $ df)
+          (vm, _) <- hSlurp . thisFile $ df
 
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
           doFitTest vm l5
-          _ <- showProng . fitw . hFilter l5 $ vm
+          _ <- showProng . fitw . hFilter l5 . vBlowup 10000.0 $ vm
           return ()
 
     ["2"] -> do
-          vm <- fmap (vBlowup 10000.0) (hSlurp . otherFile $ df)
+          (vm, _) <- hSlurp . otherFile $ df
           mapM_ showMomentum $ helices vm
           let l5 = [0,1,2,4,5]
           doFitTest vm l5
-          _ <- showProng . fitw . hFilter l5 $ vm
+          _ <- showProng . fitw . hFilter l5 . vBlowup 10000.0 $ vm
           return ()
 
     ["3"] -> do -- this file has an additional track that makes the fit bad
-          vm <- fmap (vBlowup 10000.0) (hSlurp . badFile $ df)
+          (vm, _) <- hSlurp . badFile $ df
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           let l5 = [0,2,3,4,5] -- these are the tracks supposedly from the tau
           doFitTest vm l5
-          pr <- showProng . fitw . hFilter l5 $ vm
+          pr <- showProng . fitw . hFilter l5 . vBlowup 10000.0 $ vm
           let vf = fitVertex $ pr
               h = head . helices . hFilter [6] $ vm
               Just (_, chi2, _) =  ksm vf h
@@ -96,57 +96,58 @@ test arg =
           fs <- dataFiles "dat"
           mapM_ xxx $ drop 4 fs where
             xxx f = do
-              vm <- fmap (vBlowup 10000.0) (hSlurp $ f)
+              (vm, _) <- hSlurp f
               putStrLn $ printf "File %s" f
               mapM_ showMomentum $ helices vm
               print $ length $ helices vm
-              _ <- showProng $ fitw vm
+              _ <- showProng $ fitw . vBlowup 10000.0 $ vm
               let nh = length (helices vm) - 1
               putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
-              mapM_ (\indx -> showProng . fitw . hRemove indx $ vm) [0..nh]
+              mapM_ (\indx -> showProng . fitw . hRemove indx . vBlowup 10000.0 $ vm) [0..nh]
 
 -- slurp in all event data files from ./dat and append helices
     ["5"] -> do
           ps <- dataFiles "dat"
-          vm <- fmap (vBlowup 10000.0) (hSlurpAll $ drop 4 ps)
+          vm <- hSlurpAll $ drop 4 ps
           doFitTest vm [0..]
-          _ <- showProng $ fitw vm
+          _ <- showProng $ fitw . vBlowup 10000.0 $ vm
           return ()
 
 -- CMS test file
     ["6"] -> do
-          vm <- fmap (vBlowup 10000.0) (hSlurp . cmsFile $ df)
+          (vm, _) <- hSlurp . cmsFile $ df
 --        mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
---          showProng $ fitw vm
+--          showProng $ fitw . vBlowup 10000.0 $ vm
           return ()
 
 -- Cluster test
     ["c"] -> do
-          vm <- hSlurp . cmsFile $ df
+          (vm, _) <- hSlurp . cmsFile $ df
           mapM_ showHelix $ helices vm
           mapM_ showMomentum $ helices vm
           doCluster vm
           return ()
 
     ["r"] -> do
---          vm <- fmap (vBlowup 10000.0) (hSlurp thisFile)
-          (hSlurp . thisFile) df >>= doRandom 1000 . hFilter [0,2,3,4,5] . vBlowup 10000.0
+          (vm, _) <- hSlurp . thisFile $ df
+          doRandom 1000 . hFilter [0,2,3,4,5] . vBlowup 10000.0 $ vm
 
     [fn] -> do
-          vm <- fmap (vBlowup 10000.0) (hSlurp fn)
+          (vm, _) <- hSlurp fn
           mapM_ showMomentum $ helices vm
           doFitTest vm [0..]
           let nh = length (helices vm) - 1
           putStrLn $ printf "Inv Mass %d in %d refit, all combinations" (nh::Int) ((nh+1)::Int)
-          mapM_ (\indx -> showProng . fitw . hRemove indx $ vm ) [0..nh]
+          mapM_ (\indx -> showProng . fitw . hRemove indx . vBlowup 10000.0 $ vm ) [0..nh]
 
     _ -> do
       return ()
 
 doFitTest :: VHMeas -> [Int] -> IO ()
-doFitTest vm l5 = do
+doFitTest vm' l5 = do
+  let vm = vBlowup 10000.0 vm'
   let showLen xs = show $ length xs
   let showQChi2 (qm, chi2, i) = putStrLn $ (printf "q%d chi2 ->%8.1f " (i::Int) (chi2::Double) ++ "pt,pz,fi,E ->") ++ show qm
 

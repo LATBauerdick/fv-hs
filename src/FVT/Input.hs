@@ -2,7 +2,7 @@
 module FVT.Input ( hSlurp, hSlurpAll, dataFiles ) where
 
 import Prelude
-import FV.Types ( HMeas (..), XMeas (..), VHMeas (..) )
+import FV.Types ( HMeas (..), XMeas (..), VHMeas (..), MCtruth (..) )
 import FV.Matrix ( fromList, fromList2, scaleDiag, sw )
 import System.Directory
 import qualified Data.List.Split ( chunksOf )
@@ -63,17 +63,26 @@ hSlurp' inp = VHMeas v hl where
               in HMeas h' ch' w0
 -- slurps up a bunch of Doubles from a text data file into a list
 -- and parses them w/ hSlurp' to a vertex and a set of helix measurements
-hSlurp :: String -> IO VHMeas
+hSlurp :: String -> IO (VHMeas, MCtruth)
 hSlurp path = do
   ds <- readFile path
-  return $ hSlurp' $ map readDouble (words ds)
-    where readDouble = read :: String -> Double
+  let ws = words ds
+      readDouble = read :: String -> Double
+      readInt = read :: String -> Int
+  let (mc, ws') = if (head ws) == "PU_zpositions:"
+                    then  let npu = readInt (head (drop 1 ws))
+                              zws = take npu $ drop 2 ws
+                           in (MCtruth (map readDouble zws), drop (npu+2) ws)
+                    else (MCtruth [], ws)
+  return $ (hSlurp' $ map readDouble ws', mc)
 
 -- slurp all files named in a list of pathNames
 hSlurpAll :: [String] -> IO VHMeas
-hSlurpAll (x:[]) = hSlurp x
+hSlurpAll (x:[]) = do
+  (v0, _) <- hSlurp x
+  return v0
 hSlurpAll (x:xs) = do
-  v0 <- hSlurp x
+  (v0, _) <- hSlurp x
   vs <- hSlurpAll xs
   return $ v0 <> vs
 

@@ -6,7 +6,7 @@ import Test.QuickCheck ( property )
 
 import FVT.Input ( hSlurp )
 import FVT.Cluster ( doCluster, fsmw )
-import FV.Types ( VHMeas (..), HMeas (..) )
+import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..) )
 
 import Data.List ( sort )
 import Debug.Trace ( trace )
@@ -52,13 +52,18 @@ spec =
 
     describe "FVT.Test" $ do
       it "doCluster works" $ do
-        vm <- hSlurp "dat/tav-0.dat"
+        (vm, _) <- hSlurp "dat/tav-0.dat"
         _ <- doCluster vm
         (1 :: Int) `shouldBe` 1
 
 
       it "hSlurp works" $ do
-        VHMeas _ hl <- hSlurp "dat/tav-0.dat"
+        (VHMeas _ hl, mc) <- hSlurp "dat/tav-4.dat"
+        let HMeas _ _ w = head hl `debug` (show mc)
+        w `shouldBe` 0.0114
+
+      it "hSlurp works" $ do
+        (VHMeas _ hl, _) <- hSlurp "dat/tav-0.dat"
         let HMeas _ _ w = head hl
         w `shouldBe` 0.0114
 --    prop "ourAdd is commutative" $ \x y ->

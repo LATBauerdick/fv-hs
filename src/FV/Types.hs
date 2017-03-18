@@ -7,6 +7,7 @@ module FV.Types (
              , XMeas (..), HMeas (..), QMeas (..)
              , PMeas (..), MMeas (..), DMeas (..), Prong (..), VHMeas (..)
   , XFit (..), QFit (..)
+  , MCtruth (..)
   , helicesLens
   , view, over, set
   , vBlowup, hFilter, hRemove
@@ -63,6 +64,10 @@ data VHMeas = VHMeas {
 instance Monoid VHMeas where
   mappend (VHMeas v hs) (VHMeas _ hs') = VHMeas v ( hs ++ hs' ) -- ???
   mempty = VHMeas (XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)) []
+
+data MCtruth = MCtruth {
+    pu_zpositions :: [Double]
+                       } deriving Show
 
 data Jaco = Jaco M M M
 
