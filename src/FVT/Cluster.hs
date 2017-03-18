@@ -42,10 +42,10 @@ doCluster vm = do
 
   let Node p0 ht = vTree $ cleanup vm
   putStrLn "---------------------------------------------------------"
-  print p0
-  print $ fitChi2s p0
-  print $ fitVertex p0
-  print $ nProng p0
+  print . nProng $ p0
+  print . vertex . measurements $ p0
+  print . fitVertex $ p0
+  print . zip (fitChi2s p0) . map (\x -> z0Helix x) . helices . measurements $ p0
   case ht of
     Empty     -> putStrLn "Empty"
     Node p1 _ -> print $ fitVertex p1
@@ -119,13 +119,13 @@ cluster (VHMeas v hl) = ( p, r ) where
   nProng = (length qljust)
   measurements = VHMeas v hljust
   p0 = Prong  {..} `debug` ("--> nProng=" ++ show nProng)
--- to geth weights ws  = fmap (wght 256.0) $ fitChi2s . kSmooth vm . kFilter $ vm
+-- get weights ws
   annealingSchedule = [256.0, 64.0, 16.0, 4.0, 1.0]
   t0 = head annealingSchedule
-  ws = fmap (wght t0) c2s
-  c2s = [] -- FV.Types.fitChi2s p0
+  ws = fmap (wght t0) $ FV.Types.fitChi2s p0
+  --  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . foldl (kAddW v) $ zip hl ws
   p00 = Prong {nProng = 0, ..}
-  p = if sum ws == 0 then p00 else p0
+  p = if sum ws == 0 then p00 else p0 `debug` ("--> weights" ++ show ws)
 
   r = case (length hlnothing) of
         0 -> Nothing
