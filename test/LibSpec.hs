@@ -3,6 +3,7 @@ module LibSpec where
 import Test.Hspec ( Spec, hspec, describe, it, shouldBe )
 import Test.QuickCheck ( property )
 --import Control.Exception (evaluate)
+import Control.Monad ( (<=<) )
 
 import FVT.Input ( hSlurp )
 import FVT.Cluster ( doCluster, fsmw )
@@ -52,8 +53,7 @@ spec =
 
     describe "FVT.Test" $ do
       it "doCluster works" $ do
-        (vm, _) <- hSlurp "dat/tav-0.dat"
-        _ <- doCluster vm
+        _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
 
