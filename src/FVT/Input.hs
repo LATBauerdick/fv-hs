@@ -3,13 +3,13 @@ module FVT.Input ( hSlurp, hSlurpAll, dataFiles ) where
 
 import Prelude
 import FV.Types ( HMeas (..), XMeas (..), VHMeas (..), MCtruth (..) )
-import FV.Matrix ( fromList, fromList2, scaleDiag, sw )
+import FV.Matrix ( fromList, fromList2, sw )
 import System.Directory
 import qualified Data.List.Split ( chunksOf )
 import Data.Monoid
-import Debug.Trace ( trace )
-debug :: a -> String -> a
-debug = flip trace
+-- import Debug.Trace ( trace )
+-- debug :: a -> String -> a
+-- debug = flip trace
 
 -- slurp in the measurements of vertex and helices
 -- from a list of Doubles
@@ -20,7 +20,7 @@ hSlurp' inp = VHMeas v hl where
   v         = XMeas v0 cv0
   w2pt      = inp !! 12                 -- how to calc pt from w; 1 in case of CMS
   nt        = round (inp !! 13) ::Int    -- number of helices to follow
-  hl        = map nxtH . Data.List.Split.chunksOf 30 $ drop 14 inp -- list of helix params and cov
+  hl        = map nxtH . Data.List.Split.chunksOf 30 . drop 14 . take (nt*30+14) $ inp -- list of helix params and cov
   nxtH :: [Double] -> HMeas
   nxtH ds =  hm where
     (ih, ich) = splitAt 5 ds
@@ -48,8 +48,7 @@ hSlurp' inp = VHMeas v hl where
               ct               = cos h1
               w                = h0 * w0 / ct
               tl               = st / ct
-              pt               = w0/w
-              j00              = w0 / ct -- `debug` ((show (pt*tl)) )
+              j00              = w0 / ct -- `debug` ((show (w0/w*tl)) )
               j01              = h0 * w0 * st/ct/ct
               j11              = 1.0 / ct / ct
               j10              = 0
@@ -58,7 +57,7 @@ hSlurp' inp = VHMeas v hl where
                                                 , 0, 0, 1.0, 0, 0
                                                 , 0, 0, 0, 1.0, 0
                                                 , 0, 0, 0, 0, 1.0 ]
-              h'               = fromList 5 (w : tl : h2 : h3 : h4 : [])
+              h'               = fromList 5 [w, tl, h2, h3, h4]
               ch'              = sw jj (fromList2 5 5 ich)
               in HMeas h' ch' w0
 -- slurps up a bunch of Doubles from a text data file into a list
@@ -69,16 +68,16 @@ hSlurp path = do
   let ws = words ds
       readDouble = read :: String -> Double
       readInt = read :: String -> Int
-  let (mc, ws') = if (head ws) == "PU_zpositions:"
-                    then  let npu = readInt (head (drop 1 ws))
-                              zws = take npu $ drop 2 ws
-                           in (MCtruth (map readDouble zws), drop (npu+2) ws)
-                    else (MCtruth [], ws)
-  return $ (hSlurp' $ map readDouble ws', mc)
+  let (mc, ws') = if head ws == "PU_zpositions:"
+                      then  let npu = readInt $ ws !! 1
+                                zws = take npu $ drop 2 ws
+                            in (MCtruth (map readDouble zws), drop (npu+2) ws)
+                      else (MCtruth [], ws)
+  return (hSlurp' $ map readDouble ws', mc)
 
 -- slurp all files named in a list of pathNames
 hSlurpAll :: [String] -> IO VHMeas
-hSlurpAll (x:[]) = do
+hSlurpAll [x] = do
   (v0, _) <- hSlurp x
   return v0
 hSlurpAll (x:xs) = do

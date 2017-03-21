@@ -22,7 +22,7 @@ import Graphics.Histogram
 
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do
-  putStrLn $ "Fit Mass  " ++ (show . invMass . map q2p . fitMomenta . fitw $ vm)
+  putStrLn $ "Fit Mass  " ++ (show . invMass . map q2p . fitMomenta . fit $ vm)
 
   g <- newStdGen
   let hf :: V.Vector Double
@@ -43,7 +43,7 @@ gen v rs = v' : gen v rs' where
 -- calc fitted invariant mass of VHMeas
 fitm :: VHMeas -> Double
 fitm vm = m where
-  (MMeas m _) = invMass . map q2p . fitMomenta $ fitw vm
+  (MMeas m _) = invMass . map q2p . fitMomenta $ fit vm
 
 -- randomize the helices in the supplied VHMeas
 -- and return randomized VHMeas and remaining randoms list

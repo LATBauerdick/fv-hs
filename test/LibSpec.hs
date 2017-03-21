@@ -52,7 +52,7 @@ spec =
 
     describe "FVT.Test" $ do
       it "doCluster works" $ do
-        (vm, _) <- hSlurp "dat/tav-4.dat"
+        (vm, _) <- hSlurp "dat/tav-0.dat"
         _ <- doCluster vm
         (1 :: Int) `shouldBe` 1
 

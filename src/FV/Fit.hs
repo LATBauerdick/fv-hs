@@ -1,5 +1,5 @@
 -- file src/Fit.hs
-module FV.Fit ( fit, fitw, ksm, ksm', kAddF, kAdd ) where
+module FV.Fit ( fit, fitw, ksm, ksm', kAddF, kAdd, kChi2 ) where
 
 import FV.Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..), XFit (..)
 --  , helicesLens, view, over, set
@@ -160,7 +160,7 @@ ksm' (XMeas x cc) (Just (HMeas h hh w0)) = do
   ww <- invMaybe (sw bb gg)
   let
       p    = h - h0
-      uu   = inv cc
+      uu   = inv cc -- xxxx: find a way to not re-calculate this every time
       aaT  = tr aa; bbT   = tr bb
       q    = ww * bbT * gg * (p - aa * x)
       ee   = - cc * aaT * gg * bb * ww
@@ -182,4 +182,33 @@ ksm' (XMeas x cc) (Just (HMeas h hh w0)) = do
                                         else cx'
       chi2 = cx + ch
   return (QMeas q dd w0, chi2)
+
+-- calculate Chi2 of a new helix measurement using kalman filter
+-- if we can't invert, return 0.0
+kChi2 :: XMeas -> HMeas -> Double
+kChi2 (XMeas v vv) (HMeas h hh w0) = kChi2' x_km1 p_k x_e q_e 1e6 0 where
+  x_km1 = XMeas v (inv vv)
+  p_k   = HMeas h (inv hh) w0
+  x_e   = v
+  q_e   = Coeff.hv2q h v
+kChi2' :: XMeas -> HMeas -> X3 -> Q3 -> Double -> Int -> Double
+kChi2' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
+  Jaco aa bb h0 = Coeff.expand x_e q_e
+  aaT   = tr aa; bbT = tr bb
+  x_k   = case invMaybe (sw bb gg) of
+            Just ww' -> x_k' where 
+              ww    = ww'
+              gb    = gg - sw gg (sw bbT ww)
+              uu    = uu0 + sw aa gb; cc = inv uu
+              m     = h - h0
+              v     = cc * (uu0 * v0 + aaT * gb * m)
+              dm    = m - aa * v
+              q     = ww * bbT * gg * dm
+              𝜒2    = scalar $ sw (v - v0) uu0 -- or shoud it use uu?? + sw (dm - bb * q) gg
+              x_k'  = if goodEnough 𝜒2_0 𝜒2 iter
+                then 𝜒2
+                else kChi2' (XMeas v0 uu0) (HMeas h gg w0) v q 𝜒2 (iter+1)
+            Nothing -> 0.0
+
+
 

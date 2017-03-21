@@ -1,22 +1,21 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# DisambiguateRecordFields #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
 
 module FVT.Cluster ( doCluster, fsmw ) where
 
 import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
-  , XMeas (..), XFit (..), Chi2
+  , XMeas (..), XFit (..), Chi2, X3
   , chi2Vertex, zVertex, z0Helix )
-import FV.Fit ( kAdd, kAddF, ksm, ksm' )
+import FV.Fit ( kAdd, kAddF, ksm, ksm', kChi2 )
 import FV.Matrix ( fromList, toList )
-import FV.Types ( X3 )
 
 --import Data.Text
 
 import Prelude
-import Data.Maybe ( mapMaybe, isNothing, isJust )
-import Data.List ( sortOn, foldl' )
+import Data.Maybe ( mapMaybe, isNothing, isJust, catMaybes )
+import Data.List ( sortOn, foldl', sort )
 import qualified Math.Gamma ( q )
 
 import Text.Printf ( printf )
@@ -25,27 +24,29 @@ import Text.Printf ( printf )
 -- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
 
-import Debug.Trace ( trace )
+import Debug.Trace ( trace, traceShow )
 debug :: a -> String -> a
 debug = flip trace
 
 doCluster :: VHMeas -> IO ()
-doCluster vm = do
-  let v0 = vertex vm -- beamspot
+doCluster vm' = do
+  let vm = cleanup vm'
+      v0 = vertex vm' -- beamspot
   putStrLn $ "beam spot -> " ++ show v0
+  putStrLn $ "# tracks  -> " ++ show (length . helices $ vm')
+  putStrLn $ "# after cleanup-> " ++ show (length . helices $ vm)
 
-  let histz = histogramNumBins 20 $ zs vm
+  let histz = histogramNumBins 90 $ zs vm
   _ <- plot "cluster-z.png" histz
-
   let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
-  _ <- plot "pd.png" histp
+  _ <- plot "cluster-pd.png" histp
 
-  let Node p0 ht = vTree $ cleanup vm
+  let Node p0 ht = vTree vm
   putStrLn "---------------------------------------------------------"
   print . nProng $ p0
   print . vertex . measurements $ p0
   print . fitVertex $ p0
-  print . zip (fitChi2s p0) . map (\x -> z0Helix x) . helices . measurements $ p0
+  print . zip (fitChi2s p0) . map z0Helix . helices . measurements $ p0
   case ht of
     Empty     -> putStrLn "Empty"
     Node p1 _ -> print $ fitVertex p1
@@ -55,13 +56,13 @@ xFit :: XMeas -> XFit
 xFit (XMeas v vv) = XFit v vv 1e6
 
 probs :: VHMeas -> [Double]
-probs (VHMeas v hl) = filter (\x -> x>0.01) $ map (Math.Gamma.q 1.0 . chi2Vertex . kAddF (xFit v)) hl
+probs (VHMeas v hl) = filter (>0.01) $ map (Math.Gamma.q 1.0 . chi2Vertex . kAddF (xFit v)) hl
 zs :: VHMeas -> [Double]
-zs (VHMeas v hl) = filter (\x -> (abs x)<10.0) $ map (zVertex . kAddF (xFit v)) hl
+zs (VHMeas v hl) = filter (\x -> abs x<10.0) $ map (zVertex . kAddF (xFit v)) hl
 
 cleanup :: VHMeas -> VHMeas
 -- remove vm helices that are incompatible with vm vertex
-cleanup (VHMeas v hl) = (VHMeas v hl') where
+cleanup (VHMeas v hl) = VHMeas v hl' where
   hl' = sortOn z0Helix . mapMaybe (filtProb 0.01 v) $ hl
 
 filtProb :: Double -> XMeas -> HMeas -> Maybe HMeas
@@ -71,7 +72,7 @@ filtProb cut v h = mh where
   zvf =   zVertex vf
   chi2f = chi2Vertex vf
   prob =  Math.Gamma.q 1.0 (chi2f/2.0) -- chi2 distribution with NDOF=2
-  good =  (prob > cut) && (abs zvf) < 10.0
+  good =  (prob > cut) && abs zvf < 10.0
   mh =    if good
             then Just h
             else Nothing
@@ -87,51 +88,115 @@ vTree vm = Node p vRight where
 
 wght :: Double -> Chi2 -> Double -- weight function with Temperature t
 wght t chi2 = w where
-  chi2cut = 9.0
+  chi2cut = 3.0
   w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
-cluster (VHMeas v hl) = ( p, r ) where
+cluster vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
+cluster (VHMeas v hl) = trace (
+        "--> cluster debug:"
+        ++ "\n--> cluster zs=" ++ (take 160 $ show zs)
+        ++ printf "\n--> cluster z0=%9.3f " (z0 :: Double)
+        ++ "\n--> cluster v0=" ++ show v0
+        ++ "\n--> cluster v1: #hl0=" ++ (show . length . catMaybes $ hl0) ++ " v1=" ++ show v1
+        ++ "\n--> cluster chi2s1" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c21s
+        ++ "\n--> cluster weights1" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws1
+        ++ "\n--> cluster v2=" ++ show v2
+        ++ "\n--> cluster chi2s2" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c22s
+        ++ "\n--> cluster weights2" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws2
+        ++ "\n--> cluster v3=" ++ show v3
+        ++ "\n--> cluster chi2s3" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c23s
+        ++ "\n--> cluster weights3" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws3
+        ++ "\n--> cluster v4=" ++ show v4
+        ++ "\n--> cluster chi2s4" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c24s
+        ++ "\n--> cluster weights4" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws4
+        ++ "\n--> cluster v5=" ++ show v5
+        ++ "\n-----------------------------------------------------------------"
+        ++ "\n--> cluster #hl1=" ++ (show . length . catMaybes $ hl1) ++ " vv=" ++ show vv
+        ++ printf "\n--> cluster nothing=%5d just=%5d" (length hlnothing) (length hljust)
+        ++ "\n--> cluster nProng=" ++ show nProng
+                                  )
+    $ ( p, r ) where
 
--- FSMW method to fund initial z for primary vertex
-  zs  = filter (\x -> (abs x)<10.0) . map (zVertex . kAddF (xFit v)) $ hl
+  sDouble :: Double -> String
+  sDouble c = case c > 0.001 of
+                True -> printf "%6.3f" c
+                False -> " eps"
+
+  bDouble :: Double -> String
+  bDouble c = case c<999.9 of
+                True -> printf "%6.1f" c
+                False -> " big"
+
+  -- FSMW method to fund initial z for primary vertex
+  zs = sort . filter (\x -> abs x < 10.0) . map (zVertex . kAddF (xFit v)) $ hl
   z0 = fsmw (length zs) zs
--- constract vertex v0 at z=z0 as starting point, using cov matrix from v
-  XMeas x0 cx0 = v
-  [xx0, yx0] = FV.Matrix.toList 2 x0
-  v0 = XMeas (FV.Matrix.fromList 3 [xx0, yx0, z0]) cx0 `debug` (printf "--> cluster z0=%9.3f " z0)
+  -- constract vertex v0 at z=z0 as starting point, using cov matrix from v
+  XMeas x0 cx0  = v
+  [xx0, yx0]    = FV.Matrix.toList 2 x0
+  v0 = XMeas (FV.Matrix.fromList 3 [xx0, yx0, z0]) cx0
   -- filter hl for v1, with starting point v0
-  v1        = foldl kAdd v0 hl `debug` ("--> v0=" ++ show v0)
-  -- cut any track with prob < 0.001 w/r to v1
-  hlfilt    = map (filtProb 0.0 v1) hl
-  -- re-do filter with initial position and filtered helices
-  v2        = foldl (\v h -> case h of
-                               Just h' -> kAdd v h'
-                               Nothing -> v) v0 hlfilt
-  -- smooth with v2
-  ll        = zip (map (ksm' v2) hlfilt) hl `debug` ("--> v2=" ++ show v2)
-  hlnothing = [ h | (Nothing, h) <- ll]
-  (qljust, c2just, hljust)
-            = unzip3 [ (q,c,h) | (Just (q, c), h) <- ll]
-  fitVertex = v2 `debug` (printf "--> nothing=%5d just=%5d filt=%5d" (length hlnothing) (length hljust) (length hlfilt))
-  fitMomenta = qljust
-  fitChi2s = c2just
-  nProng = (length qljust)
-  measurements = VHMeas v hljust
-  p0 = Prong  {..} `debug` ("--> nProng=" ++ show nProng)
--- get weights ws
+  hl0 :: [Maybe HMeas]
+  hl0           = map (filtProb 0.00001 v0) hl
+  v1            = foldl (\v mh -> case mh of
+                                    Just h -> kAdd v h
+                                    Nothing -> v) v0 hl0
+
+  kAddW' :: XMeas -> (Maybe HMeas, Double) -> XMeas
+  kAddW' v (mh, w) =  case mh of
+                        Just h -> kAdd v h
+                        Nothing -> v
   annealingSchedule = [256.0, 64.0, 16.0, 4.0, 1.0]
   t0 = head annealingSchedule
-  ws = fmap (wght t0) $ FV.Types.fitChi2s p0
-  --  ws' = fmap (wght  1.0) $ fitChi2s . kSmooth vm . foldl (kAddW v) $ zip hl ws
-  p00 = Prong {nProng = 0, ..}
-  p = if sum ws == 0 then p00 else p0 `debug` ("--> weights" ++ show ws)
+  t1 = annealingSchedule !! 3
 
-  r = case (length hlnothing) of
+  c21s          = map (\mh -> case mh of
+                                Just h -> kChi2 v1 h
+                                Nothing -> 0.0) hl0
+  ws1 = fmap (max 0.001 . wght t0) c21s
+  v2 = foldl kAddW' v1 $ zip hl0 ws1
+  c22s          = map (\mh -> case mh of
+                                Just h -> kChi2 v2 h
+                                Nothing -> 0.0) hl0
+  ws2 = fmap (max 0.001 . wght t0) c22s
+  v3 = foldl kAddW' v2 $ zip hl0 ws2
+  c23s          = map (\mh -> case mh of
+                                Just h -> kChi2 v3 h
+                                Nothing -> 0.0) hl0
+  ws3 = fmap (max 0.001 . wght 4.0) c23s
+  v4 = foldl kAddW' v3 $ zip hl0 ws3
+  c24s          = map (\mh -> case mh of
+                                Just h -> kChi2 v4 h
+                                Nothing -> 0.0) hl0
+  ws4 = fmap (max 0.001 . wght 1.0) c24s
+  v5 = foldl kAddW' v4 $ zip hl0 ws4
+
+  vv0 = v5
+
+  -- cut any track with prob < 0.001 w/r to v1
+  hl1           = map (filtProb 0.00001 vv0) hl
+  -- re-do filter with initial position and filtered helices
+  vv            = foldl (\v h -> case h of
+                                  Just h' -> kAdd v h'
+                                  Nothing -> v) vv0 hl1
+  -- smooth with vv
+  ll        = zip (map (ksm' vv) hl1) hl
+  hlnothing :: [HMeas]
+  hlnothing = [ h | (Nothing, h) <- ll]
+  hljust :: [HMeas]
+  (qljust, c2just, hljust) = unzip3 [ (q,c,h) | (Just (q, c), h) <- ll]
+
+  fitVertex    = vv
+  fitMomenta   = qljust
+  fitChi2s     = c2just
+  nProng       = length qljust
+  measurements = VHMeas v hljust
+  p = Prong  {..}
+
+  nnn = (fromIntegral (length hlnothing)) `div` (fromIntegral 3)
+  r = case length hlnothing of
         0 -> Nothing
-        _ -> Just (VHMeas v hlnothing)
-
---ks vm v | trace ("kSmooth " ++ (show . length . view helicesLens $ vm) ++ ", vertex at " ++ (show v) ) False = undefined
+        _ -> Just (VHMeas v (drop nnn  hlnothing))
 
 -- -------------------------------------------------------
 -- use robust Mode finding to get initial vertex position
@@ -143,7 +208,7 @@ type WeightedPoint = Double
 fsmw :: Int -> [WeightedPoint] -> WeightedPoint
 fsmw 1 [x] = x
 fsmw 2 [x0, x1] = 0.5 * (x1+x0)
-fsmw 3 [x0, x1, x2] = case ( 2*x1-x0-x2 ) of
+fsmw 3 [x0, x1, x2] = case 2*x1-x0-x2 of
                        xx | xx < 0 -> (x0+x1)/2.0
                        xx | xx > 0 -> (x1+x2)/2.0
                        xx | xx == 0 -> x1
@@ -155,28 +220,28 @@ fsmw 3 [x0, x1, x2] = case ( 2*x1-x0-x2 ) of
 fsmw n xs = h where
   h = if n>6 then hsm n xs -- for large n, fall back to no-weight hsm formula
           else fsmw n' xs' where
-            alpha :: Double; alpha = 0.5
+            alpha = 0.5 :: Double
             n' = ceiling (fromIntegral n * alpha)
             findMin :: (WeightedPoint, Int) -> (WeightedPoint, Int) -> (WeightedPoint, Int)
             findMin (w0, j0) (w, j) = if w<w0 || w0<0 then (w, j) else (w0, j0)
-            (_, j') = foldl' findMin (-1.0, 0) . zip (map ( \j ->  weightOfInterval . take n' . drop j $ xs ) $ [0..n-n']) $ [0..]
-            xs' = take n' . drop (j') $ xs -- `debug` ("fsmw--> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs)
+            (_, j') = foldl' findMin (-1.0, 0) . zip (map ( \j ->  weightOfInterval . take n' . drop j $ xs ) [0..n-n']) $ [0..]
+            xs' = take n' . drop j' $ xs -- `debug` ("fsmw--> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs)
 
 -- HalfSampleMode
 -- see Bickel & Frühwirth, On a Fast, Robust Estimator of the Mode, 2006
 -- http://ideas.repec.org/a/eee/csdana/v50y2006i12p3500-3530.html
 hsm :: Int -> [WeightedPoint] -> WeightedPoint
 hsm n xs = fsmw n' xs' where
-  alpha :: Double; alpha = 0.5
+  alpha = 0.5 :: Double
   n' = ceiling (fromIntegral n * alpha)
   xns = drop (n'-1) xs
-  wmin = (last xs - head xs)
+  wmin = last xs - head xs
   findMin :: (WeightedPoint, Int) -> (WeightedPoint, Int) -> (WeightedPoint, Int)
   findMin (w0, j0) (w, j) = if w<w0 then (w, j) else (w0, j0)
   calcWeight :: WeightedPoint -> WeightedPoint -> WeightedPoint
   calcWeight = (-)
   (_, j') = foldl' findMin (wmin, 0) . zip (zipWith calcWeight xns xs) $ [0..]
-  xs' = take n' . drop (j') $ xs --`debug` ("hsm---> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs ++ ", " ++ show xns)
+  xs' = take n' . drop j' $ xs --`debug` ("hsm---> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs ++ ", " ++ show xns)
 
 wDist :: WeightedPoint -> WeightedPoint -> WeightedPoint
 wDist x0 x1 = 1.0 / sqrt (x1 - x0 + dmin) where dmin = 0.001 -- 10 µm
