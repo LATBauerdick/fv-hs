@@ -5,10 +5,10 @@
 
 module FVT.Cluster ( doCluster, fsmw ) where
 
-import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
+import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..), fitVertex
   , XMeas (..), XFit (..), Chi2, X3
   , chi2Vertex, zVertex, z0Helix )
-import FV.Fit ( kAdd, kAddF, ksm, ksm', kChi2 )
+import FV.Fit ( kAdd, kAddF, ksm, ksm', kChi2, fit )
 import FV.Matrix ( fromList, toList )
 
 --import Data.Text
@@ -93,11 +93,12 @@ wght t chi2 = w where
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
-cluster (VHMeas v hl) = trace (
+cluster (VHMeas v hllll) = trace (
         "--> cluster debug:"
         ++ "\n--> cluster zs=" ++ (take 160 $ show zs)
         ++ printf "\n--> cluster z0=%9.3f " (z0 :: Double)
         ++ "\n--> cluster v0=" ++ show v0
+        ++ "\n--> cluster fit v0 hl0" ++ (show . fit $ VHMeas v0 hl)
         ++ "\n--> cluster v1: #hl0=" ++ (show . length . catMaybes $ hl0) ++ " v1=" ++ show v1
         ++ "\n--> cluster chi2s1" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c21s
         ++ "\n--> cluster weights1" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws1
@@ -127,6 +128,8 @@ cluster (VHMeas v hl) = trace (
   bDouble c = case c<999.9 of
                 True -> printf "%6.1f" c
                 False -> " big"
+
+  hl = hllll
 
   -- FSMW method to fund initial z for primary vertex
   zs = sort . filter (\x -> abs x < 10.0) . map (zVertex . kAddF (xFit v)) $ hl
