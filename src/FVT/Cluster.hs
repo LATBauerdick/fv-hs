@@ -5,7 +5,7 @@
 
 module FVT.Cluster ( doCluster, fsmw ) where
 
-import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..), fitVertex
+import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
   , XMeas (..), XFit (..), Chi2, X3
   , chi2Vertex, zVertex, z0Helix )
 import FV.Fit ( kAdd, kAddF, ksm, ksm', kChi2, fit )
@@ -37,9 +37,9 @@ doCluster vm' = do
   putStrLn $ "# after cleanup-> " ++ show (length . helices $ vm)
 
   let histz = histogramNumBins 90 $ zs vm
-  _ <- plot "cluster-z.png" histz
+  -- _ <- plot "cluster-z.png" histz
   let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
-  _ <- plot "cluster-pd.png" histp
+  --  _ <- plot "cluster-pd.png" histp
 
   let Node p0 ht = vTree vm
   putStrLn "---------------------------------------------------------"
@@ -51,6 +51,10 @@ doCluster vm' = do
     Empty     -> putStrLn "Empty"
     Node p1 _ -> print $ fitVertex p1
   return ()
+
+ftvtx :: Prong -> (Double, [Double])
+ftvtx p = ( zVertex . xFit . fitVertex $ p, fitChi2s p)
+
 
 xFit :: XMeas -> XFit
 xFit (XMeas v vv) = XFit v vv 1e6
@@ -98,7 +102,13 @@ cluster (VHMeas v hllll) = trace (
         ++ "\n--> cluster zs=" ++ (take 160 $ show zs)
         ++ printf "\n--> cluster z0=%9.3f " (z0 :: Double)
         ++ "\n--> cluster v0=" ++ show v0
-        ++ "\n--> cluster fit v0 hl0" ++ (show . fit $ VHMeas v0 hl)
+        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 hl)
+        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $ take 10 $ drop 10 hl)
+        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 20 hl)
+        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 30 hl)
+        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 40 hl)
+        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 50 hl)
+        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 60 hl)
         ++ "\n--> cluster v1: #hl0=" ++ (show . length . catMaybes $ hl0) ++ " v1=" ++ show v1
         ++ "\n--> cluster chi2s1" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c21s
         ++ "\n--> cluster weights1" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws1

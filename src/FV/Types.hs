@@ -202,7 +202,7 @@ data MMeas = MMeas {
     , err :: Double
                      }
 instance Show MMeas where
-  show m = printf "%8.1f ± %8.1f MeV" ((val m)*1000.0) ((err m)*1000.0)
+  show m = printf "%8.1f +- %8.1f MeV" ((val m)*1000.0) ((err m)*1000.0)
 
 -----------------------positions--------------
 
@@ -231,7 +231,7 @@ instance Pos XMeas where
 
 data DMeas = DMeas Double Double -- distance and error
 instance Show DMeas where
-  show (DMeas d sd) = printf ("%6.2f ± %6.2f cm")(d::Double) (sd::Double)
+  show (DMeas d sd) = printf ("%6.2f +- %6.2f cm")(d::Double) (sd::Double)
 
 v3 :: [Double] -> V3
 v3 = Matrix.fromList 3
@@ -249,7 +249,7 @@ showXMeas (XMeas v cv) = s' where
   [x, y, z]  = Matrix.toList 3 v
   [dx,dy,dz] = Data.Vector.toList s2v
   f :: Double -> Double -> String -> String
-  f x dx s  = s ++ (printf "%6.2f ± %6.2f" (x::Double) (dx::Double))
+  f x dx s  = s ++ (printf "%6.2f +- %6.2f" (x::Double) (dx::Double))
   s' = (f z dz) . (f y dy) . (f x dx) $
     "(r,z) =" ++ (printf "(%6.2f,%6.2f), x y z =" (sqrt (x*x + y*y)) z)
 
@@ -281,7 +281,7 @@ xmDist (XMeas v0 vv0) (XMeas v1 vv1) = DMeas d sd where
 showPMeas :: PMeas -> String
 showPMeas (PMeas p cp) = s' where
   sp         = Data.Vector.map sqrt $ Data.Matrix.getDiag cp
-  f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+  f s (x, dx)  = s ++ printf "%8.3f +- %8.3f" (x::Double) (dx::Double) -- \xc2b1 ±±±±±
   s' = (foldl f "" $ Data.Vector.zip (Data.Matrix.getCol 1 p) sp) ++ " GeV"
 
 
@@ -290,17 +290,17 @@ showPMeas (PMeas p cp) = s' where
 showHMeas :: HMeas -> String
 showHMeas (HMeas h ch _) = s' where
   sh = Data.Vector.map sqrt $ Data.Matrix.getDiag ch
-  s00 = printf "%10.3g ± %10.3g" (x::Double) (dx::Double) where
+  s00 = printf "%10.3g +- %10.3g" (x::Double) (dx::Double) where
     x  = head (Data.Matrix.toList h)
     dx = head (Data.Vector.toList sh)
   s' = foldl f s00 (Data.Vector.drop 1 $ Data.Vector.zip (Data.Matrix.getCol 1 h) sh) where
-    f s (x, dx)  = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+    f s (x, dx)  = s ++ printf "%8.3f +- %8.3f" (x::Double) (dx::Double)
 
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
 showQMeas :: QMeas -> String
 showQMeas (QMeas q cq w2pt) = s' where
   f :: String -> (Double, Double) -> String
-  f s (x, dx) = s ++ printf "%8.3f ± %8.3f" (x::Double) (dx::Double)
+  f s (x, dx) = s ++ printf "%8.3f +- %8.3f" (x::Double) (dx::Double)
   m = mπ
   wp = w2pt
   [w,tl,psi0] = take 3 (Data.Matrix.toList q)
