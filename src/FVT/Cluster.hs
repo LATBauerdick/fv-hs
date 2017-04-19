@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 module FVT.Cluster ( doCluster, fsmw ) where
 
@@ -41,12 +42,13 @@ doCluster vm' = do
   let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
   --  _ <- plot "cluster-pd.png" histp
 
-  let Node p0 ht = vTree vm
+  let Node p0 ht = vList vm
   putStrLn "---------------------------------------------------------"
-  print . nProng $ p0
-  print . vertex . measurements $ p0
-  print . fitVertex $ p0
-  print . zip (fitChi2s p0) . map z0Helix . helices . measurements $ p0
+  print $ vList vm
+  -- print . nProng $ p0
+  -- print . vertex . measurements $ p0
+  -- print . fitVertex $ p0
+  -- print . zip (fitChi2s p0) . map z0Helix . helices . measurements $ p0
   case ht of
     Empty     -> putStrLn "Empty"
     Node p1 _ -> print $ fitVertex p1
@@ -81,19 +83,46 @@ filtProb cut v h = mh where
             then Just h
             else Nothing
 
-data HTree a = Empty | Node a (HTree a) deriving (Show)
+-- Now the "v" parameter can be mapped over without any care for list invariants
+data HList v = Empty | Node v (HList v) deriving (Show, Functor)
 
-vTree :: VHMeas -> HTree Prong
-vTree vm = Node p vRight where
+vList :: VHMeas -> HList Prong
+vList vm = Node p vRight where
   (p,vmr) = cluster vm
   vRight = case vmr of
              Nothing -> Empty
-             Just vm' -> vTree vm'
+             Just vm' -> vList vm'
 
 wght :: Double -> Chi2 -> Double -- weight function with Temperature t
 wght t chi2 = w where
   chi2cut = 3.0
   w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
+
+cluster'' :: VHMeas -> (Prong, Maybe VHMeas)
+cluster'' vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
+cluster'' (VHMeas v hl) = trace (
+        "--> cluster debug:"
+        ++ "\n--> cluster fit zs " ++ show zs
+        ++ "\n--> cluster fit vertex " ++ (show $ fitVertex p)
+        ++ "\n--> cluster # remaining helices " ++ (show $ length hlr) ++ (show . fmap z0Helix . take 3 $ hlr)
+                              )
+    $ ( p, r ) where
+  -- split off 10 h with lowest z and determine initial fit position with FSMW
+  (hl', hlr) = splitAt 10 . sortOn z0Helix $ hl
+
+  -- constract vertex v0 at z=z0 as starting point, using cov matrix from v
+  zs = sort . filter (\x -> abs x < 10.0) . map (zVertex . kAddF (xFit v)) $ hl'
+  z0 = fsmw (length zs) zs
+  XMeas x0 cx0  = v
+  [xx0, yx0]    = FV.Matrix.toList 2 x0
+  v0            = XMeas (FV.Matrix.fromList 3 [xx0, yx0, z0]) cx0
+
+  -- do the fit with v0
+  p             = fit (VHMeas v0 hl')
+
+  r = case length hlr of
+        0 -> Nothing
+        _ -> Just (VHMeas v hlr)
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
