@@ -7,6 +7,7 @@ import Control.Monad ( (<=<) )
 
 import FVT.Input ( hSlurp )
 import FVT.Cluster ( doCluster, fsmw )
+import FVT.Test ( test )
 import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..) )
 
 import Data.List ( sort )
@@ -52,9 +53,9 @@ spec =
         fsmw n xs `shouldBe` 26.16
 
     describe "FVT.Test" $ do
-      it "doCluster works" $ do
-        _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
-        (1 :: Int) `shouldBe` 1
+      -- it "doCluster works" $ do
+      --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
+      --   (1 :: Int) `shouldBe` 1
 
 
       it "hSlurp works" $ do
@@ -66,5 +67,10 @@ spec =
         (VHMeas _ hl, _) <- hSlurp "dat/tav-0.dat"
         let HMeas _ _ w = head hl
         w `shouldBe` 0.0114
+
+      it "test 1 doCuster works" $ do
+        _ <- test ["1"]
+        (1 :: Int) `shouldBe` 1
+
 --    prop "ourAdd is commutative" $ \x y ->
 --      ourAdd x y `shouldBe` ourAdd y x
