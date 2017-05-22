@@ -16,6 +16,7 @@ import FV.Fit ( fit, fitw, ksm )
 
 import FVT.Input ( hSlurp, dataFiles, hSlurpAll )
 import FVT.Random ( doRandom )
+import FVT.Probability ( doProbability )
 import FVT.Cluster ( doCluster )
 
 data DataFileNames = DataFileNames {
@@ -129,6 +130,10 @@ test arg =
           mapM_ showMomentum $ helices vm
           doCluster vm
           return ()
+
+    ["p"] -> do
+          (vm, _) <- hSlurp . thisFile $ df
+          doProbability 10 . hFilter [0,2,3,4,5] . vBlowup 10000.0 $ vm
 
     ["r"] -> do
           (vm, _) <- hSlurp . thisFile $ df

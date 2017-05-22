@@ -68,8 +68,12 @@ spec =
         let HMeas _ _ w = head hl
         w `shouldBe` 0.0114
 
-      it "test 1 doCuster works" $ do
+      it "test 1 works" $ do
         _ <- test ["1"]
+        (1 :: Int) `shouldBe` 1
+
+      it "test p works" $ do
+        _ <- test ["p"]
         (1 :: Int) `shouldBe` 1
 
 --    prop "ourAdd is commutative" $ \x y ->

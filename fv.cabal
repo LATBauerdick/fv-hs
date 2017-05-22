@@ -28,6 +28,7 @@ library
                     , FV.Matrix
                     , FVT.Input
                     , FVT.Random
+                    , FVT.Probability
                     , FVT.Cluster
                     , FVT.Test
   build-depends:      base >= 4.7 && < 5
@@ -45,6 +46,7 @@ library
                     , gnuplot
                     , split
                     , directory
+                    , probability
   default-language:   Haskell2010
 
 executable fvt
