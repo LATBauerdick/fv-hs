@@ -4,13 +4,13 @@
 {-# LANGUAGE DisambiguateRecordFields #-}
 {-# LANGUAGE DeriveFunctor #-}
 
-module FVT.Cluster ( doCluster, fsmw ) where
+module Test.Cluster ( doCluster, fsmw ) where
 
 import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
   , XMeas (..), XFit (..), Chi2, X3
   , chi2Vertex, zVertex, z0Helix )
 import FV.Fit ( kAdd, kAddF, ksm, ksm', kChi2, fit )
-import FV.Matrix ( fromList, toList )
+import Data.SimpleMatrix as M ( fromList, toList )
 
 --import Data.Text
 
@@ -114,8 +114,8 @@ cluster'' (VHMeas v hl) = trace (
   zs = sort . filter (\x -> abs x < 10.0) . map (zVertex . kAddF (xFit v)) $ hl'
   z0 = fsmw (length zs) zs
   XMeas x0 cx0  = v
-  [xx0, yx0]    = FV.Matrix.toList 2 x0
-  v0            = XMeas (FV.Matrix.fromList 3 [xx0, yx0, z0]) cx0
+  [xx0, yx0]    = M.toList 2 x0
+  v0            = XMeas (M.fromList 3 [xx0, yx0, z0]) cx0
 
   -- do the fit with v0
   p             = fit (VHMeas v0 hl')
@@ -175,8 +175,8 @@ cluster (VHMeas v hllll) = trace (
   z0 = fsmw (length zs) zs
   -- constract vertex v0 at z=z0 as starting point, using cov matrix from v
   XMeas x0 cx0  = v
-  [xx0, yx0]    = FV.Matrix.toList 2 x0
-  v0 = XMeas (FV.Matrix.fromList 3 [xx0, yx0, z0]) cx0
+  [xx0, yx0]    = M.toList 2 x0
+  v0 = XMeas (M.fromList 3 [xx0, yx0, z0]) cx0
   -- filter hl for v1, with starting point v0
   hl0 :: [Maybe HMeas]
   hl0           = map (filtProb 0.00001 v0) hl

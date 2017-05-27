@@ -26,7 +26,7 @@ import Data.Foldable
 import qualified Data.Matrix ( Matrix, getDiag, getCol, toList
                              , fromLists, transpose )
 import qualified Data.Vector ( zip, map, fromList, toList, drop )
-import qualified FV.Matrix as Matrix ( scalar, sw, tr, sub, sub2
+import qualified Data.SimpleMatrix as Matrix ( scalar, sw, tr, sub, sub2
                         , toList, fromList, fromList2
                         , zero, scaleDiag
                         )

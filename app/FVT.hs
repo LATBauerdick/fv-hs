@@ -6,7 +6,7 @@ import Prelude
 import System.Environment
 import System.Exit
 
-import FVT.Test ( test )
+import Test.Test ( test )
 
 main :: IO ()
 main = getArgs >>= parse

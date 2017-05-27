@@ -1,6 +1,6 @@
 -- file: test.hs
 --
-module FVT.Test ( test ) where
+module Test.Test ( test ) where
 
 import Prelude
 import Text.Printf
@@ -14,10 +14,10 @@ import FV.Types (  HMeas (..), Prong (..), VHMeas (..)
              )
 import FV.Fit ( fit, fitw, ksm )
 
-import FVT.Input ( hSlurp, dataFiles, hSlurpAll )
-import FVT.Random ( doRandom )
-import FVT.Probability ( doProbability )
-import FVT.Cluster ( doCluster )
+import Test.Input ( hSlurp, dataFiles, hSlurpAll )
+import Test.Random ( doRandom )
+import Test.Probability ( doProbability )
+import Test.Cluster ( doCluster )
 
 data DataFileNames = DataFileNames {
     thisFile  :: String

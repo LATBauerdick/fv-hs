@@ -1,6 +1,6 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, RankNTypes #-}
 
-module FVT.Random ( doRandom ) where
+module Test.Random ( doRandom ) where
 
 import Prelude
 import Control.Parallel.Strategies
@@ -14,11 +14,20 @@ import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
 
 import FV.Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
              , invMass, q2p, v3,l3,v5,l5 )
-import FV.Matrix ( toList, fromList, chol, scalar )
+import Data.SimpleMatrix ( toList, fromList, chol, scalar )
 import FV.Fit ( fit, fitw )
 
 import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
+
+-- class Randomizable a where
+--   randomize :: forall e. a -> IO a
+-- instance Randomizable HMeas where
+--   randomize (HMeas h hh w0) = do
+--     rs <- normals 5
+--     let h' = fromArray $ zipWith (+) (toArray h)
+--                                      (toArray (chol hh * fromArray rs))
+--     pure $ HMeas h' hh w0
 
 doRandom :: Int -> VHMeas -> IO ()
 doRandom cnt vm = do

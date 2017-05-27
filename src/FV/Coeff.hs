@@ -7,7 +7,7 @@ import FV.Types ( M, V3, V5
               , Mom (..)
               , MMeas (..), HMeas (..), QMeas (..), PMeas (..), XMeas (..)
               , Jaco (..) )
-import FV.Matrix ( toList, fromList, fromList2 )
+import Data.SimpleMatrix ( toList, fromList, fromList2 )
 
 import Prelude
 import Data.Fixed ( mod' )

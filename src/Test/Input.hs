@@ -1,9 +1,9 @@
 -- file: test/Input.hs
-module FVT.Input ( hSlurp, hSlurpAll, dataFiles ) where
+module Test.Input ( hSlurp, hSlurpAll, dataFiles ) where
 
 import Prelude
 import FV.Types ( HMeas (..), XMeas (..), VHMeas (..), MCtruth (..) )
-import FV.Matrix ( fromList, fromList2, sw )
+import Data.SimpleMatrix ( fromList, fromList2, sw )
 import System.Directory
 import qualified Data.List.Split ( chunksOf )
 import Data.Monoid

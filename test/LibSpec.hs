@@ -5,9 +5,9 @@ import Test.QuickCheck ( property )
 --import Control.Exception (evaluate)
 import Control.Monad ( (<=<) )
 
-import FVT.Input ( hSlurp )
-import FVT.Cluster ( doCluster, fsmw )
-import FVT.Test ( test )
+import Test.Input ( hSlurp )
+import Test.Cluster ( doCluster, fsmw )
+import Test.Test ( test )
 import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..) )
 
 import Data.List ( sort )
@@ -52,7 +52,7 @@ spec =
             n = length xs
         fsmw n xs `shouldBe` 26.16
 
-    describe "FVT.Test" $ do
+    describe "FV Test" $ do
       -- it "doCluster works" $ do
       --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
       --   (1 :: Int) `shouldBe` 1

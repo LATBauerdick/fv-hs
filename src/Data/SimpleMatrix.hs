@@ -1,6 +1,6 @@
 {-# LANGUAGE PostfixOperators #-}
 
-module FV.Matrix ( inv, invMaybe, det, tr, sw, chol
+module Data.SimpleMatrix ( inv, invMaybe, det, tr, sw, chol
               , sub, sub2, scalar, scaleDiag, diagonal, scale
               , toList, fromList, fromList2, zero ) where
 

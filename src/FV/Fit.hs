@@ -8,7 +8,7 @@ import FV.Types (  XMeas (..), HMeas (..), QMeas (..), VHMeas (..), XFit (..)
              )
 
 import qualified FV.Coeff as Coeff ( expand, hv2q )
-import FV.Matrix ( inv, invMaybe, det, tr, sw, scalar, scale)
+import Data.SimpleMatrix ( inv, invMaybe, det, tr, sw, scalar, scale)
 
 import Prelude
 import Data.Maybe ( mapMaybe )

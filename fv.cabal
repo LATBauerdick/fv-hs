@@ -25,12 +25,12 @@ library
   exposed-modules:    FV.Fit
                     , FV.Types
                     , FV.Coeff
-                    , FV.Matrix
-                    , FVT.Input
-                    , FVT.Random
-                    , FVT.Probability
-                    , FVT.Cluster
-                    , FVT.Test
+                    , Data.SimpleMatrix
+                    , Test.Input
+                    , Test.Random
+                    , Test.Probability
+                    , Test.Cluster
+                    , Test.Test
   build-depends:      base >= 4.7 && < 5
                     , text
                     , matrix

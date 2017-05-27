@@ -1,5 +1,5 @@
 
-module FVT.Probability ( doProbability ) where
+module Test.Probability ( doProbability ) where
 
 import Prelude
 import Control.Parallel.Strategies
@@ -21,7 +21,7 @@ import Numeric.Probability.Percentage
 
 import FV.Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
              , invMass, q2p, v3,l3,v5,l5 )
-import FV.Matrix ( toList, fromList, chol, scalar )
+import Data.SimpleMatrix ( toList, fromList, chol, scalar )
 import FV.Fit ( fit, fitw )
 
 import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
