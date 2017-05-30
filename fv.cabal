@@ -26,6 +26,7 @@ library
                     , FV.Types
                     , FV.Coeff
                     , Data.SimpleMatrix
+                    , Data.Cov
                     , Test.Input
                     , Test.Random
                     , Test.Probability

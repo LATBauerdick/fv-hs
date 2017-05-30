@@ -167,4 +167,3 @@ inv''' m = f e where
       | otherwise = let
                         sx :: String; sx = printf "%8.3f" (mx :: Double)
                     in m' `debug` ("^" ++ "inv: max " ++ sx ++ " permille" )
-
