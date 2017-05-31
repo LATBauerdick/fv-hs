@@ -1,38 +1,45 @@
-{-# EmptyDataDecls #-}
-{-# ExplicitForAll #-}
-{-# FlexibleContexts #-}
-{-# FlexibleInstances #-}
-{-# FunctionalDependencies #-}
-{-# MultiParamTypeClasses #-}
-{-# PartialTypeSignatures #-}
-{-# RankNTypes #-}
-{-# RebindableSyntax #-}
-{-# ScopedTypeVariables #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Data.Cov
     where
 
 import Prelude
-import Data.Array as A
-  ( replicate, unsafeIndex, zipWith, length, foldl, range, take
-  )
-import Control.Monad.Eff ( forE )
-import Control.Monad.ST ( pureST )
-import Data.Array.ST (emptySTArray, peekSTArray, pokeSTArray
-                     , pushAllSTArray, unsafeFreeze)
+import qualified Data.Vector.Unboxed as A
+-- import Data.Array as A
+--   ( replicate, unsafeIndex, zipWith, length, foldl, range, take
+--   )
+-- import Control.Monad.Eff ( forE )
+--                      , pushAllSTArray, unsafeFreeze)
 import Data.Foldable ( sum )
 import Partial.Unsafe ( unsafePartial )
 import Data.Maybe ( Maybe (..) )
-import Control.MonadZero (guard)
-import Data.Int ( toNumber, ceil )
-import Math ( abs, sqrt )
-import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
+-- import Control.MonadZero (guard)
+-- import Data.Int ( toNumber, ceil )
+-- import Math ( abs, sqrt )
+-- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
 
 import Data.SimpleMatrix as M
   ( Matrix
   , transpose
   , fromArray, fromArray2, toArray
   )
+
+--------------------------------------------------------------
+-- adapting for PureScript
+
+type Number = Double
+type Array a = A.Vector a
+
+--------------------------------------------------------------
 
 newtype Dim3 = DDim3 Int
 newtype Dim4 = DDim4 Int
@@ -302,11 +309,11 @@ instance MulMat (Jac a b) (Cov b) (Jac a b) where
     v' = do
       i0 <- A.range 0 (na-1)
       j0 <- A.range 0 (nb-1)
-      pure $ sum do
+      pure $ sum $ do
         k0 <- A.range 0 (nb-1)
         pure $ (uidx va (i0*nb+k0)) * (uidx vb (idx k0 j0))
 instance MulMat (Cov a) (Jac a b) (Jac a b) where
-  mulm c@(Cov {v: va}) j@(Jac {v: vb}) = Jac {v= v'} where
+  mulm c@(Cov {v= va}) j@(Jac {v= vb}) = Jac {v= v'} where
     na = case A.length va of
               6  -> 3
               10 -> 4
@@ -320,17 +327,17 @@ instance MulMat (Cov a) (Jac a b) (Jac a b) where
     v' = do
       i0 <- A.range 0 (na-1)
       j0 <- A.range 0 (nb-1)
-      pure $ sum do
+      pure $ sum $ do
         k0 <- A.range 0 (na-1)
         pure $ (uidx va (idx i0 k0)) * (uidx vb (k0*nb+j0))
 instance MulMat (Jac a b) (Vec b) (Vec a) where
-  mulm j@(Jac {v: va}) v@(Vec {v: vb}) = Vec {v= v'} where
+  mulm j@(Jac {v= va}) v@(Vec {v= vb}) = Vec {v= v'} where
     nb = A.length vb
     na = (A.length va)/nb
     v' = do
       i0 <- A.range 0 (na-1)
       let j0 = 0
-      pure $ sum do
+      pure $ sum $ do
         k0 <- A.range 0 (nb-1)
         pure $ (uidx va (i0*nb+k0)) * (uidx vb (k0))
 -- ???????????this needs to be generalized to (Jac a b)
@@ -347,13 +354,13 @@ instance MulMat (Cov a) (Vec a) (Vec a) where
     mv' = mc * mv
     v' = fromArray $ M.toArray mv'
 instance MulMat (Vec a) (Vec a) Number where
-  mulm (Vec {v:v1}) (Vec {v:v2}) = A.foldl (+) zero $ A.zipWith (*) v1 v2
+  mulm (Vec {v=v1}) (Vec {v=v2}) = A.foldl (+) zero $ A.zipWith (*) v1 v2
 class TrMat a b | a -> b where
   tr :: a -> b
 instance TrMat (Cov a) (Cov a) where
   tr c = c
 instance TrMat (Jac a b) (Jac b a) where
-  tr j@(Jac {v}) = Jac {v:v'} where
+  tr j@(Jac {v}) = Jac {v=v'} where
     l = A.length v
     na = case l of
               9 -> 3
@@ -369,7 +376,8 @@ instance TrMat (Jac a b) (Jac b a) where
       pure $ (uidx v (j0*nb+i0))
 class SW a b c | a b -> c where
   sw :: a -> b -> c
-infixl 7 sw as .*.
+  (.*.) = sw
+  infixl 7 .*.
 instance SW (Vec a) (Cov a) Number where
   sw v c = n where
     mv = toMatrix v
@@ -381,7 +389,7 @@ instance SW (Cov a) (Cov a) (Cov a) where
     j' = c1 *. c2 *. c1
     c' = fromArray $ toArray j'
 instance SW (Jac a b) (Cov a) (Cov b) where
-  sw j@(Jac {v: va}) c@(Cov {v: vb}) = Cov {v= v'} where
+  sw j@(Jac {v= va}) c@(Cov {v= vb}) = Cov {v= v'} where
     {-- mj = toMatrix j --}
     {-- mc = toMatrix c --}
     {-- mc' = M.transpose mj * mc * mj --}
@@ -419,13 +427,13 @@ instance SW (Jac a b) (Cov a) (Cov b) where
     vint = do
       i0 <- A.range 0 (n-1)
       j0 <- A.range 0 (m-1)
-      pure $ sum do
+      pure $ sum $ do
         k0 <- A.range 0 (n-1)
         pure $ (uidx vb (idx i0 k0)) * (uidx va (k0*m+j0))
     vf = do
       i0 <- A.range 0 (m-1)
       j0 <- A.range i0 (m-1)
-      pure $ sum do
+      pure $ sum $ do
         k0 <- A.range 0 (n-1)
         pure $ (uidx va (k0*m+i0) ) * (uidx vint (k0*m+j0))
 
@@ -454,92 +462,92 @@ testCov2 = s where
   v5 = fromArray [1.0,1.0,1.0,1.0,1.0] :: Vec5
 
 instance Semiring (Cov Dim3) where
-  add (Cov {v: v1}) (Cov {v: v2}) = Cov {v= A.zipWith (+) v1 v2}
-  zero = Cov {v: A.replicate 6 0.0 }
-  mul (Cov {v: a}) (Cov {v: b}) = error "------------> mul cov3 * cov3 not allowed"
-  one = Cov { v: [1.0, 0.0, 0.0, 1.0, 0.0, 1.0] }
+  add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
+  zero = Cov {v= A.replicate 6 0.0 }
+  mul (Cov {v= a}) (Cov {v= b}) = error "------------> mul cov3 * cov3 not allowed"
+  one = Cov { v= [1.0, 0.0, 0.0, 1.0, 0.0, 1.0] }
 instance Ring (Cov Dim3) where
-  sub (Cov {v: v1}) (Cov {v: v2}) = Cov {v= A.zipWith (-) v1 v2}
+  sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
 instance Show (Cov Dim3) where
   show c = "Show (Cov Dim3) \n" <> (show $ toMatrix c)
 
 instance Semiring (Cov Dim4) where
-  add (Cov {v: v1}) (Cov {v: v2}) = Cov {v= A.zipWith (+) v1 v2}
-  zero = Cov {v: A.replicate 10 0.0 }
-  mul (Cov {v: a}) (Cov {v: b}) = error "------------> mul cov4 * cov4 not allowed"
-  one = Cov { v: [1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
+  add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
+  zero = Cov {v= A.replicate 10 0.0 }
+  mul (Cov {v= a}) (Cov {v= b}) = error "------------> mul cov4 * cov4 not allowed"
+  one = Cov { v= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
 instance Ring (Cov Dim4) where
-  sub (Cov {v: v1}) (Cov {v: v2}) = Cov {v= A.zipWith (-) v1 v2}
+  sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
 instance Show (Cov Dim4) where
   show c = "Show (Cov Dim4)\n" <> (show $ toMatrix c)
 
 instance Semiring (Cov Dim5) where
-  add (Cov {v: v1}) (Cov {v: v2}) = Cov {v= A.zipWith (+) v1 v2}
-  zero = Cov {v: A.replicate 15 0.0 }
+  add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
+  zero = Cov {v= A.replicate 15 0.0 }
   mul a b = error "------------> mul cov5 * cov5 not allowed"
-  one = Cov { v: [1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
+  one = Cov { v= [1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
 instance Ring (Cov Dim5) where
-  sub (Cov {v: v1}) (Cov {v: v2}) = Cov {v= A.zipWith (-) v1 v2}
+  sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
 instance Show (Cov Dim5) where
   show c = "Show (Cov Dim5)\n" <> (show $ toMatrix c)
 
 instance Semiring (Jac a b) where
-  add (Jac {v: v1}) (Jac {v: v2}) = Jac {v= A.zipWith (+) v1 v2}
+  add (Jac {v= v1}) (Jac {v= v2}) = Jac {v= A.zipWith (+) v1 v2}
   zero = undefined
-  mul (Jac {v: v1}) (Jac {v: v2}) = undefined -- Cov {v: cov5StdMult v1 v2}
+  mul (Jac {v= v1}) (Jac {v= v2}) = undefined -- Cov {v= cov5StdMult v1 v2}
   one = undefined
 instance Ring (Jac a b) where
-  sub (Jac {v: v1}) (Jac {v: v2}) = Jac {v= A.zipWith (-) v1 v2}
+  sub (Jac {v= v1}) (Jac {v= v2}) = Jac {v= A.zipWith (-) v1 v2}
 instance Show (Jac a b) where
   show a = "Show Jac\n" <> show (toMatrix a)
 
 -- Instances for Vec -- these are always column vectors
 instance Semiring (Vec Dim3) where
-  add (Vec {v: v1}) (Vec {v: v2}) = Vec {v= A.zipWith (+) v1 v2}
-  zero = Vec {v: A.replicate 3 0.0 }
-  mul (Vec {v: v1}) (Vec {v: v2}) = undefined
-  one = Vec { v: A.replicate 3 1.0 }
+  add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
+  zero = Vec {v= A.replicate 3 0.0 }
+  mul (Vec {v= v1}) (Vec {v= v2}) = undefined
+  one = Vec { v= A.replicate 3 1.0 }
 
 instance Semiring (Vec Dim4) where
-  add (Vec {v: v1}) (Vec {v: v2}) = Vec {v= A.zipWith (+) v1 v2}
-  zero = Vec {v: A.replicate 4 0.0 }
-  mul (Vec {v: v1}) (Vec {v: v2}) = undefined
-  one = Vec { v: A.replicate 4 1.0 }
+  add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
+  zero = Vec {v= A.replicate 4 0.0 }
+  mul (Vec {v= v1}) (Vec {v= v2}) = undefined
+  one = Vec { v= A.replicate 4 1.0 }
 
 instance Semiring (Vec Dim5) where
-  add (Vec {v: v1}) (Vec {v: v2}) = Vec {v= A.zipWith (+) v1 v2}
-  zero = Vec {v: A.replicate 5 0.0 }
-  mul (Vec {v: v1}) (Vec {v: v2}) = undefined
-  one = Vec { v: A.replicate 5 1.0 }
+  add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
+  zero = Vec {v= A.replicate 5 0.0 }
+  mul (Vec {v= v1}) (Vec {v= v2}) = undefined
+  one = Vec { v= A.replicate 5 1.0 }
 
 instance Semiring (Vec a) where
-  add (Vec {v: v1}) (Vec {v: v2}) = Vec {v= A.zipWith (+) v1 v2}
-  {-- zero = error "error calling zero for Vec a" -- Vec {v: A.replicate 5 0.0 } --}
-  zero = Vec {v: A.replicate 5 0.0 } `debug` "xxxxxxxxxxx>>> called Vec zero"
-  mul (Vec {v: v1}) (Vec {v: v2}) = undefined
-  {-- one = error "error calling one for Vec a" -- Vec { v: A.replicate 5 1.0 } --}
-  one = Vec { v: A.replicate 5 1.0 } `debug` "xxxxxxxxxxx>>> called Vec one"
+  add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
+  {-- zero = error "error calling zero for Vec a" -- Vec {v= A.replicate 5 0.0 } --}
+  zero = Vec {v= A.replicate 5 0.0 } `debug` "xxxxxxxxxxx>>> called Vec zero"
+  mul (Vec {v= v1}) (Vec {v= v2}) = undefined
+  {-- one = error "error calling one for Vec a" -- Vec { v= A.replicate 5 1.0 } --}
+  one = Vec { v= A.replicate 5 1.0 } `debug` "xxxxxxxxxxx>>> called Vec one"
 instance Ring (Vec a) where
-  sub (Vec {v: v1}) (Vec {v: v2}) = Vec {v= A.zipWith (-) v1 v2}
+  sub (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (-) v1 v2}
 instance Show (Vec a) where
   show v = "Show Vec\n" <> show (toMatrix v)
 
 scaleDiag :: Number -> Cov3 -> Cov3
-scaleDiag s (Cov {v}) = (Cov {v: v'}) where
+scaleDiag s (Cov {v}) = (Cov {v= v'}) where
   a11 = s * (uidx v 0)
   a22 = s * (uidx v 3)
   a33 = s * (uidx v 5)
   v' = [a11, 0.0, 0.0, a22,0.0, a33]
 
 subm :: Int -> Vec5 -> Vec3
-subm n (Vec {v:v5}) = Vec {v: v'} where
+subm n (Vec {v=v5}) = Vec {v= v'} where
   a1 = unsafePartial $ A.unsafeIndex v5 0
   a2 = unsafePartial $ A.unsafeIndex v5 1
   a3 = unsafePartial $ A.unsafeIndex v5 2
   v' = [a1,a2,a3]
 
 subm2 :: Int -> Cov5 -> Cov3
-subm2 n (Cov {v:v}) = Cov {v: v'} where
+subm2 n (Cov {v=v}) = Cov {v= v'} where
   a11 = unsafePartial $ A.unsafeIndex v 0
   a12 = unsafePartial $ A.unsafeIndex v 1
   a13 = unsafePartial $ A.unsafeIndex v 2
@@ -570,124 +578,125 @@ subm2 n (Cov {v:v}) = Cov {v: v'} where
 
 
 choldc :: forall a. Cov a -> Int -> Jac a a
-choldc (Cov {v: a}) n = Jac {v= a'} where
-  w = n
-  ll = n*n --n*(n+1)/2
-  idx :: Int -> Int -> Int
-  idx i j | i <= j    = ((i-1)*w - (i-1)*(i-2)/2 + j-i)
-          --| otherwise = ((j-1)*w - (j-1)*(j-2)/2 + i-j)
-          | otherwise = error "idx: i < j"
-  idx' :: Int -> Int -> Int
-  idx' j i | i >= j   = (i-1)*w + j-1
-           | otherwise = error "idx': i < j"
-  {-- run :: forall a. (forall h. Eff (st :: ST h) (STArray h a)) -> Array a --}
-  {-- run act = pureST (act >>= unsafeFreeze) --}
-  {-- a' = run (do --}
-  a' = A.take (n*n) $ pureST ((do
-    -- make a STArray of n x n + space for diagonal
-    arr <- emptySTArray
-    _ <- pushAllSTArray arr (A.replicate (ll+n) 0.0)
+choldc (Cov {v= a}) n = Jac {v= a'} where
+  a' = undefined
+  -- w = n
+  -- ll = n*n --n*(n+1)/2
+  -- idx :: Int -> Int -> Int
+  -- idx i j | i <= j    = ((i-1)*w - (i-1)*(i-2)/2 + j-i)
+  --         -- | otherwise = ((j-1)*w - (j-1)*(j-2)/2 + i-j)
+  --         | otherwise = error "idx: i < j"
+  -- idx' :: Int -> Int -> Int
+  -- idx' j i | i >= j   = (i-1)*w + j-1
+  --          | otherwise = error "idx': i < j"
+  -- {-- run :: forall a. (forall h. Eff (st :: ST h) (STArray h a)) -> Array a --}
+  -- {-- run act = pureST (act >>= unsafeFreeze) --}
+  -- {-- a' = run (do --}
+  -- a' = A.take (n*n) $ pureST ((do
+  --   -- make a STArray of n x n + space for diagonal
+  --   arr <- emptySTArray
+  --   _ <- pushAllSTArray arr (A.replicate (ll+n) 0.0)
 
-    -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
-    forE 1 (w+1) \i -> do
-      forE i (w+1) \j -> do
-          _ <- pokeSTArray arr (idx' i j) (uidx a (idx i j))
-          let kmin = 1
-              kmax = (i-1) + 1
-          forE kmin kmax \k -> do
-              aik <- peekSTArray arr (idx' k i)
-              ajk <- peekSTArray arr (idx' k j)
-              sum <- peekSTArray arr (idx' i j)
-              void $ pokeSTArray arr (idx' i j) ((uJust sum)
-                                               - (uJust aik) * (uJust ajk))
+  --   -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
+  --   forE 1 (w+1) \i -> do
+  --     forE i (w+1) \j -> do
+  --         _ <- pokeSTArray arr (idx' i j) (uidx a (idx i j))
+  --         let kmin = 1
+  --             kmax = (i-1) + 1
+  --         forE kmin kmax \k -> do
+  --             aik <- peekSTArray arr (idx' k i)
+  --             ajk <- peekSTArray arr (idx' k j)
+  --             sum <- peekSTArray arr (idx' i j)
+  --             void $ pokeSTArray arr (idx' i j) ((uJust sum)
+  --                                              - (uJust aik) * (uJust ajk))
 
-          msum <- peekSTArray arr (idx' i j)
-          let sum' = uJust msum
-              sum = if (i==j) && sum' < 0.0
-                       then error ("choldc: not a positive definite matrix " <> show a)
-                       else sum'
-          mp_i' <- peekSTArray arr (ll+i-1)
-          let p_i' = uJust mp_i'
-              p_i = if i == j then sqrt sum else p_i'
-          void $ if i==j
-                         then pokeSTArray arr (ll+i-1) p_i -- store diag terms outside main array
-                         else pokeSTArray arr (idx' i j) (sum/p_i)
-          pure $ unit
+  --         msum <- peekSTArray arr (idx' i j)
+  --         let sum' = uJust msum
+  --             sum = if (i==j) && sum' < 0.0
+  --                      then error ("choldc: not a positive definite matrix " <> show a)
+  --                      else sum'
+  --         mp_i' <- peekSTArray arr (ll+i-1)
+  --         let p_i' = uJust mp_i'
+  --             p_i = if i == j then sqrt sum else p_i'
+  --         void $ if i==j
+  --                        then pokeSTArray arr (ll+i-1) p_i -- store diag terms outside main array
+  --                        else pokeSTArray arr (idx' i j) (sum/p_i)
+  --         pure $ unit
 
-    -- copy diagonal back into array
-    forE 1 (w+1) \i -> do
-          maii <- peekSTArray arr (ll+i-1)
-          let aii = uJust maii
-          void $ pokeSTArray arr (idx' i i) aii
-    pure arr) >>= unsafeFreeze)
+  --   -- copy diagonal back into array
+  --   forE 1 (w+1) \i -> do
+  --         maii <- peekSTArray arr (ll+i-1)
+  --         let aii = uJust maii
+  --         void $ pokeSTArray arr (idx' i i) aii
+  --   pure arr) >>= unsafeFreeze)
 
--- | Matrix inversion using Cholesky decomposition
--- | based on Numerical Recipies formula in 2.9
---
-cholInv :: forall a. Cov a -> Int -> Cov a
-cholInv (Cov {v: a}) n = Cov {v: a'} where
-  ll = n*n --n*(n+1)/2
-  idx :: Int -> Int -> Int -- index into values array of symmetric matrices
-  idx i j | i <= j    = ((i-1)*n - (i-1)*(i-2)/2 + j-i)
-          | otherwise = ((j-1)*n - (j-1)*(j-2)/2 + i-j)
-  idx' :: Int -> Int -> Int -- index into values array for full matrix
-  idx' i j = (i-1)*n + j-1
-  l = pureST ((do
-    -- make a STArray of n x n + space for diagonal +1 for summing
-    arr <- emptySTArray
-    void $ pushAllSTArray arr (A.replicate (ll+n+1) 0.0)
+-- -- | Matrix inversion using Cholesky decomposition
+-- -- | based on Numerical Recipies formula in 2.9
+-- --
+-- cholInv :: forall a. Cov a -> Int -> Cov a
+-- cholInv (Cov {v= a}) n = Cov {v= a'} where
+  -- ll = n*n --n*(n+1)/2
+  -- idx :: Int -> Int -> Int -- index into values array of symmetric matrices
+  -- idx i j | i <= j    = ((i-1)*n - (i-1)*(i-2)/2 + j-i)
+  --         | otherwise = ((j-1)*n - (j-1)*(j-2)/2 + i-j)
+  -- idx' :: Int -> Int -> Int -- index into values array for full matrix
+  -- idx' i j = (i-1)*n + j-1
+  -- l = pureST ((do
+  --   -- make a STArray of n x n + space for diagonal +1 for summing
+  --   arr <- emptySTArray
+  --   void $ pushAllSTArray arr (A.replicate (ll+n+1) 0.0)
 
-    -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
-    forE 1 (n+1) \i -> do
-      forE i (n+1) \j -> do
-          let aij = uidx a (idx i j)
-          void $ if i==j then pokeSTArray arr (ll+i-1) aij
-                         else pokeSTArray arr (idx' j i) aij
-          forE 1 i \k -> do
-              maik <- peekSTArray arr (idx' i k)
-              majk <- peekSTArray arr (idx' j k)
-              maij <- if i==j then peekSTArray arr (ll+i-1)
-                              else peekSTArray arr (idx' j i)
-              let sum = (uJust maij) - (uJust maik) * (uJust majk)
-              void $ if i==j then pokeSTArray arr (ll+i-1) sum
-                             else pokeSTArray arr (idx' j i) sum
-          msum <- if i==j then peekSTArray arr (ll+i-1)
-                          else peekSTArray arr (idx' j i)
-          let sum' = uJust msum
-              sum = if i==j && sum' < 0.0
-                       then error ("choldInv: not a positive definite matrix "
-                                    <> show a)
-                       else sum'
-          mp_i' <- peekSTArray arr (ll+i-1)
-          let p_i' = uJust mp_i'
-              p_i = if i == j then sqrt sum else p_i'
-          void $ if i==j then pokeSTArray arr (ll+i-1) p_i
-                         else pokeSTArray arr (idx' j i) (sum/p_i)
-          pure $ unit
+  --   -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
+  --   forE 1 (n+1) \i -> do
+  --     forE i (n+1) \j -> do
+  --         let aij = uidx a (idx i j)
+  --         void $ if i==j then pokeSTArray arr (ll+i-1) aij
+  --                        else pokeSTArray arr (idx' j i) aij
+  --         forE 1 i \k -> do
+  --             maik <- peekSTArray arr (idx' i k)
+  --             majk <- peekSTArray arr (idx' j k)
+  --             maij <- if i==j then peekSTArray arr (ll+i-1)
+  --                             else peekSTArray arr (idx' j i)
+  --             let sum = (uJust maij) - (uJust maik) * (uJust majk)
+  --             void $ if i==j then pokeSTArray arr (ll+i-1) sum
+  --                            else pokeSTArray arr (idx' j i) sum
+  --         msum <- if i==j then peekSTArray arr (ll+i-1)
+  --                         else peekSTArray arr (idx' j i)
+  --         let sum' = uJust msum
+  --             sum = if i==j && sum' < 0.0
+  --                      then error ("choldInv: not a positive definite matrix "
+  --                                   <> show a)
+  --                      else sum'
+  --         mp_i' <- peekSTArray arr (ll+i-1)
+  --         let p_i' = uJust mp_i'
+  --             p_i = if i == j then sqrt sum else p_i'
+  --         void $ if i==j then pokeSTArray arr (ll+i-1) p_i
+  --                        else pokeSTArray arr (idx' j i) (sum/p_i)
+  --         pure $ unit
 
-    -- invert L -> L^(-1)
-    forE 1 (n+1) \i -> do
-      mp_i <- peekSTArray arr (ll+i-1)
-      void $ pokeSTArray arr (idx' i i) (1.0/(uJust mp_i))
-      forE (i+1) (n+1) \j -> do
-        void $ pokeSTArray arr (ll+n) 0.0
-        forE i j \k -> do
-          majk <- peekSTArray arr (idx' j k)
-          maki <- peekSTArray arr (idx' k i)
-          sum <- peekSTArray arr (ll+n)
-          void $ pokeSTArray arr (ll+n)
-                    ((uJust sum) - (uJust majk) * (uJust maki))
-        msum <- peekSTArray arr (ll+n)
-        mp_j <- peekSTArray arr (ll+j-1)
-        void $ pokeSTArray arr (idx' j i) ((uJust msum)/(uJust mp_j))
-    pure arr) >>= unsafeFreeze)
-  a' = do
-    i <- A.range 1 n
-    j <- A.range i n
-    let aij = sum do
-                  k <- A.range 1 n
-                  pure $ (uidx l (idx' k i)) * (uidx l (idx' k j))
-    pure $ aij
+  --   -- invert L -> L^(-1)
+  --   forE 1 (n+1) \i -> do
+  --     mp_i <- peekSTArray arr (ll+i-1)
+  --     void $ pokeSTArray arr (idx' i i) (1.0/(uJust mp_i))
+  --     forE (i+1) (n+1) \j -> do
+  --       void $ pokeSTArray arr (ll+n) 0.0
+  --       forE i j \k -> do
+  --         majk <- peekSTArray arr (idx' j k)
+  --         maki <- peekSTArray arr (idx' k i)
+  --         sum <- peekSTArray arr (ll+n)
+  --         void $ pokeSTArray arr (ll+n)
+  --                   ((uJust sum) - (uJust majk) * (uJust maki))
+  --       msum <- peekSTArray arr (ll+n)
+  --       mp_j <- peekSTArray arr (ll+j-1)
+  --       void $ pokeSTArray arr (idx' j i) ((uJust msum)/(uJust mp_j))
+  --   pure arr) >>= unsafeFreeze)
+  -- a' = do
+  --   i <- A.range 1 n
+  --   j <- A.range i n
+  --   let aij = sum do
+  --                 k <- A.range 1 n
+  --                 pure $ (uidx l (idx' k i)) * (uidx l (idx' k j))
+  --   pure $ aij
 
 --C version Numerical Recipies 2.9
 --for (i=1;i<=n;i++) {
