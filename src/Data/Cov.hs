@@ -15,6 +15,10 @@ module Data.Cov
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
+  ( Vector, length, fromList, unsafeIndex, create )
+import qualified Data.Vector.Unboxed.Mutable as MA
+  ( new, unsafeWrite )
+import Control.Loop ( numLoop )
 -- import Data.Array as A
 --   ( replicate, unsafeIndex, zipWith, length, foldl, range, take
 --   )
@@ -39,6 +43,7 @@ import qualified Data.SimpleMatrix as M
 
 type Number = Double
 type Array a = A.Vector a
+uidx = A.unsafeIndex
 
 --------------------------------------------------------------
 
@@ -93,6 +98,12 @@ uGet a w i j | i <= j = unsafePartial $ A.unsafeIndex a
                                         ((i-1)*w - (i-1)*(i-2)/2 + j-i)
              | otherwise = unsafePartial $ A.unsafeIndex a
                                         ((j-1)*w - (j-1)*(j-2)/2 + i-j)
+indV :: Int -> Int -> Int -> Int
+indV w i0 j0 = (i0*w+j0)
+indVs :: Int -> Int -> Int -> Int
+indVs w i0 j0 | i0 <= j0  = (i0*w - i0*(i0-1) `div` 2 + j0-i0)
+              | otherwise = (j0*w - j0*(j0-1) `div` 2 + i0-j0)
+
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
@@ -112,24 +123,28 @@ instance Mat (Cov a) where
   fromArray a = c' where
     l = A.length a
     c' = case l of
-              6   -> Cov {vc= a}
-              10  -> Cov {vc= a}
-              15  -> Cov {vc= a}
-              _   -> Cov {vc= do -- only upper triangle
-                            let n =ceil (sqrt (toNumber l))
-                            i0 <- [0 .. (n-1)]
-                            j0 <- [i0 .. (n-1)]
-                            pure $ uidx a (i0*n+j0) }
-  toArray c@(Cov {vc}) = v' where
-          l = A.length v
-          n = ceil ((sqrt(8.0 * (toNumber l) + 1.0) - 1.0)/2.0)
-          idx :: Int -> Int -> Int -- index into values array of symmetric matrices
-          idx i0 j0 | i0 <= j0    = (i0*n - i0*(i0-1)/2 + j0-i0)
-                    | otherwise = (j0*n - j0*(j0-1)/2 + i0-j0)
-          v' = do
-                  i0 <- A.range 0 (n-1)
-                  j0 <- A.range 0 (n-1)
-                  pure $ uidx v (idx i0 j0)
+      6   -> Cov {vc= a}
+      10  -> Cov {vc= a}
+      15  -> Cov {vc= a}
+      _   -> Cov {vc= let
+          n = floor . sqrt . fromIntegral $ l
+          iv = indV n
+        in A.fromList $ do -- only upper triangle
+          i0 <- [0 .. (n-1)]
+          j0 <- [i0 .. (n-1)]
+          pure $ uidx a (iv i0 j0) }
+
+  toArray c@(Cov {vc=v}) = v' where
+    l = A.length v
+    n = case l of
+      6  -> 3
+      10 -> 4
+      15 -> 5
+    iv = indVs n
+    v' = A.fromList $ do
+      i0 <- [0..(n-1)]
+      j0 <- [0..(n-1)]
+      pure $ uidx v (iv i0 j0)
 instance Mat (Vec a) where
   val (Vec {vv}) = v
   fromArray a = Vec {vv= a}
