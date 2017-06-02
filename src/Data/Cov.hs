@@ -28,7 +28,8 @@ import Control.Loop ( numLoop )
 import Data.Foldable ( sum )
 -- import Partial.Unsafe ( unsafePartial )
 import Data.Maybe ( Maybe (..) )
-import Control.MonadZero (guard)
+import Control.Monad (guard)
+import Data.Maybe ( fromJust )
 -- import Data.Int ( toNumber, ceil )
 -- import Math ( abs, sqrt )
 -- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
@@ -42,10 +43,16 @@ import qualified Data.SimpleMatrix as M
 --------------------------------------------------------------
 -- adapting for PureScript
 
+import Debug.Trace ( trace )
+debug :: a -> String -> a
+debug = flip trace
+
 type Number = Double
 type Array a = A.Vector a
 uidx :: A.Vector a -> Int -> a
 uidx = A.unsafeIndex
+uJust :: forall a. Maybe a -> a
+uJust = fromJust
 
 --------------------------------------------------------------
 
@@ -204,21 +211,12 @@ instance SymMat Dim3 where
           b22 = (a13*a13 - a11*a33)/det
           b23 = (a11*a23 - a12*a13)/det
           b33 = (a12*a12 - a11*a22)/det
-      pure $ fromArray [b11,b12,b13,b22,b23,b33]
+      pure $ Cov {vc = fromArray [b11,b12,b13,b22,b23,b33]}
   chol a = choldc a 3
-  det (Cov {vc}) = dd where
-        a = unsafePartial $ A.unsafeIndex v 0
-        b = unsafePartial $ A.unsafeIndex v 1
-        c = unsafePartial $ A.unsafeIndex v 2
-        d = unsafePartial $ A.unsafeIndex v 3
-        e = unsafePartial $ A.unsafeIndex v 4
-        f = unsafePartial $ A.unsafeIndex v 5
-        dd = a*d*f - a*e*e - b*b*f + 2.0*b*c*e - c*c*d
-  diag (Cov {vc}) = a where
-    a11 = unsafePartial $ A.unsafeIndex v 0
-    a22 = unsafePartial $ A.unsafeIndex v 3
-    a33 = unsafePartial $ A.unsafeIndex v 5
-    a = [a11,a22,a33]
+  det (Cov {vc=v}) = _det $ A.toList v where
+    _det [a,b,c,d,e,f] = a*d*f - a*e*e - b*b*f + 2.0*b*c*e - c*c*d
+  diag (Cov {vc=v}) = _diag $ A.toList v where
+    _diag [a11,_,_,a22,_,a33] = [a11,a22,a33]
 instance SymMat Dim4 where
   inv m = uJust (invMaybe m)
   invMaybe (Cov {vc=v}) = _inv $ A.toList v where
