@@ -28,7 +28,7 @@ import Control.Loop ( numLoop )
 import Data.Foldable ( sum )
 -- import Partial.Unsafe ( unsafePartial )
 import Data.Maybe ( Maybe (..) )
--- import Control.MonadZero (guard)
+import Control.MonadZero (guard)
 -- import Data.Int ( toNumber, ceil )
 -- import Math ( abs, sqrt )
 -- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
@@ -96,10 +96,8 @@ data Jacs = Jacs {aa :: Jac53, bb :: Jac53, h0 :: Vec5}
 
 -- access to arrays of symmetrical matrices
 uGet :: Array Number -> Int -> Int -> Int -> Number
-uGet a w i j | i <= j = unsafePartial $ A.unsafeIndex a
-                                        ((i-1)*w - (i-1)*(i-2)/2 + j-i)
-             | otherwise = unsafePartial $ A.unsafeIndex a
-                                        ((j-1)*w - (j-1)*(j-2)/2 + i-j)
+uGet a w i j | i <= j     = uidx a ((i-1)*w - (i-1)*(i-2)/2 + j-i)
+             | otherwise = uidx a ((j-1)*w - (j-1)*(j-2)/2 + i-j)
 indV :: Int -> Int -> Int -> Int
 indV w i0 j0 = (i0*w+j0)
 indVs :: Int -> Int -> Int -> Int
@@ -159,16 +157,16 @@ instance Mat (Jac a b) where
 class Mat1 a where
   toMatrix :: a -> M.Matrix
 instance Mat1 (Cov a) where
-  toMatrix a@(Cov {vc}) = case A.length v of
+  toMatrix a@(Cov {vc=v}) = case A.length v of
                             6  -> M.fromArray2 3 3 v
                             10 -> M.fromArray2 4 4 v
                             15 -> M.fromArray2 5 5 v
                             _ -> error $ "mat1Cova toMatrix "
                                           ++ show (A.length v)
 instance Mat1 (Vec a) where
-  toMatrix (Vec {vv}) = M.fromArray (A.length v) v
+  toMatrix (Vec {vv=v}) = M.fromArray (A.length v) v
 instance Mat1 (Jac a b) where
-  toMatrix j@(Jac {vj}) = case A.length v of
+  toMatrix j@(Jac {vj=v}) = case A.length v of
                               9  -> M.fromArray2 3 3 v
                               16 -> M.fromArray2 4 4 v
                               25 -> M.fromArray2 5 5 v
@@ -178,9 +176,9 @@ instance Mat1 (Jac a b) where
                                           ++ show (A.length v)
 
 instance Mat1 (Jac Dim5 Dim3) where
-  toMatrix (Jac {vj}) = M.fromArray2 5 3 v -- `debug` "WTF??? 5 3"
+  toMatrix (Jac {vj=v}) = M.fromArray2 5 3 v -- `debug` "WTF??? 5 3"
 instance Mat1 (Jac Dim3 Dim5) where
-  toMatrix (Jac {vj}) = M.fromArray2 3 5 v -- `debug` "WTF??? 3 5"
+  toMatrix (Jac {vj=v}) = M.fromArray2 3 5 v -- `debug` "WTF??? 3 5"
 --{{{
 --}}}
 -----------------------------------------------------------------
@@ -194,26 +192,19 @@ class SymMat a where
   chol :: Cov a -> Jac a a             -- | Cholsky decomposition
 instance SymMat Dim3 where
   inv m = uJust (invMaybe m)
-  invMaybe (Cov {vc}) = do
-    let
-        a11 = unsafePartial $ A.unsafeIndex v 0
-        a12 = unsafePartial $ A.unsafeIndex v 1
-        a13 = unsafePartial $ A.unsafeIndex v 2
-        a22 = unsafePartial $ A.unsafeIndex v 3
-        a23 = unsafePartial $ A.unsafeIndex v 4
-        a33 = unsafePartial $ A.unsafeIndex v 5
-        det = (a33*a12*a12 - 2.0*a13*a23*a12 + a13*a13*a22
-            +a11*(a23*a23 - a22*a33))
-    guard $ (abs det) > 1.0e-50
-    let
-        b11 = (a23*a23 - a22*a33)/det
-        b12 = (a12*a33 - a13*a23)/det
-        b13 = (a13*a22 - a12*a23)/det
-        b22 = (a13*a13 - a11*a33)/det
-        b23 = (a11*a23 - a12*a13)/det
-        b33 = (a12*a12 - a11*a22)/det
-        v' = [b11,b12,b13,b22,b23,b33]
-    pure $ fromArray v'
+  invMaybe (Cov {vc=v}) = _inv $ A.toList v where
+    _inv [a11,a12,a13,a22,a23,a33] = do
+      let det = (a33*a12*a12 - 2.0*a13*a23*a12 + a13*a13*a22
+                +a11*(a23*a23 - a22*a33))
+      guard $ (abs det) > 1.0e-50
+      let
+          b11 = (a23*a23 - a22*a33)/det
+          b12 = (a12*a33 - a13*a23)/det
+          b13 = (a13*a22 - a12*a23)/det
+          b22 = (a13*a13 - a11*a33)/det
+          b23 = (a11*a23 - a12*a13)/det
+          b33 = (a12*a12 - a11*a22)/det
+      pure $ fromArray [b11,b12,b13,b22,b23,b33]
   chol a = choldc a 3
   det (Cov {vc}) = dd where
         a = unsafePartial $ A.unsafeIndex v 0
@@ -230,7 +221,7 @@ instance SymMat Dim3 where
     a = [a11,a22,a33]
 instance SymMat Dim4 where
   inv m = uJust (invMaybe m)
-  invMaybe (Cov {vc}) = _inv $ A.toList ivc where
+  invMaybe (Cov {vc=v}) = _inv $ A.toList v where
     _inv [a,b,c,d,e,f,g,h,i,j] = do
       let det = (a*e*h*j - a*e*i*i - a*f*f*j + 2.0*a*f*g*i - a*g*g*h
             - b*b*h*j + b*b*i*i - 2.0*d*(b*f*i - b*g*h - c*e*i + c*f*g)
@@ -253,12 +244,8 @@ instance SymMat Dim4 where
           - b*b*h*j + b*b*i*i - 2.0*d*(b*f*i - b*g*h - c*e*i + c*f*g)
           + b*c*(2.0*f*j - 2.0*g*i) + c*c*(g*g - e*j) + d*d*(f*f - e*h))
     _det _ = undefined
-  diag (Cov {vc}) = a where
-    a11 = unsafePartial $ A.unsafeIndex v 0
-    a22 = unsafePartial $ A.unsafeIndex v 4
-    a33 = unsafePartial $ A.unsafeIndex v 7
-    a44 = unsafePartial $ A.unsafeIndex v 9
-    a = [a11,a22,a33,a44]
+  diag (Cov {vc=v}) = _diag $ A.toList v where
+    _diag [a11,_,_,_,a22,_,_,a33,_,a44] = [a11,a22,a33,a44]
   chol a = choldc a 4
 instance SymMat Dim5 where
   inv m = cholInv m 5
