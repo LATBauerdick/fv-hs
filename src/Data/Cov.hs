@@ -1,15 +1,15 @@
 {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE ExplicitForAll #-}
-{-# LANGUAGE FlexibleContexts #-}
+--{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PartialTypeSignatures #-}
+--{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 --{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+--{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE NamedFieldPuns #-}
+--{-# LANGUAGE NamedFieldPuns #-}
 
 module Data.Cov
     where
@@ -21,15 +21,10 @@ import qualified Data.Vector.Unboxed as A
 import qualified Data.Vector.Unboxed.Mutable as MA
   ( new, unsafeWrite, unsafeRead, unsafeTake )
 import Control.Loop ( numLoop )
--- import Data.Array as A
---   ( replicate, unsafeIndex, zipWith, length, foldl, range, take
---   )
--- import Control.Monad.Eff ( forE )
---                      , pushAllSTArray, unsafeFreeze)
 import Data.Foldable ( sum )
--- import Partial.Unsafe ( unsafePartial )
 import Data.Maybe ( Maybe (..), fromJust )
 import Control.Monad (guard)
+
 -- import Data.Int ( toNumber, ceil )
 -- import Math ( abs, sqrt )
 -- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
@@ -80,18 +75,19 @@ instance DDim Dim5 where
 instance DDim a where
   ddim _ = undefined
 
-class Dim a where
-  dim :: a -> Int
-instance Dim (Cov a) where
-  dim ccc = n where
-    xx = undefined::a
-    n = ddim xx
-instance Dim (Cov Dim3) where
-  dim ccc = 3
-instance Dim (Cov Dim4) where
-  dim ccc = 4
-instance Dim (Cov Dim5) where
-  dim ccc = 5
+-- this requires OverlappingTypeVariables
+-- class Dim a where
+--   dim :: a -> Int
+-- instance Dim (Cov a) where
+--   dim ccc = n where
+--     xx = undefined::a
+--     n = ddim xx
+-- instance Dim (Cov Dim3) where
+--   dim ccc = 3
+-- instance Dim (Cov Dim4) where
+--   dim ccc = 4
+-- instance Dim (Cov Dim5) where
+--   dim ccc = 5
 
 newtype Cov a   = Cov { vc :: Array Number }
 newtype Jac a b = Jac { vj :: Array Number }
@@ -138,7 +134,7 @@ class Mat a where
   elementwise :: (Number -> Number -> Number) -> a -> a -> a
 
 instance Mat (Cov a) where
-  val (Cov {vc}) = vc
+  val (Cov {vc=v}) = v
   fromArray a = c' where
     l = A.length a
     c' = case l of
@@ -167,15 +163,15 @@ instance Mat (Cov a) where
   elementwise f (Cov {vc=va}) (Cov {vc=vb}) = (Cov {vc=vc}) where
     vc = A.zipWith f va vb
 instance Mat (Vec a) where
-  val (Vec {vv}) = vv
+  val (Vec {vv=v}) = v
   fromArray a = Vec {vv= a}
-  toArray (Vec {vv}) = vv
+  toArray (Vec {vv=v}) = v
   elementwise f (Vec {vv=va}) (Vec {vv=vb}) = (Vec {vv=vc}) where
     vc = A.zipWith f va vb
 instance Mat (Jac a b) where
-  val (Jac {vj}) = vj
+  val (Jac {vj=v}) = v
   fromArray a = Jac {vj= a}
-  toArray (Jac {vj}) = vj
+  toArray (Jac {vj=v}) = v
   elementwise f (Jac {vj=va}) (Jac {vj=vb}) = (Jac {vj=vc}) where
     vc = A.zipWith f va vb
 
@@ -200,25 +196,26 @@ instance Mat1 (Jac a b) where
                               _  -> error $ "mat1Jacaa toMatrix "
                                           <> show (A.length v)
 
-instance Mat1 (Jac Dim5 Dim3) where
-  toMatrix (Jac {vj=v}) = M.fromArray2 5 3 v -- `debug` "WTF??? 5 3"
-instance Mat1 (Jac Dim3 Dim5) where
-  toMatrix (Jac {vj=v}) = M.fromArray2 3 5 v -- `debug` "WTF??? 3 5"
+-- instance Mat1 (Jac Dim5 Dim3) where
+--   toMatrix (Jac {vj=v}) = M.fromArray2 5 3 v -- `debug` "WTF??? 5 3"
+-- instance Mat1 (Jac Dim3 Dim5) where
+--   toMatrix (Jac {vj=v}) = M.fromArray2 3 5 v -- `debug` "WTF??? 3 5"
 --{{{
 --}}}
 -----------------------------------------------------------------
 -- | funcitons for symetric matrices: Cov
 -- | type class SymMat
 class SymMat a where
-  inv :: Cov a -> Cov a                -- | inverse matrix
-  invMaybe :: Cov a -> Maybe (Cov a)   -- | Maybe inverse matrix
-  det :: Cov a -> Number               -- | determinant
-  diag :: Cov a -> Array Number        -- | Array of diagonal elements
-  chol :: Cov a -> Jac a a             -- | Cholsky decomposition
-instance SymMat Dim3 where
+  inv :: a -> a                -- | inverse matrix
+  invMaybe :: a -> Maybe a     -- | Maybe inverse matrix
+  det :: a -> Number           -- | determinant
+  diag :: a -> Array Number    -- | Array of diagonal elements
+-- chol :: Cov a -> Jac a a                -- | Cholsky decomposition
+
+instance SymMat (Cov Dim3) where
   inv m = uJust (invMaybe m)
-  invMaybe (Cov {vc=v}) = _inv $ A.toList v where
-    _inv :: [Number] -> Maybe (Cov Dim3)
+  invMaybe (Cov {vc=v}) = _inv v where
+    _inv :: Array Number -> Maybe (Cov Dim3)
     _inv [a11,a12,a13,a22,a23,a33] = do
       let det = (a33*a12*a12 - 2.0*a13*a23*a12 + a13*a13*a22
                 +a11*(a23*a23 - a22*a33))
@@ -232,15 +229,17 @@ instance SymMat Dim3 where
           b33 = (a12*a12 - a11*a22)/det
           v' = [b11,b12,b13,b22,b23,b33]
       pure $ Cov {vc=v'}
-  chol a = choldc a 3
   det (Cov {vc=v}) = _det $ A.toList v where
+    _det :: [Number] -> Number
     _det [a,b,c,d,e,f] = a*d*f - a*e*e - b*b*f + 2.0*b*c*e - c*c*d
-  diag (Cov {vc=v}) = _diag $ A.toList v where
+  diag (Cov {vc=v}) = _diag v where
+    _diag :: Array Number -> Array Number
     _diag [a11,_,_,a22,_,a33] = A.fromList [a11,a22,a33]
-instance SymMat Dim4 where
+--  chol a = choldc a
+instance SymMat (Cov Dim4) where
   inv m = uJust (invMaybe m)
-  invMaybe (Cov {vc=v}) = _inv $ A.toList v where
-    _inv :: [Number] -> Maybe (Cov Dim4)
+  invMaybe (Cov {vc=v}) = _inv v where
+    _inv :: Array Number -> Maybe (Cov Dim4)
     _inv [a,b,c,d,e,f,g,h,i,j] = do
       let det = (a*e*h*j - a*e*i*i - a*f*f*j + 2.0*a*f*g*i - a*g*g*h
             - b*b*h*j + b*b*i*i - 2.0*d*(b*f*i - b*g*h - c*e*i + c*f*g)
@@ -258,18 +257,21 @@ instance SymMat Dim4 where
           j' = (-h*b*b + 2.0*c*f*b - a*f*f - c*c*e + a*e*h)/det
       pure $ fromArray [a',b',c',d',e',f',g',h',i',j']
   det (Cov {vc=v}) = _det v where
+    _det :: Array Number -> Number
     _det [a,b,c,d,e,f,g,h,i,j] =
         (a*e*h*j - a*e*i*i - a*f*f*j + 2.0*a*f*g*i - a*g*g*h
           - b*b*h*j + b*b*i*i - 2.0*d*(b*f*i - b*g*h - c*e*i + c*f*g)
           + b*c*(2.0*f*j - 2.0*g*i) + c*c*(g*g - e*j) + d*d*(f*f - e*h))
     _det _ = undefined
-  diag (Cov {vc=v}) = _diag $ A.toList v where
+  diag (Cov {vc=v}) = _diag v where
+    _diag :: Array Number -> Array Number
     _diag [a11,_,_,_,a22,_,_,a33,_,a44] = A.fromList [a11,a22,a33,a44]
-  chol a = choldc a 4
-instance SymMat Dim5 where
-  inv m = cholInv m 5
-  invMaybe m = Just (cholInv m 5)
-  det (Cov {vc=v}) = _det $ A.toList v where
+--  chol a = choldc a
+instance SymMat (Cov Dim5) where
+  inv m = cholInv m
+  invMaybe m = Just (cholInv m)
+  det (Cov {vc=v}) = _det v where
+    _det :: Array Number -> Number
     _det [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o] =
       a*f*j*m*o - a*f*j*n*n - a*f*k*k*o + 2.0*a*f*k*l*n - a*f*l*l*m
       - a*g*g*m*o + a*g*g*n*n + 2.0*a*g*h*k*o - 2.0*a*g*h*l*n - 2.0*a*g*i*k*n
@@ -288,16 +290,16 @@ instance SymMat Dim5 where
       + 2.0*d*e*g*h*l + 2.0*d*e*g*i*k - 2.0*d*e*h*i*j - e*e*f*j*m + e*e*f*k*k
       + e*e*g*g*m - 2.0*e*e*g*h*k + e*e*h*h*j
     _det _ = undefined
-  diag (Cov {vc=v}) = _diag $ A.toList v where
+  diag (Cov {vc=v}) = _diag v where
+    _diag :: Array Number -> Array Number
     _diag [a,_,_,_,_,b,_,_,_,c,_,_,d,_,e] = A.fromList [a,b,c,d,e]
-  chol a = choldc a 5
+--  chol a = choldc a
 
 class MulMat a b c | a b -> c where
-  mulm :: a -> b -> c
-(*.) = mulm
+  (*.) :: a -> b -> c
 infixr 7 *.
 instance MulMat (Cov a) (Cov a) (Jac a a) where
-  mulm (Cov {vc= va}) (Cov {vc= vb}) = Jac {vj= vc} where
+  (*.) (Cov {vc= va}) (Cov {vc= vb}) = Jac {vj= vc} where
     na = case A.length va of
               6  -> 3
               10 -> 4
@@ -309,14 +311,14 @@ instance MulMat (Cov a) (Cov a) (Jac a a) where
       let ixa = indVs na
           ixb = indVs na
           ixc = indV na
-      numLoop 0 (na-1) $ \i0 -> 
-        numLoop 0 (na-1) $ \j0 -> 
+      numLoop 0 (na-1) $ \i0 ->
+        numLoop 0 (na-1) $ \j0 ->
           MA.unsafeWrite v (ixc i0 j0) $
-          sum [ (uidx va (ixa i0 k0)) * (uidx vb (ixb k0 j0)) 
+          sum [ (uidx va (ixa i0 k0)) * (uidx vb (ixb k0 j0))
                  | k0 <- [0 .. na-1] ]
       pure v
 instance MulMat (Jac a b) (Cov b) (Jac a b) where
-  mulm j@(Jac {vj= va}) c@(Cov {vc= vb}) = Jac {vj= vc} where
+  (*.) j@(Jac {vj= va}) c@(Cov {vc= vb}) = Jac {vj= vc} where
     nb = case A.length vb of
               6  -> 3
               10 -> 4
@@ -337,7 +339,7 @@ instance MulMat (Jac a b) (Cov b) (Jac a b) where
                  | k0 <- [0 .. nb-1] ]
       pure v
 instance MulMat (Cov a) (Jac a b) (Jac a b) where
-  mulm c@(Cov {vc= va}) j@(Jac {vj= vb}) = Jac {vj= vc} where
+  (*.) c@(Cov {vc= va}) j@(Jac {vj= vb}) = Jac {vj= vc} where
     na = case A.length va of
               6  -> 3
               10 -> 4
@@ -357,7 +359,7 @@ instance MulMat (Cov a) (Jac a b) (Jac a b) where
                  | k0 <- [0 .. na-1] ]
       pure v
 instance MulMat (Jac a b) (Vec b) (Vec a) where
-  mulm j@(Jac {vj= va}) v@(Vec {vv=vb}) = Vec {vv=vc} where
+  (*.) j@(Jac {vj= va}) v@(Vec {vv=vb}) = Vec {vv=vc} where
     nb = A.length vb
     na = (A.length va) `div` nb
     vc = A.create $ do
@@ -372,7 +374,7 @@ instance MulMat (Jac a b) (Vec b) (Vec a) where
                  | k0 <- [0 .. nb-1] ]
       pure v
 instance MulMat (Jac a b) (Jac b a) (Jac a a) where -- Dim3 x Dim5
-  mulm (Jac {vj= va}) (Jac {vj= vb}) = Jac {vj= vc} where
+  (*.) (Jac {vj= va}) (Jac {vj= vb}) = Jac {vj= vc} where
     nb = case A.length va of
               15 -> 5
               _  -> error $ "mulMatJJ can only do 3x5 * 5x3 "
@@ -391,7 +393,7 @@ instance MulMat (Jac a b) (Jac b a) (Jac a a) where -- Dim3 x Dim5
                  | k0 <- [0 .. nb-1] ]
       pure v
 instance MulMat (Cov a) (Vec a) (Vec a) where
-  mulm (Cov {vc= va}) (Vec {vv=vb}) = Vec {vv=vc} where
+  (*.) (Cov {vc= va}) (Vec {vv=vb}) = Vec {vv=vc} where
     nb = A.length vb
     na = nb
     vc = A.create $ do
@@ -405,7 +407,7 @@ instance MulMat (Cov a) (Vec a) (Vec a) where
                  | k0 <- [0 .. na-1] ]
       pure v
 instance MulMat (Vec a) (Vec a) Number where
-  mulm (Vec {vv=va}) (Vec {vv=vb}) = A.foldl (+) 0.0 $ A.zipWith (*) va vb
+  (*.) (Vec {vv=va}) (Vec {vv=vb}) = A.foldl (+) 0.0 $ A.zipWith (*) va vb
 class TrMat a b | a -> b where
   tr :: a -> b
 instance TrMat (Cov a) (Cov a) where
@@ -430,21 +432,23 @@ instance TrMat (Jac a b) (Jac b a) where
           MA.unsafeWrite v (ixc j0 i0) $ 12.0 -- uidx va (ixa i0 j0)
       pure v
 class SW a b c | a b -> c where
-  sw :: a -> b -> c
-(.*.) = sw
+  (.*.) :: a -> b -> c
+--(.*.) = sw
 infixl 7 .*.
---instance SW (Vec a) (Cov a) Number where
+instance SW (Vec a) (Cov a) Number where
+  (.*.) v c = undefined
 --  sw v c = n where
 --    mv = toMatrix v
 --    mc = toMatrix c
 --    mc' = M.transpose mv * mc * mv
 --    n = uidx (M.toArray mc') 0
---instance SW (Cov a) (Cov a) (Cov a) where
+instance SW (Cov a) (Cov a) (Cov a) where
+  (.*.) ca cb = undefined
 --  sw c1 c2 = c' where
 --    j' = c1 *. c2 *. c1
 --    c' = fromArray $ toArray j'
 instance SW (Jac a b) (Cov a) (Cov b) where
-  sw (Jac {vj= va}) (Cov {vc= vb}) = Cov {vc= v'} where
+  (.*.) (Jac {vj= va}) (Cov {vc= vb}) = Cov {vc= v'} where
     l = A.length vb
     n = case l of
               6  -> 3
@@ -576,12 +580,14 @@ scaleDiag s (Cov {vc=v}) = (Cov {vc= _sc $ A.toList v}) where
   _sc _ = undefined
 
 subm :: Int -> Vec5 -> Vec3
-subm n (Vec {vv=v}) = Vec {vv= _subm $ A.toList v} where
+subm n (Vec {vv=v}) = Vec {vv= _subm v} where
+  _subm :: Array Number -> Array Number
   _subm [a,b,c,_,_] = A.fromList [a,b,c]
   _subm _ = undefined
 
 subm2 :: Int -> Cov5 -> Cov3
-subm2 n (Cov {vc=v}) = Cov {vc= _subm2 $ A.toList v} where
+subm2 n (Cov {vc=v}) = Cov {vc= _subm2 v} where
+  _subm2 :: Array Number -> Array Number
   _subm2 [a,b,c,_,d,e,_,_,f] = A.fromList [a,b,c,d,e,f]
   _subm2 _ = undefined
 
@@ -606,9 +612,13 @@ subm2 n (Cov {vc=v}) = Cov {vc= _subm2 $ A.toList v} where
 -- except for its diagonal elements which are returned in p[1..n].
 
 
-choldc :: forall a. Cov a -> Int -> Jac a a
-choldc (Cov {vc= a}) n = Jac {vj= a'} where
-  ll = n*n
+choldc :: forall a. Cov a -> Jac a a
+choldc (Cov {vc= a}) = Jac {vj= a'} where
+  ll = A.length a
+  n = case ll of
+        6  -> 3
+        10 -> 4
+        15 -> 5
   a' = A.create $ do -- make a Array of n x n +n space for diagonal +1 for summing
     arr <- MA.new $ (ll+n+1)
     -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
@@ -651,9 +661,13 @@ choldc (Cov {vc= a}) n = Jac {vj= a'} where
 -- | Matrix inversion using Cholesky decomposition
 -- | based on Numerical Recipies formula in 2.9
 --
-cholInv :: forall a. Cov a -> Int -> Cov a
-cholInv (Cov {vc= a}) n = Cov {vc= a'} where
-  ll = n*n --n*(n+1)/2
+cholInv :: forall a. Cov a -> Cov a
+cholInv (Cov {vc= a}) = Cov {vc= a'} where
+  ll = A.length a
+  n = case ll of
+        6  -> 3
+        10 -> 4
+        15 -> 5
   l = A.create $ do -- make a Array of n x n +n space for diagonal +1 for summing
     arr <- MA.new $ (ll+n+1)
     -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
@@ -747,7 +761,7 @@ testCov2 = s where
   xj31 :: Jac Dim3 Dim3
   xj31 = Jac {vj= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0]}
   xj33 :: Jac Dim3 Dim3
-  xj33 = xj31 *. xc3
+  xj33 = xj31 *. xj31
   xvc3 = toArray xc3
   xv3 = fromArray [1.0,1.0,1.0] :: Vec3
   xv5 = fromArray [1.0,1.0,1.0,1.0,1.0] :: Vec5
@@ -776,18 +790,18 @@ testCov2 = s where
         {-- <> show (c4 ** (inv c4)) --}
     <> "chol: -----------------\n"
     <> "A = L * L^T         " <> show ch3
-    <> "L                   " <> show (chol ch3)
-        {-- <> "L * L^T             " <> show ((chol ch3) *. tr (chol ch3)) --}
+    <> "L                   " <> show (choldc ch3)
+        {-- <> "L * L^T             " <> show ((choldc ch3) *. tr (choldc ch3)) --}
     <> "A^(-1) = L' * L'^T  " <> show (inv ch3)
-    <> "A^(-1) from cholInv " <> show (cholInv ch3 3)
+    <> "A^(-1) from cholInv " <> show (cholInv ch3)
     <> "A = L * L^T         " <> show ch5
-    <> "L                   " <> show (chol ch5)
-        {-- <> "L * L^T             " <> show ((chol ch5) *. tr (chol ch5)) --}
+    <> "L                   " <> show (choldc ch5)
+        {-- <> "L * L^T             " <> show ((choldc ch5) *. tr (choldc ch5)) --}
     <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
-    <> "A^(-1) from cholInv " <> show (cholInv ch5 5)
+    <> "A^(-1) from cholInv " <> show (cholInv ch5)
     <> "det this            " <> show (det ch5)
         {-- <> "chol" <> show ch5 --}
-        {-- <> show (chol ch5) <> show ( chol ch5 *. tr (chol ch5)) --}
+        {-- <> show (choldc ch5) <> show ( choldc ch5 *. tr (choldc ch5)) --}
     <> "\n" -- <> testCov2 
   c3 :: Cov3
   c3 = fromArray [1.0,2.0,3.0,4.0,5.0,6.0]
@@ -807,10 +821,10 @@ testCov2 = s where
   v5 = fromArray [10.0,11.0,12.0,13.0,14.0]
   j53 :: Jac53
   j53 = fromArray [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0]
-  tj3 :: Cov3
-  tj3 = j53 .*. c5
-  vv5 :: Vec5
-  vv5 = j53 *. v3
+--  tj3 :: Cov3
+--  tj3 = j53 .*. c5
+--  vv5 :: Vec5
+--  vv5 = j53 *. v3
 --  vv3 :: Vec3
 --  vv3 = tr j53 *. j53 *. c3 *. v3
 
@@ -824,7 +838,7 @@ testCov2 = s where
 --  mm5 = (m5+m5)*m5
   ch3 :: Cov3
   ch3 = fromArray [2.0, -1.0, 0.0, 2.0, -1.0, 2.0]
-  cch3 = chol ch3
+  cch3 = choldc ch3
   ich3 = cholInv ch3
 
   ch5 :: Cov5
