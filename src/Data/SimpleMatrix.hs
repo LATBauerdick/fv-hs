@@ -105,14 +105,15 @@ fromArray2 r c vs | (A.length vs) == r*c
                     = M_ {nrows= r, ncols= c
                         , roff= 0, coff= 0 , vcols= c , values= vs}
                   | r==c && (A.length vs) == r*(r+1) `div` 2
-                    = M_ {nrows= n, ncols= n, roff= 0, coff= 0, vcols= n, values= vs'} where
-                        n = r
-                        idx = indVs n
-                        vs' = A.fromList $ do
-                          i <- [1 .. n]
-                          j <- [1 .. n]
-                          pure $ uidx vs (idx i j)
-fromArray2 _ _ vs = error $ "---- fromArray2 invalid array length "
+                    = let
+                          n = r
+                          ixc = indVs n
+                          vs' = A.fromList $ do
+                            i0 <- [0 .. n-1]
+                            j0 <- [0 .. n-1]
+                            pure $ uidx vs (ixc i0 j0)
+                      in M_ {nrows= n, ncols= n, roff= 0, coff= 0, vcols= n, values= vs'}
+                  | otherwise = error $ "---- fromArray2 invalid array length "
                                 <> show (A.length vs)
 -- | Just a cool way to output the size of a matrix.
 sizeStr :: Int -> Int -> String

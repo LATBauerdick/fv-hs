@@ -761,7 +761,7 @@ testCov2 = s where
   xj31 :: Jac Dim3 Dim3
   xj31 = Jac {vj= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0]}
   xj33 :: Jac Dim3 Dim3
-  xj33 = xj31 *. xj31
+  xj33 = xc3 *. xj31
   xvc3 = toArray xc3
   xv3 = fromArray [1.0,1.0,1.0] :: Vec3
   xv5 = fromArray [1.0,1.0,1.0,1.0,1.0] :: Vec5
