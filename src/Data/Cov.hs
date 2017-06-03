@@ -8,6 +8,7 @@
 {-# LANGUAGE RankNTypes #-}
 --{-# LANGUAGE RebindableSyntax #-}
 --{-# LANGUAGE ScopedTypeVariables #-}
+
 {-# LANGUAGE OverloadedLists #-}
 --{-# LANGUAGE NamedFieldPuns #-}
 
@@ -155,6 +156,7 @@ instance Mat (Cov a) where
       6  -> 3
       10 -> 4
       15 -> 5
+      _  -> error "matacov toArray not support " <> l
     iv = indVs n
     v' = A.fromList $ do
       i0 <- [0..(n-1)]
@@ -178,7 +180,7 @@ instance Mat (Jac a b) where
 class Mat1 a where
   toMatrix :: a -> M.Matrix
 instance Mat1 (Cov a) where
-  toMatrix a@(Cov {vc=v}) = case A.length v of
+  toMatrix (Cov {vc=v}) = case A.length v of
                             6  -> M.fromArray2 3 3 v
                             10 -> M.fromArray2 4 4 v
                             15 -> M.fromArray2 5 5 v
@@ -186,6 +188,10 @@ instance Mat1 (Cov a) where
                                           <> show (A.length v)
 instance Mat1 (Vec a) where
   toMatrix (Vec {vv=v}) = M.fromArray (A.length v) v
+instance Mat1 (Jac Dim5 Dim3) where
+  toMatrix (Jac {vj=v}) = M.fromArray2 5 3 v `debug` "WTF??? 5 3"
+instance Mat1 (Jac Dim3 Dim5) where
+  toMatrix (Jac {vj=v}) = M.fromArray2 3 5 v `debug` "WTF??? 3 5"
 instance Mat1 (Jac a b) where
   toMatrix j@(Jac {vj=v}) = case A.length v of
                               9  -> M.fromArray2 3 3 v
@@ -196,10 +202,6 @@ instance Mat1 (Jac a b) where
                               _  -> error $ "mat1Jacaa toMatrix "
                                           <> show (A.length v)
 
--- instance Mat1 (Jac Dim5 Dim3) where
---   toMatrix (Jac {vj=v}) = M.fromArray2 5 3 v -- `debug` "WTF??? 5 3"
--- instance Mat1 (Jac Dim3 Dim5) where
---   toMatrix (Jac {vj=v}) = M.fromArray2 3 5 v -- `debug` "WTF??? 3 5"
 --{{{
 --}}}
 -----------------------------------------------------------------
@@ -376,8 +378,12 @@ instance MulMat (Jac a b) (Vec b) (Vec a) where
 instance MulMat (Jac a b) (Jac b a) (Jac a a) where -- Dim3 x Dim5
   (*.) (Jac {vj= va}) (Jac {vj= vb}) = Jac {vj= vc} where
     nb = case A.length va of
+              12 -> 4
               15 -> 5
-              _  -> error $ "mulMatJJ can only do 3x5 * 5x3 "
+              9  -> 3
+              16 -> 4
+              25 -> 5
+              _  -> error $ "mulMatJJ can only do 3x5 * 5x3, 3x4 * 4*3, or squares"
                             <> show (A.length vb)
     na = (A.length va) `div` nb
     vc :: Array Number
@@ -759,9 +765,13 @@ testCov2 = s where
   xj3 :: Jac Dim3 Dim3
   xj3 = Jac {vj= [1.0 .. 9.0]}
   xj31 :: Jac Dim3 Dim3
-  xj31 = Jac {vj= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0]}
+  xj31 = Jac {vj= [1.0,0.0,0.0,1.0,1.0,0.0,1.0,1.0,1.0]}
+  xj32 :: Jac Dim3 Dim3
+  xj32 = Jac {vj= [0.0,0.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0]}
   xj33 :: Jac Dim3 Dim3
-  xj33 = xc3 *. xj31
+  xj33 = Jac {vj= [1.0 .. 9.0]}
+  xj53 :: Jac Dim5 Dim3
+  xj53 = Jac {vj= [1.0 .. 15.0]}
   xvc3 = toArray xc3
   xv3 = fromArray [1.0,1.0,1.0] :: Vec3
   xv5 = fromArray [1.0,1.0,1.0,1.0,1.0] :: Vec5
@@ -771,9 +781,10 @@ testCov2 = s where
 --    <> "Vec + Vec = " <> show (v5 + v5) <> "\n"
 --    <> "chol Cov = " <> show (chol (one::Cov5)) <> "\n"
 --    <> "Vec .*. Cov = " <> show (v5 .*. inv (one::Cov5)) <> "\n"
-    <> show xc3
+    <> "xc3 :: Cov Dim3 " <> show xc3
     <> show (toArray $ xc3) <> "\n"
-    <> "xj33 ---> " <> show xj33
+    <> "xj53 ---> " <> show xj53
+    <> "xj53 *. xc3 ---> " <> show (xj53 *. xc3)
     <> show xvc3 <> "\n"
         {-- <> show md <> "\n" --}
         {-- <> show mm3 --}
@@ -843,4 +854,3 @@ testCov2 = s where
 
   ch5 :: Cov5
   ch5 = fromArray [2.0, -1.0, 0.0, 0.0, 0.0, 2.0, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0]
-
