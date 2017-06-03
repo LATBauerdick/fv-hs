@@ -17,15 +17,18 @@ module Data.SimpleMatrix
 
 import Prelude
 -- import Data.Tuple ( Tuple (..) )
-import Data.Vector.Unboxed as A
+import qualified Data.Vector.Unboxed as A
   ( Vector
   , unsafeIndex
   , length
   , singleton
   , fromList
+  , maximum
   )
 import Data.Foldable ( sum )
--- import Data.String as S ( length, fromCharArray )
+import Data.Monoid
+import Data.Maybe (fromMaybe)
+import Data.String as S ( unlines, unwords )
 
 --------------------------------------------------------------
 -- adapting for PureScript
@@ -35,7 +38,8 @@ type List a = [a]
 type Number = Double
 type Array a = A.Vector a
 uidx = A.unsafeIndex
-
+(<<<) = (.)
+infixr 9 <<<
 
 ------------------------------------------------------------------------
 -- | Dense Matrix implementation
@@ -104,24 +108,29 @@ fromArray2 r c vs | (A.length vs) == r*c
 sizeStr :: Int -> Int -> String
 sizeStr n m = show n ++ "x" ++ show m
 -- | Display a matrix as a 'String' using the 'Show' instance of its elements.
--- instance Show Matrix where show _ = "Show Matrix ... "
--- instance Show Matrix where
---   show m@(M_ {nrows= r, ncols= c, values= v}) = unlines ls where
---     ls = do
---       i <- L.range 1 r
---       let ws :: L.List String
---           ws = map (\j -> fillBlanks mx (to3fix $ unsafeGet i j m)) (L.range 1 c)
---       pure $ "( " <> unwords ws <> " )"
---     mx = fromMaybe 0 (maximum $ map (S.length <<< to3fix) v)
---     fillBlanks k str =
---       (S.fromCharArray $ A.replicate (k - S.length str) ' ') <> str
+--instance Show Matrix where show _ = "Show Matrix ... "
+instance Show Matrix where
+  show m@(M_ {nrows= r, ncols= c, values= v}) = S.unlines ls where
+    ls = do
+      i <- [1 .. r]
+      let ws :: [String]
+          ws = map (\j -> fillBlanks mx (show $ unsafeGet i j m)) [1 .. c]
+      pure $ "( " <> S.unwords ws <> " )"
+    mx :: Int
+    mx = A.maximum $ fmap (length <<< show) v
+    -- mx = fromMaybe 0 (maximum $ map (length <<< show) v)
+    fillBlanks k str =
+       (replicate (k - length str) ' ') <> str
+
+fill k str = replicate (k - length str) ' ' ++ str
+
 
 -- | Get the elements of a matrix stored in an Array.
 --
 -- >         ( 1 2 3 )
 -- >         ( 4 5 6 )
 -- > toArray ( 7 8 9 ) = [1,2,3,4,5,6,7,8,9]
---
+
 toArray :: Matrix -> Array Number
 toArray m@(M_ {nrows= r, ncols= c}) = A.fromList $ do
   i <- [1 .. r]
@@ -235,7 +244,5 @@ multStd_ a@(M_ {nrows= n, ncols= m}) b@(M_ {ncols= m'}) =
   matrix n m' $ \(Tuple i j) -> sum $ do
     k <- [1 .. m]
     pure $ (unsafeGet i k a ) * (unsafeGet k j b)
-
-
 
 
