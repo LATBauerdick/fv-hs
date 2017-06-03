@@ -16,7 +16,8 @@ module Data.Cov
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
-  ( Vector, length, fromList, toList, unsafeIndex, create, foldl, zipWith )
+  ( Vector, length, fromList, toList, unsafeIndex, create, replicate
+  , singleton, map, foldl, zipWith )
 import qualified Data.Vector.Unboxed.Mutable as MA
   ( new, unsafeWrite, unsafeRead, unsafeTake )
 import Control.Loop ( numLoop )
@@ -41,7 +42,7 @@ import qualified Data.SimpleMatrix as M
 
 --------------------------------------------------------------
 -- adapting for PureScript
-import Data.Monoid ((<>))
+import Data.Monoid ( (<>) )
 import Debug.Trace ( trace )
 debug :: a -> String -> a
 debug = flip trace
@@ -52,9 +53,17 @@ uidx :: A.Vector Number -> Int -> Number
 uidx = A.unsafeIndex
 uJust :: forall a. Maybe a -> a
 uJust = fromJust
+(<<<) :: (b -> c) -> (a -> b) -> a -> c
 (<<<) = (.)
 infixr 9 <<<
 
+class Semiring a where
+  add  :: a -> a -> a
+  zero :: a
+  mul  :: a -> a -> a
+  one  :: a
+class Semiring a => Ring a where
+  sub :: a -> a -> a
 --------------------------------------------------------------
 
 newtype Dim3 = DDim3 Int
@@ -126,6 +135,8 @@ class Mat a where
   val :: a -> Array Number
   fromArray :: Array Number -> a
   toArray :: a -> Array Number
+  elementwise :: (Number -> Number -> Number) -> a -> a -> a
+
 instance Mat (Cov a) where
   val (Cov {vc}) = vc
   fromArray a = c' where
@@ -153,14 +164,20 @@ instance Mat (Cov a) where
       i0 <- [0..(n-1)]
       j0 <- [0..(n-1)]
       pure $ uidx v (iv i0 j0)
+  elementwise f (Cov {vc=va}) (Cov {vc=vb}) = (Cov {vc=vc}) where
+    vc = A.zipWith f va vb
 instance Mat (Vec a) where
   val (Vec {vv}) = vv
   fromArray a = Vec {vv= a}
   toArray (Vec {vv}) = vv
+  elementwise f (Vec {vv=va}) (Vec {vv=vb}) = (Vec {vv=vc}) where
+    vc = A.zipWith f va vb
 instance Mat (Jac a b) where
   val (Jac {vj}) = vj
   fromArray a = Jac {vj= a}
   toArray (Jac {vj}) = vj
+  elementwise f (Jac {vj=va}) (Jac {vj=vb}) = (Jac {vj=vc}) where
+    vc = A.zipWith f va vb
 
 class Mat1 a where
   toMatrix :: a -> M.Matrix
@@ -354,7 +371,7 @@ instance MulMat (Jac a b) (Vec b) (Vec a) where
         sum [ (uidx va (ixa i0 k0)) * (uidx vb k0 )
                  | k0 <- [0 .. nb-1] ]
       pure v
-instance MulMat (Jac Dim3 Dim5) (Jac Dim5 Dim3) (Jac Dim3 Dim3) where
+instance MulMat (Jac a b) (Jac b a) (Jac a a) where -- Dim3 x Dim5
   mulm (Jac {vj= va}) (Jac {vj= vb}) = Jac {vj= vc} where
     nb = case A.length va of
               15 -> 5
@@ -367,12 +384,12 @@ instance MulMat (Jac Dim3 Dim5) (Jac Dim5 Dim3) (Jac Dim3 Dim3) where
       let ixa = indV nb
           ixb = indV na
           ixc = indV na
-      numLoop 0 (na-1) $ \i0 -> 
-        numLoop 0 (na-1) $ \j0 -> 
+      numLoop 0 (na-1) $ \i0 ->
+        numLoop 0 (na-1) $ \j0 ->
           MA.unsafeWrite v (ixc i0 j0) $
-          sum [ (uidx va (ixa i0 k0)) * (uidx vb (ixb k0 j0)) 
+          sum [ (uidx va (ixa i0 k0)) * (uidx vb (ixb k0 j0))
                  | k0 <- [0 .. nb-1] ]
-      pure v 
+      pure v
 instance MulMat (Cov a) (Vec a) (Vec a) where
   mulm (Cov {vc= va}) (Vec {vv=vb}) = Vec {vv=vc} where
     nb = A.length vb
@@ -458,46 +475,70 @@ instance SW (Jac a b) (Cov a) (Cov b) where
             sum [ (uidx va (ixa k0 i0 )) * (uidx vint (ixb k0 j0))
               | k0 <- [0 .. (n-1)] ]
       pure v
+-------------------------------------------------------
+-------------------------------------------------------
+---- NUMERICAL INSTANCE
 
--- instance Semiring (Cov Dim3) where
---   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
---   zero = Cov {v= A.replicate 6 0.0 }
---   mul (Cov {v= a}) (Cov {v= b}) = error "------------> mul cov3 * cov3 not allowed"
---   one = Cov { v= [1.0, 0.0, 0.0, 1.0, 0.0, 1.0] }
--- instance Ring (Cov Dim3) where
---   sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
-instance Show (Cov Dim3) where
-  show c = "Show (Cov Dim3) \n" <> (show $ toMatrix c)
+instance Num (Cov a) where
+  fromInteger i = Cov {vc= A.singleton <<< fromInteger $ i}
+  negate (Cov {vc=v}) = Cov {vc=A.map negate v}
+  abs (Cov {vc=v}) = Cov {vc=A.map abs v}
+  signum (Cov {vc=v}) = Cov {vc=A.map signum v}
+  (+) = elementwise (+)
+  (*) = error "cannot multiply Cov*Cov to return a Cov, use *. instead"
+instance Num (Vec a) where
+  fromInteger i = Vec {vv= A.singleton <<< fromInteger $ i}
+  negate (Vec {vv=v}) = Vec {vv=A.map negate v}
+  abs (Vec {vv=v}) = Vec {vv=A.map abs v}
+  signum (Vec {vv=v}) = Vec {vv=A.map signum v}
+  (+) = elementwise (+)
+  (*) = error "cannot multiply Vec*Vec to return a Vec, use *. instead"
+instance Num (Jac a b) where
+  fromInteger i = Jac {vj= A.singleton <<< fromInteger $ i}
+  negate (Jac {vj=v}) = Jac {vj=A.map negate v}
+  abs (Jac {vj=v}) = Jac {vj=A.map abs v}
+  signum (Jac {vj=v}) = Jac {vj=A.map signum v}
+  (+) = elementwise (+)
+  (*) = error "cannot multiply Jac*Jac to return a Jac, use *. instead"
 
--- instance Semiring (Cov Dim4) where
---   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
---   zero = Cov {v= A.replicate 10 0.0 }
---   mul (Cov {v= a}) (Cov {v= b}) = error "------------> mul cov4 * cov4 not allowed"
---   one = Cov { v= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
--- instance Ring (Cov Dim4) where
---   sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
-instance Show (Cov Dim4) where
-  show c = "Show (Cov Dim4)\n" <> (show $ toMatrix c)
-
--- instance Semiring (Cov Dim5) where
---   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
---   zero = Cov {v= A.replicate 15 0.0 }
---   mul a b = error "------------> mul cov5 * cov5 not allowed"
-one = Cov {vc= [1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
--- instance Ring (Cov Dim5) where
---   sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
-instance Show (Cov Dim5) where
-  show c = "Show (Cov Dim5)\n" <> (show $ toMatrix c)
-
--- instance Semiring (Jac a b) where
---   add (Jac {v= v1}) (Jac {v= v2}) = Jac {v= A.zipWith (+) v1 v2}
---   zero = undefined
---   mul (Jac {v= v1}) (Jac {v= v2}) = undefined -- Cov {v= cov5StdMult v1 v2}
---   one = undefined
--- instance Ring (Jac a b) where
---   sub (Jac {v= v1}) (Jac {v= v2}) = Jac {v= A.zipWith (-) v1 v2}
+instance Show (Cov a) where
+  show c = "Show (Cov a) \n" <> (show $ toMatrix c)
+instance Show (Vec a) where
+  show c = "Show (Vec a) \n" <> (show $ toMatrix c)
 instance Show (Jac a b) where
-  show a = "Show Jac\n" <> show (toMatrix a)
+  show c = "Show (Jac a b) \n" <> (show $ toMatrix c)
+
+instance Semiring (Cov Dim3) where
+  add (Cov {vc= va}) (Cov {vc= vb}) = Cov {vc= A.zipWith (+) va vb}
+  zero = Cov {vc= A.replicate 6 0.0 }
+  mul (Cov {vc= va}) (Cov {vc= vb}) = error "------------> mul cov3 * cov3 not allowed"
+  one = Cov { vc= [1.0, 0.0, 0.0, 1.0, 0.0, 1.0] }
+instance Ring (Cov Dim3) where
+  sub (Cov {vc= va}) (Cov {vc= vb}) = Cov {vc= A.zipWith (-) va vb}
+
+instance Semiring (Cov Dim4) where
+  add (Cov {vc= va}) (Cov {vc= vb}) = Cov {vc= A.zipWith (+) va vb}
+  zero = Cov {vc= A.replicate 10 0.0 }
+  mul (Cov {vc= va}) (Cov {vc= vb}) = error "------------> mul cov4 * cov4 not allowed"
+  one = Cov { vc= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
+instance Ring (Cov Dim4) where
+  sub (Cov {vc= va}) (Cov {vc= vb}) = Cov {vc= A.zipWith (-) va vb}
+
+instance Semiring (Cov Dim5) where
+  add (Cov {vc= va}) (Cov {vc= vb}) = Cov {vc= A.zipWith (+) va vb}
+  zero = Cov {vc= A.replicate 15 0.0 }
+  mul (Cov {vc= va}) (Cov {vc= vb}) = error "------------> mul cov5 * cov5 not allowed"
+  one = Cov {vc= [1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
+instance Ring (Cov Dim5) where
+  sub (Cov {vc= va}) (Cov {vc= vb}) = Cov {vc= A.zipWith (-) va vb}
+
+instance Semiring (Jac a b) where
+  add (Jac {vj= va}) (Jac {vj= vb}) = Jac {vj= A.zipWith (+) va vb}
+  zero = undefined
+  mul = undefined
+  one = undefined
+instance Ring (Jac a b) where
+  sub (Jac {vj= va}) (Jac {vj= vb}) = Jac {vj= A.zipWith (-) va vb}
 
 -- -- Instances for Vec -- these are always column vectors
 -- instance Semiring (Vec Dim3) where
@@ -518,17 +559,15 @@ instance Show (Jac a b) where
 --   mul (Vec {v= v1}) (Vec {v= v2}) = undefined
 --   one = Vec { v= A.replicate 5 1.0 }
 
--- instance Semiring (Vec a) where
---   add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
---   {-- zero = error "error calling zero for Vec a" -- Vec {v= A.replicate 5 0.0 } --}
---   zero = Vec {v= A.replicate 5 0.0 } `debug` "xxxxxxxxxxx>>> called Vec zero"
---   mul (Vec {v= v1}) (Vec {v= v2}) = undefined
---   {-- one = error "error calling one for Vec a" -- Vec { v= A.replicate 5 1.0 } --}
---   one = Vec { v= A.replicate 5 1.0 } `debug` "xxxxxxxxxxx>>> called Vec one"
--- instance Ring (Vec a) where
---   sub (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (-) v1 v2}
-instance Show (Vec a) where
-  show v = "Show Vec\n" <> show (toMatrix v)
+instance Semiring (Vec a) where
+  add (Vec {vv= va}) (Vec {vv= vb}) = Vec {vv= A.zipWith (+) va vb}
+  {-- zero = error "error calling zero for Vec a" -- Vec {v= A.replicate 5 0.0 } --}
+  zero = Vec {vv= A.replicate 5 0.0 } `debug` "xxxxxxxxxxx>>> called Vec zero"
+  mul = undefined
+  {-- one = error "error calling one for Vec a" -- Vec { v= A.replicate 5 1.0 } --}
+  one = Vec { vv= A.replicate 5 1.0 } `debug` "xxxxxxxxxxx>>> called Vec one"
+instance Ring (Vec a) where
+  sub (Vec {vv= va}) (Vec {vv= vb}) = Vec {vv= A.zipWith (-) va vb}
 
 scaleDiag :: Number -> Cov3 -> Cov3
 scaleDiag s (Cov {vc=v}) = (Cov {vc= _sc $ A.toList v}) where
@@ -705,22 +744,22 @@ testCov2 = s where
   xc3 = Cov {vc= [1.0 .. 6.0]}
   xj3 :: Jac Dim3 Dim3
   xj3 = Jac {vj= [1.0 .. 9.0]}
+  xj31 :: Jac Dim3 Dim3
   xj31 = Jac {vj= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0]}
   xj33 :: Jac Dim3 Dim3
-  xj33 = (xj31::Jac33) *. xc3
+  xj33 = xj31 *. xc3
   xvc3 = toArray xc3
   xv3 = fromArray [1.0,1.0,1.0] :: Vec3
   xv5 = fromArray [1.0,1.0,1.0,1.0,1.0] :: Vec5
   s =  "Test Cov 2----------------------------------------------\n"
---    <> "Vec *. Vec = " <> show (v3 *. v3) <> "\n"
+    <> "Vec *. Vec = " <> show (v3 *. v3) <> "\n"
 --    <> "Cov *. Cov = " <> show ((one::Cov3) *. inv (one::Cov3)) <> "\n"
 --    <> "Vec + Vec = " <> show (v5 + v5) <> "\n"
 --    <> "chol Cov = " <> show (chol (one::Cov5)) <> "\n"
 --    <> "Vec .*. Cov = " <> show (v5 .*. inv (one::Cov5)) <> "\n"
-    <> show xj31
     <> show xc3
     <> show (toArray $ xc3) <> "\n"
-    <> show xj33
+    <> "xj33 ---> " <> show xj33
     <> show xvc3 <> "\n"
         {-- <> show md <> "\n" --}
         {-- <> show mm3 --}
@@ -744,7 +783,7 @@ testCov2 = s where
     <> "A = L * L^T         " <> show ch5
     <> "L                   " <> show (chol ch5)
         {-- <> "L * L^T             " <> show ((chol ch5) *. tr (chol ch5)) --}
-   <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
+    <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
     <> "A^(-1) from cholInv " <> show (cholInv ch5 5)
     <> "det this            " <> show (det ch5)
         {-- <> "chol" <> show ch5 --}
@@ -772,8 +811,8 @@ testCov2 = s where
   tj3 = j53 .*. c5
   vv5 :: Vec5
   vv5 = j53 *. v3
-  vv3 :: Vec3
-  vv3 = tr j53 *. j53 *. c3 *. v3
+--  vv3 :: Vec3
+--  vv3 = tr j53 *. j53 *. c3 *. v3
 
   m3 :: M.Matrix
   m3 = M.fromArray2 3 3 [1.0,2.0,3.0,2.0,4.0,5.0,3.0,5.0,6.0]

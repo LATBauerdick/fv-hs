@@ -23,23 +23,35 @@ import qualified Data.Vector.Unboxed as A
   , length
   , singleton
   , fromList
+  , map
   , maximum
   )
 import Data.Foldable ( sum )
-import Data.Monoid
-import Data.Maybe (fromMaybe)
 import Data.String as S ( unlines, unwords )
 
 --------------------------------------------------------------
 -- adapting for PureScript
+import Data.Monoid ( (<>) )
 
 data Tuple a b = Tuple a b
-type List a = [a]
+-- type List a = [a]
 type Number = Double
 type Array a = A.Vector a
+uidx :: A.Vector Number -> Int -> Number
 uidx = A.unsafeIndex
+(<<<) :: (b -> c) -> (a -> b) -> a -> c
 (<<<) = (.)
 infixr 9 <<<
+
+------------------------------------------------------------------------
+-- utility functions
+-- access to arrays of symmetrical matrices
+indV :: Int -> Int -> Int -> Int
+indV w i0 j0 = (i0*w+j0)
+indVs :: Int -> Int -> Int -> Int
+indVs w i0 j0 | i0 <= j0  = (i0*w - i0*(i0-1) `div` 2 + j0-i0)
+              | otherwise = (j0*w - j0*(j0-1) `div` 2 + i0-j0)
+
 
 ------------------------------------------------------------------------
 -- | Dense Matrix implementation
@@ -95,15 +107,13 @@ fromArray2 r c vs | (A.length vs) == r*c
                   | r==c && (A.length vs) == r*(r+1) `div` 2
                     = M_ {nrows= n, ncols= n, roff= 0, coff= 0, vcols= n, values= vs'} where
                         n = r
-                        idx :: Int -> Int -> Int -- index into values array of symmetric matrices
-                        idx i j | i <= j     = ((i-1)*n - (i-1)*(i-2) `div` 2 + j-i)
-                                | otherwise = ((j-1)*n - (j-1)*(j-2) `div` 2 + i-j)
+                        idx = indVs n
                         vs' = A.fromList $ do
                           i <- [1 .. n]
                           j <- [1 .. n]
                           pure $ uidx vs (idx i j)
-                  -- | _ = error $ "---- fromArray2 invalid array length "
-                                        -- <> show (A.length vs)
+fromArray2 _ _ vs = error $ "---- fromArray2 invalid array length "
+                                <> show (A.length vs)
 -- | Just a cool way to output the size of a matrix.
 sizeStr :: Int -> Int -> String
 sizeStr n m = show n ++ "x" ++ show m
@@ -116,14 +126,10 @@ instance Show Matrix where
       let ws :: [String]
           ws = map (\j -> fillBlanks mx (show $ unsafeGet i j m)) [1 .. c]
       pure $ "( " <> S.unwords ws <> " )"
-    mx :: Int
-    mx = A.maximum $ fmap (length <<< show) v
+    mx = A.maximum $ A.map (length <<< show) v
     -- mx = fromMaybe 0 (maximum $ map (length <<< show) v)
     fillBlanks k str =
        (replicate (k - length str) ' ') <> str
-
-fill k str = replicate (k - length str) ' ' ++ str
-
 
 -- | Get the elements of a matrix stored in an Array.
 --
