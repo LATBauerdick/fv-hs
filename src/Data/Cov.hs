@@ -36,31 +36,7 @@ import qualified Data.SimpleMatrix as M
   , fromArray, fromArray2, toArray
   )
 
---------------------------------------------------------------
--- adapting for PureScript
-import Data.Monoid ( (<>) )
-import Debug.Trace ( trace )
-debug :: a -> String -> a
-debug = flip trace
-
-type Number = Double
-type Array a = A.Vector a
-uidx :: A.Vector Number -> Int -> Number
-uidx = A.unsafeIndex
-uJust :: forall a. Maybe a -> a
-uJust = fromJust
-(<<<) :: (b -> c) -> (a -> b) -> a -> c
-(<<<) = (.)
-infixr 9 <<<
-
-class Semiring a where
-  add  :: a -> a -> a
-  zero :: a
-  mul  :: a -> a -> a
-  one  :: a
-class Semiring a => Ring a where
-  sub :: a -> a -> a
---------------------------------------------------------------
+import Stuff
 
 newtype Dim3 = DDim3 Int
 newtype Dim4 = DDim4 Int
@@ -156,7 +132,7 @@ instance Mat (Cov a) where
       6  -> 3
       10 -> 4
       15 -> 5
-      _  -> error "matacov toArray not support " <> l
+      _  -> error $ "matacov toArray not supported " <> show l
     iv = indVs n
     v' = A.fromList $ do
       i0 <- [0..(n-1)]

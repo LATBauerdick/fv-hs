@@ -1,378 +1,341 @@
--- file src/Types.hs
---
-{-# LANGUAGE RankNTypes, DisambiguateRecordFields #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ExplicitForAll #-}
+--{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+--{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+--{-# LANGUAGE RebindableSyntax #-}
+--{-# LANGUAGE ScopedTypeVariables #-}
 
-module FV.Types (
-                M, V, M33, V3, V5, C44
-             , XMeas (..), HMeas (..), QMeas (..)
-             , PMeas (..), MMeas (..), DMeas (..), Prong (..), VHMeas (..)
-  , XFit (..), QFit (..)
-  , MCtruth (..)
-  , helicesLens
-  , view, over, set
-  , vBlowup, hFilter, hRemove
-  , rVertex, chi2Vertex, zVertex, d0Helix, z0Helix, ptHelix, pzHelix
-             , Mom (..), Pos (..)
-             , X3, C33, Q3, H5, C55
-             , Jaco (..), Chi2
-             , v3, l3, v5, l5
-             , h2p, h2q, q2p
-             , mπ, invMass
-             ) where
+{-# LANGUAGE OverloadedLists #-}
+--{-# LANGUAGE NamedFieldPuns #-}
+
+module FV.Types
+  ( MCtruth (..)
+  , Prong (..), fitMomenta
+  , Chi2 (..)
+  , VHMeas (..), vertex, helices, hFilter
+  , XMeas (..), vBlowup
+  , DMeas (..), Pos, distance
+  , HMeas (..)
+  , QMeas (..), fromHMeas
+  , PMeas (..), fromQMeas, invMass
+  , MMeas (..)
+  ) where
 
 import Prelude
-import Text.Printf
-import Data.Foldable
-import qualified Data.Matrix ( Matrix, getDiag, getCol, toList
-                             , fromLists, transpose )
-import qualified Data.Vector ( zip, map, fromList, toList, drop )
-import qualified Data.SimpleMatrix as Matrix (
-                        )
+import qualified Data.Vector.Unboxed as A 
+  ( length, unsafeIndex, drop, zip, foldl )
+import Data.Semigroup
+import Data.Foldable ( fold )
+import Control.Monad (guard)
+
 import Data.Cov
-{-
-import Data.Monoid
-import Data.Text.Lazy (Text)
-import Data.Text.Lazy.IO as TL
-import Text.PrettyPrint.Leijen.Text hiding ((<$>), (<>), Pretty(..))
-import qualified Text.PrettyPrint.Leijen.Text as PP
--}
+import Stuff
 
-mπ :: Double
-mπ = 0.1395675E0
+-----------------------------------------------
+-- Prong
+-- a prong results from a vertex fit of N helices
+newtype Chi2  = Chi2 Number
+instance Semiring Chi2 where
+  add (Chi2 c0) (Chi2 c1) = Chi2 (c0+c1)
+  zero = Chi2 0.0
+  mul (Chi2 c0) (Chi2 c1) = Chi2 (c0*c1)
+  one = Chi2 1.0
+data Prong = Prong
+          { nProng        :: Int
+          , fitVertex     :: XMeas
+          , fitMomenta    :: Array QMeas
+          , fitChi2s      :: Array Chi2
+          , measurements  :: VHMeas
+          }
+-- fitMomenta :: Prong -> Array QMeas
+-- fitMomenta (Prong {fitMomenta= f}) = f
+instance Show Prong where
+  show _ = "Prong!!!!!!!!"
 
-
-type M     = Data.Matrix.Matrix Double
-type V     = Data.Matrix.Matrix Double
-type M33   = Data.Matrix.Matrix Double
-type V3    = Data.Matrix.Matrix Double
-type V5    = Data.Matrix.Matrix Double
-type Chi2  = Double
-data Prong = Prong { -- a prong results from a vertex fit of N helices
-    nProng        :: Int
-  , fitVertex     :: XMeas
-  , fitMomenta    :: [QMeas]
-  , fitChi2s      :: [Chi2]
-  , measurements  :: VHMeas
-                   } deriving Show
-
+-----------------------------------------------
+-- VHMeas
+--
 data VHMeas = VHMeas {
     vertex      :: XMeas
-  , helices     :: [HMeas]
-                     } deriving Show
-instance Monoid VHMeas where
-  mappend (VHMeas v hs) (VHMeas _ hs') = VHMeas v ( hs ++ hs' ) -- ???
-  mempty = VHMeas (XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)) []
+  , helices     :: Array HMeas
+                     }
+-- vertex :: VHMeas -> XMeas
+-- vertex (VHMeas {vertex=v}) = v
+-- helices :: VHMeas -> Array HMeas
+-- helices (VHMeas {helices=hs}) = hs
+{-- instance Semigroup VHMeas where --}
+{--   append (VHMeas v hs) (VHMeas _ hs') = VHMeas v ( hs ++ hs' ) --}
+{--   mempty = VHMeas (XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)) [] --}
 
-data MCtruth = MCtruth {
-    pu_zpositions :: [Double]
-                       } deriving Show
+instance Show VHMeas where
+  show (VHMeas {vertex=v, helices=hs}) = "VHMeas w/ " <> show (length hs)
+                                    <> " tracks. " <> show v
 
-data Jaco = Jaco M M M
-
-type H5 = V
-type C55 = M
-data HMeas = HMeas H5 C55 Double -- 5-vector and covariance matrix for helix measurement
-instance Show HMeas where
-  show = showHMeas
-
-d0Helix :: HMeas -> Double
-d0Helix (HMeas h _ _) = d0 where
-  [_, _, _, d0] = Matrix.toList 4 h
-
-z0Helix :: HMeas -> Double
-z0Helix (HMeas h _ _) = z0 where
-  [_, _, _, _, z0] = Matrix.toList 5 h
-
-ptHelix :: HMeas -> Double
-ptHelix (HMeas h _ w0) = pt where
-  [w] = Matrix.toList 1 h
-  pt   = w0 / abs w
-
-pzHelix :: HMeas -> Double
-pzHelix (HMeas h _ w0) = pz where
-  [w,tl] = Matrix.toList 2 h
-  pt   = w0 / abs w
-  pz   = pt * tl
-
-type Q3 = V
-data QMeas = QMeas Q3 C33 Double -- 3-vector and covariance matrix for momentum measurement
-instance Show QMeas where
-  show = showQMeas
-
--- 4-vector and coavariance matrix for momentum px,py,pz and energy
-type P4 = V -- four-vector
-type C44 = M -- 4x4 covariance matrix
-data PMeas = PMeas P4 C44
-
-instance Show PMeas where
-  show = showPMeas
-
------------------------------------------------------------------
-{-
-class Pretty a where
-  pretty :: Int -> a -> Doc
-
-instance Pretty PMeas where
-  pretty _ p  = text $ showPMeas p
--}
------------------------------------------------------------------
-
-instance Monoid PMeas where
-  mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
-  mempty = PMeas (Matrix.zero 4 1) (Matrix.zero 4 4)
-
--- instance Functor PMeas where
---   fmap f (PMeas p cp) = f p cp
-
-invMass :: [PMeas] -> MMeas
-invMass ps = mass . fold $ ps
-
-class Mom a where
-  mass :: a -> MMeas
-  energy :: a -> Double
-
-instance Mom PMeas where
-  mass = pmass
-  energy (PMeas p _) = e' where
-    [_,_,_,e'] = Matrix.toList 4 p
-
-instance Mom QMeas where
-  mass qm = pmass $ q2p qm
-  energy qm = e' where
-    PMeas p _ = q2p qm
-    [_,_,_,e'] = Matrix.toList 4 p
-
------------------------initial Lens stuff--------------
-
-newtype Identity a = Identity { runIdentity :: a }
-instance Functor Identity where
-    fmap f (Identity a) = Identity (f a)
-
-newtype Const a b = Const { getConst :: a }
-instance Functor (Const a) where
-  fmap _ (Const a) = Const a
-
-type Lens s a = forall f.Functor f => (a -> f a) -> s -> f s
-
-over :: Lens s a -> (a -> a) -> s -> s
-over ln f s = runIdentity $ ln (Identity . f) s
-
-view :: Lens s a -> s -> a
-view ln s = getConst $ ln Const s
-
-set :: Lens s a -> a -> s -> s
-set ln x = over ln (const x)
-
-helicesLens :: Lens VHMeas [HMeas]
-helicesLens f vm = fmap (\x -> vm { helices = x }) (f ( helices vm ))
-
-vertexLens :: Lens VHMeas XMeas
-vertexLens f vm = fmap (\x -> vm { vertex = x }) (f ( vertex vm ))
-
-vBlowup :: Double -> VHMeas -> VHMeas
-vBlowup scale vm = over vertexLens (blowup scale) vm where
-  blowup :: Double -> XMeas -> XMeas -- blow up diag of cov matrix
+vBlowup :: Number -> VHMeas -> VHMeas
+{-- vBlowup scale vm = over vertexLens (blowup scale) vm where --}
+vBlowup scale (VHMeas {vertex= v, helices= hs}) = VHMeas {vertex= (blowup scale v), helices= hs} where
+  blowup :: Number -> XMeas -> XMeas -- blow up diag of cov matrix
   blowup s (XMeas v cv) = XMeas v cv' where
-    cv' = Matrix.scaleDiag s $ cv
+    cv' = scaleDiag s cv
 
--- filter list of objects given list of indices in [a]
--- return list with only those b that have  indices that  are in rng [a]
-iflt :: ( Eq a, Enum a, Num a ) => [a] -> [b] -> [b]
-iflt rng hl =
-  [h | (h, i) <- zip hl [0..], i `elem` rng ]
+-- | filter list of objects given list of indices in [a]
+-- | return list with only those b that have  indices that  are in rng [a]
+iflt :: forall a. Array Int -> Array a  -> Array a
+iflt rng hl = hl
+-- do
+--   i <- rng
+--   pure $ A.unsafeIndex hl i
 
-irem :: (Eq a, Enum a, Num a) => a -> [b] -> [b]
-irem indx hl = [ h | (h,i) <- zip hl [0..], i /= indx ]
+-- | remove element at index
+irem :: forall a. Int -> [a] -> [a]
+irem indx hl = hl
+-- do
+--   i <- [0 .. ((length hl)-1)]
+--   guard $ i /= indx
+--   pure $ A.unsafeIndex hl i
 
-hFilter :: [Int] -> VHMeas -> VHMeas
-hFilter is (VHMeas v hl) = VHMeas v (iflt is hl)
+hFilter :: Array Int -> VHMeas -> VHMeas
+hFilter is (VHMeas {vertex=v, helices=hs}) = VHMeas {vertex=v, helices= (iflt is hs)}
 
 hRemove :: Int -> VHMeas -> VHMeas
-hRemove indx (VHMeas v hl) = VHMeas v (irem indx hl)
------------------------measurement------------
-data Meas a = MkMeas {  -- value and error
-      valM :: a
-    , errM :: a
-                   }
+hRemove indx (VHMeas {vertex=v, helices=hs}) = VHMeas {vertex=v, helices=(irem indx hs)}
 
-data MMeas = MMeas {
-      val :: Double
-    , err :: Double
-                     }
-instance Show MMeas where
-  show m = printf "%8.1f +- %8.1f MeV" ((val m)*1000.0) ((err m)*1000.0)
-
------------------------positions--------------
-
-type X3 = V
-type C33 = M
-data XMeas = XMeas X3 C33 -- 3-vector and covariance matrix for position/vertex measurement
-instance Show XMeas where
-  show = showXMeas
-instance Monoid XMeas where
-  mappend (XMeas x1 cx1) (XMeas x2 cx2) = XMeas (x1 + x2) (cx1 + cx2)
-  mempty = XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)
-
-data XFit = XFit X3 C33 Double
-instance Show XFit where
-  show (XFit x xx c2) = showXMeas (XMeas x xx)
-
-data QFit = QFit Q3 C33 Double Double
-instance Show QFit where
-  show (QFit q qq w2pt c2) = showQMeas (QMeas q qq w2pt)
-
-class Pos a where
-  distance :: a -> a -> DMeas -- distance between two poitions
-
-instance Pos XMeas where
-  distance x1 x2 = xmDist x1 x2
-
-data DMeas = DMeas Double Double -- distance and error
-instance Show DMeas where
-  show (DMeas d sd) = printf ("%6.2f +- %6.2f cm")(d::Double) (sd::Double)
-
-v3 :: [Double] -> V3
-v3 = Matrix.fromList 3
-l3 :: V3 -> [Double]
-l3 = Matrix.toList 3
-v5 :: [Double] -> V5
-v5 = Matrix.fromList 5
-l5 :: V5 -> [Double]
-l5 = Matrix.toList 5
-
--- return a string showing vertext position vector with errors
-showXMeas :: XMeas -> String
-showXMeas (XMeas v cv) = s' where
-  s2v        = Data.Vector.map sqrt $ Data.Matrix.getDiag cv
-  [x, y, z]  = Matrix.toList 3 v
-  [dx,dy,dz] = Data.Vector.toList s2v
-  f :: Double -> Double -> String -> String
-  f x dx s  = s ++ (printf "%6.2f +- %6.2f" (x::Double) (dx::Double))
-  s' = (f z dz) . (f y dy) . (f x dx) $
-    "(r,z) =" ++ (printf "(%6.2f,%6.2f), x y z =" (sqrt (x*x + y*y)) z)
-
-rVertex :: XFit -> Double
-rVertex (XFit v _ _) = sqrt (x*x + y*y) where
-  [x, y] = Matrix.toList 2 v
-
-chi2Vertex :: XFit -> Double
-chi2Vertex (XFit _ _ c2) = c2
-
-zVertex :: XFit -> Double
-zVertex (XFit v _ _) = z where
-  [_, _, z] = Matrix.toList 3 v
-
--- calculate distance between two vertices
-xmDist :: XMeas -> XMeas -> DMeas
-xmDist (XMeas v0 vv0) (XMeas v1 vv1) = DMeas d sd where
-  [x0, y0, z0] = Matrix.toList 3 v0
-  [x1, y1, z1] = Matrix.toList 3 v1
-
-  d    = sqrt((x0-x1)**2 + (y0-y1)**2 + (z0-z1)**2)
-
-  dd   = Data.Matrix.fromLists [[(x0-x1)/d, (y0-y1)/d, (z0-z1)/d]]
-  tem0 = Matrix.sw (Matrix.tr dd) vv0
-  tem1 = Matrix.sw (Matrix.tr dd) vv1
-  sd   = sqrt (Matrix.scalar tem0 + Matrix.scalar tem1)
-
--- print PMeas as a 4-momentum vector px,py,pz,E with errors
-showPMeas :: PMeas -> String
-showPMeas (PMeas p cp) = s' where
-  sp         = Data.Vector.map sqrt $ Data.Matrix.getDiag cp
-  f s (x, dx)  = s ++ printf "%8.3f +- %8.3f" (x::Double) (dx::Double) -- \xc2b1 ±±±±±
-  s' = (foldl f "" $ Data.Vector.zip (Data.Matrix.getCol 1 p) sp) ++ " GeV"
+-----------------------------------------------
+-- MCtruth
+--
+data MCtruth = MCtruth {
+    pu_zpositions :: Array Number
+                       }
+instance Show MCtruth where
+  show (MCtruth {pu_zpositions=puz}) = "MCtruth w/" <> show (length puz)
+                                                <> " PU z positions."
 
 
--- print HMeas as a 5-parameter helix with errors
+-----------------------------------------------
+-- HMeas
+-- 5-vector and covariance matrix for helix measurement
+--
+data HMeas = HMeas Vec5 Cov5 Number
+instance Show HMeas where
+  show (HMeas h ch w0) = s' where
+    sh = map sqrt $ diag ch
+    hs = toArray h
+    s00 = to5fix x <> " +-" <> to5fix dx where
+      x  = uidx hs 0
+      dx = uidx sh 0
+    s' = foldl f s00 (drop 1 $ zip hs sh) where
+      f s (Tuple x dx)  = s <> to3fix x <> " +-" <> to3fix dx
 
-showHMeas :: HMeas -> String
-showHMeas (HMeas h ch _) = s' where
-  sh = Data.Vector.map sqrt $ Data.Matrix.getDiag ch
-  s00 = printf "%10.3g +- %10.3g" (x::Double) (dx::Double) where
-    x  = head (Data.Matrix.toList h)
-    dx = head (Data.Vector.toList sh)
-  s' = foldl f s00 (Data.Vector.drop 1 $ Data.Vector.zip (Data.Matrix.getCol 1 h) sh) where
-    f s (x, dx)  = s ++ printf "%8.3f +- %8.3f" (x::Double) (dx::Double)
-
+-----------------------------------------------
+-- QMeas
+-- 3-vector and covariance matrix for momentum measurement
+--
+mπ :: Number
+mπ = 0.1395675
+data QMeas = QMeas Vec3 Cov3 Number
+instance Show QMeas where
+  show = showQMeas
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
 showQMeas :: QMeas -> String
 showQMeas (QMeas q cq w2pt) = s' where
-  f :: String -> (Double, Double) -> String
-  f s (x, dx) = s ++ printf "%8.3f +- %8.3f" (x::Double) (dx::Double)
-  m = mπ
-  wp = w2pt
-  [w,tl,psi0] = take 3 (Data.Matrix.toList q)
-  pt   = wp / abs w
-  pz = pt*tl
-  psi = psi0*180.0/pi
-  e = sqrt(pt*pt  + pz*pz + m*m)
-  jj   = Data.Matrix.fromLists [
-            [-wp/w/w, -wp/w/w*tl,0, -(pz*pz + pt*pt)/w/e ]
-          , [0, wp/w, 0, pt*pt*tl/e]
-          , [0, 0, 1.0, 0] ]
-  cq'  = (Data.Matrix.transpose jj) * cq* jj
-  p'   = Data.Vector.fromList [pt, pz, psi, e]
---    dp'  = Data.Vector.map sqrt $ Data.Matrix.getDiag cq'
-  [d1,d2,d3,d4]  = Data.Vector.toList $ Data.Vector.map sqrt $ Data.Matrix.getDiag cq'
-  dp' = Data.Vector.fromList [d1,d2,d3*180.0/pi,d4]
-  s' = (foldl f "" $ Data.Vector.zip p' dp' ) ++ " GeV"
+  f :: String -> (Tuple Number Number) -> String
+  f s (Tuple x dx)  = s <> to3fix x <> " +-" <> to3fix dx
+  m          = mπ
+  wp         = w2pt
+  qs :: Array Number
+  qs         = toArray q
+  w          = uidx qs 0
+  tl         = uidx qs 1
+  psi0       = uidx qs 2
+  pt         = wp / abs w
+  pz         = pt*tl
+  psi        = psi0*180.0/pi
+  e          = sqrt(pt*pt  + pz*pz + m*m)
+  jj :: Jac34
+  jj         = fromArray
+              [ -wp/w/w, -wp/w/w*tl, 0.0, -(pz*pz + pt*pt)/w/e
+              , 0.0, wp/w, 0.0, pt*pt*tl/e
+              , 0.0, 0.0, 1.0, 0.0]
+  cq'        = jj .*. cq
+  p'         = [pt, pz, psi, e]
+  dp         = map sqrt $ diag cq'
+  d1         = uidx dp 0
+  d2         = uidx dp 1
+  d3         = uidx dp 2
+  d4         = uidx dp 3
+  dp'        = [d1, d2, d3*180.0/pi, d4]
+  s'         = (foldl f "" $ zip p' dp' ) <> " GeV"
 
+fromHMeas :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
+fromHMeas (HMeas h ch w2pt) = QMeas q cq w2pt where
+  q = subm 3 h
+  cq = subm2 3 ch
 
 h2p :: HMeas -> PMeas
-h2p hm = (q2p . h2q) hm
+h2p = fromQMeas <<< fromHMeas
 
-h2q :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
-h2q (HMeas h ch w2pt) = QMeas q cq w2pt where
-  q = Matrix.sub 3 h
-  cq = Matrix.sub2 3 ch
+-----------------------------------------------
+-- PMeas
+-- 4-vector and coavariance matrix for momentum px,py,pz and energy
+--
+data PMeas = PMeas Vec4 Cov4
+instance Semigroup PMeas where
+  (<>) (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
+instance Monoid PMeas where
+  mempty = PMeas zero zero
+instance Show PMeas where
+  show = showPMeas
+-- print PMeas as a 4-momentum vector px,py,pz,E with errors
+showPMeas :: PMeas -> String
+showPMeas (PMeas p cp) = s' where
+  sp :: Array Number
+  sp         = map sqrt $ diag cp
+  f s (Tuple x dx)  = s <> to3fix x <> " +-" <> to3fix dx -- \xc2b1 ±±±±±
+  s' = (foldl f "" $ zip (toArray p) sp) <> " GeV"
+
+invMass :: Array PMeas -> MMeas
+invMass ps = pmass <<< fold $ ps
 
 pmass :: PMeas -> MMeas
 pmass (PMeas p cp) = mm  where
-  [px,py,pz,e] = Matrix.toList 4 p
-  [c11, c12, c13, c14, _, c22, c23, c24, _, _, c33, c34, _, _, _, c44]
-        = Matrix.toList 16 cp
-  m     = sqrt $ max (e*e-px*px-py*py-pz*pz) 0
+  ps    = toArray p
+  px    = uidx ps 0
+  py    = uidx ps 1
+  pz    = uidx ps 2
+  e     = uidx ps 3
+  cps   = toArray cp
+  c11   = uidx cps 0
+  c12   = uidx cps 1
+  c13   = uidx cps 2
+  c14   = uidx cps 3
+  c22   = uidx cps 5
+  c23   = uidx cps 6
+  c24   = uidx cps 7
+  c33   = uidx cps 10
+  c34   = uidx cps 11
+  c44   = uidx cps 15
+  m     = sqrt $ max (e*e-px*px-py*py-pz*pz) 0.0
   sigm0 = px*c11*px + py*c22*py + pz*c33*pz + e*c44*e +
             2.0*(px*(c12*py + c13*pz - c14*e)
                + py*(c23*pz - c24*e)
                - pz*c34*e)
-  sigm  =  sqrt ( max sigm0 0 ) / m
-  mm    = MMeas m sigm
+  dm    =  sqrt ( max sigm0 0.0 ) / m
+  mm    = MMeas {m=m, dm=dm}
 
-q2p :: QMeas -> PMeas
-q2p (QMeas q0 cq0 w2pt) = PMeas p0 cp0 where
+fromQMeas :: QMeas -> PMeas
+fromQMeas (QMeas q0 cq0 w2pt) = PMeas p0 cp0 where
   m = mπ
-  [w,tl,psi0] = Matrix.toList 3 q0
+  q0s = toArray q0
+  w    = uidx q0s 0
+  tl   = uidx q0s 1
+  psi0 = uidx q0s 2
   sph  = sin psi0
   cph  = cos psi0
   pt   = w2pt / abs w
   px   = pt * cph
   py   = pt * sph
   pz   = pt * tl
-  sqr = \x -> x*x
-  e = sqrt(px*px + py*py + pz*pz + m*m)
-  ps = w2pt / w
+  sqr  = \x -> x*x
+  e    = sqrt(px*px + py*py + pz*pz + m*m)
+  ps   = w2pt / w
   dpdk = ps*ps/w2pt
-  [c11, c12, c13, _, c22, c23, _, _, c33] = Matrix.toList 9 cq0
-  xy = 2.0*ps*dpdk*cph*sph*c13
-  sxx = sqr (dpdk*cph) * c11 + sqr (ps*sph) * c33 + xy
-  sxy = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +
+  cq0s = toArray cq0
+  c11  = uidx cq0s 0
+  c12  = uidx cq0s 1
+  c13  = uidx cq0s 2
+  c22  = uidx cq0s 4
+  c23  = uidx cq0s 5
+  c33  = uidx cq0s 8
+  xy   = 2.0*ps*dpdk*cph*sph*c13
+  sxx  = sqr (dpdk*cph) * c11 + sqr (ps*sph) * c33 + xy
+  sxy  = cph*sph*(dpdk*dpdk*c11 - ps*ps*c33) +
            ps*dpdk*(sph*sph-cph*cph)*c13
-  syy = sqr (dpdk*sph) * c11 + sqr (ps*cph) * c33 - xy
-  sxz = dpdk*dpdk*cph*tl*c11 -
+  syy  = sqr (dpdk*sph) * c11 + sqr (ps*cph) * c33 - xy
+  sxz  = dpdk*dpdk*cph*tl*c11 -
            ps*dpdk*(cph*c12-sph*tl*c13) -
            ps*ps*sph*c23
-  syz = dpdk*dpdk*sph*tl*c11 -
+  syz  = dpdk*dpdk*sph*tl*c11 -
            ps*dpdk*(sph*c12 + cph*tl*c13) +
            ps*ps*cph*c23
-  szz = sqr (dpdk*tl) * c11 + ps*ps*c22 -
+  szz  = sqr (dpdk*tl) * c11 + ps*ps*c22 -
            2.0*ps*dpdk*tl*c12
-  sxe = (px*sxx + py*sxy + pz*sxz)/e
-  sye = (px*sxy + py*syy + pz*syz)/e
-  sze = (px*sxz + py*syz + pz*szz)/e
-  see = (px*px*sxx + py*py*syy + pz*pz*szz +
+  sxe  = (px*sxx + py*sxy + pz*sxz)/e
+  sye  = (px*sxy + py*syy + pz*syz)/e
+  sze  = (px*sxz + py*syz + pz*szz)/e
+  see  = (px*px*sxx + py*py*syy + pz*pz*szz +
          2.0*(px*(py*sxy + pz*sxz) + py*pz*syz))/e/e
 
-  p0 = Matrix.fromList 4 [px,py,pz,e]
-  cp0 = Matrix.fromList2 4 4 [sxx, sxy, sxz, sxe, sxy, syy, syz, sye, sxz, syz, szz, sze, sxe, sye, sze, see]
+  cp0  = fromArray [ sxx, sxy, sxz, sxe
+                        , syy, syz, sye
+                             , szz, sze
+                                  , see]
+  p0   = fromArray [px,py,pz,e]
+
+-----------------------------------------------
+-- MMeas
+-- scalar mass and error calculated from PMeas covariance matrices
+--
+data MMeas = MMeas
+            { m :: Number
+            , dm :: Number
+            }
+instance Show MMeas where
+  show (MMeas {m=m, dm=dm}) = " " <> to1fix (m*1000.0) <> " +-" <> to1fix (dm*1000.0) <> " MeV"
+
+-----------------------------------------------
+-- XMeas
+-- 3-vector and covariance matrix for position/vertex measurement
+--
+data DMeas = DMeas Number Number -- distance and error
+instance Show DMeas where
+  show (DMeas d sd) = to2fix d <> " +-" <> to2fix sd <> " cm"
+class Pos a where
+  distance :: a -> a -> DMeas -- distance between two positions
+instance Pos XMeas where
+  distance (XMeas v0 vv0) (XMeas v1 vv1) = DMeas d sd where
+    v0s = toArray v0
+    x0 = uidx v0s 0
+    y0 = uidx v0s 1
+    z0 = uidx v0s 2
+    v1s = toArray v1
+    x1 = uidx v1s 0
+    y1 = uidx v1s 1
+    z1 = uidx v1s 2
+
+    d  = sqrt(sqr(x0-x1) + sqr(y0-y1) + sqr(z0-z1))
+    dd :: Vec3
+    dd = fromArray [(x0-x1)/d, (y0-y1)/d, (z0-z1)/d]
+    tem0 = dd .*. vv0
+    tem1 = dd .*. vv1
+    sd   = sqrt (tem0 + tem1)
+
+data XMeas = XMeas Vec3 Cov3
+instance Semigroup XMeas where
+  (<>) (XMeas x1 cx1) (XMeas x2 cx2) = XMeas (x1 + x2) (cx1 + cx2)
+instance Monoid XMeas where
+  mempty = XMeas zero zero
+instance Show XMeas where
+  show = showXMeas
+-- return a string showing vertex position vector with errors
+showXMeas :: XMeas -> String
+showXMeas (XMeas v cv) = s' where
+  vv :: Array Number
+  vv         = toArray v
+  x          = uidx vv 0
+  y          = uidx vv 1
+  z          = uidx vv 2
+  s2v :: Array Number
+  s2v        = map sqrt $ diag cv
+  dx         = uidx s2v 0
+  dy         = uidx s2v 1
+  dz         = uidx s2v 2
+  f :: Number -> Number -> String -> String
+  f x dx s  = s <> to2fix x <>  " +-" <> to2fix dx
+  s' = (f z dz) <<< (f y dy) <<< (f x dx) $
+    "(r,z) =" <> "(" <> to2fix (sqrt (x*x + y*y))
+              <> ", " <> to2fix z <> "), x y z ="
 

@@ -25,6 +25,7 @@ library
   exposed-modules:    FV.Fit
                     , FV.Types
                     , FV.Coeff
+                    , Stuff
                     , Data.SimpleMatrix
                     , Data.Cov
                     , Test.Input
@@ -34,6 +35,7 @@ library
                     , Test.Test
   build-depends:      base >= 4.7 && < 5
                     , text
+                    , semigroups
                     , matrix
                     , mtl
                     , interpolate

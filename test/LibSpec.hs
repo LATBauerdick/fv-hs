@@ -21,6 +21,11 @@ main = hspec spec
 spec :: Spec
 spec =
   describe "Lib Tests" $ do
+    describe "Cov" $ do
+      it "testCov works" $ do
+        s = testCov2
+        (head s) `shouldBe` 'T'
+
     describe "FSMW Tests" $ do
       it "FSMW5 works" $ do
         let xs = [5.0, 6.2, 7.0, 8.0, 9.0]
@@ -56,7 +61,6 @@ spec =
       -- it "doCluster works" $ do
       --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
       --   (1 :: Int) `shouldBe` 1
-
 
       it "hSlurp works" $ do
         (VHMeas _ hl, mc) <- hSlurp "dat/tav-4.dat"
