@@ -6,7 +6,7 @@ import Prelude
 import System.Environment
 import System.Exit
 
-import Test.Test ( test )
+-- import Test.Test ( test )
 
 main :: IO ()
 main = getArgs >>= parse
@@ -14,8 +14,8 @@ main = getArgs >>= parse
 parse :: [String] -> IO ()
 parse ["-h"] = usage   >> exit
 parse ["-v"] = version >> exit
-parse []     = test ["1"]
-parse args   = test args
+parse []     = exit -- test ["1"]
+parse args   = exit -- test args
 
 usage :: IO ()
 usage   = putStrLn "Usage: fvt [-vh] [test# ..]"

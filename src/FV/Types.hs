@@ -44,6 +44,8 @@ instance Semiring Chi2 where
   zero = Chi2 0.0
   mul (Chi2 c0) (Chi2 c1) = Chi2 (c0*c1)
   one = Chi2 1.0
+instance Num Chi2 where
+  (+) (Chi2 a) (Chi2 b) = Chi2 (a+b)
 data Prong = Prong
           { nProng        :: Int
           , fitVertex     :: XMeas
@@ -82,22 +84,6 @@ vBlowup scale (VHMeas {vertex= v, helices= hs}) =
   blowup :: Number -> XMeas -> XMeas -- blow up diag of cov matrix
   blowup s (XMeas v cv) = XMeas v cv' where
     cv' = scaleDiag s cv
-
--- | filter list of objects given list of indices in [a]
--- | return list with only those b that have  indices that  are in rng [a]
-iflt :: forall a. List Int -> List a  -> List a
-iflt rng hl = hl
--- do
---   i <- rng
---   pure $ A.unsafeIndex hl i
-
--- | remove element at index
-irem :: forall a. Int -> List a -> List a
-irem indx hl = hl
--- do
---   i <- [0 .. ((length hl)-1)]
---   guard $ i /= indx
---   pure $ A.unsafeIndex hl i
 
 hFilter :: List Int -> VHMeas -> VHMeas
 hFilter is (VHMeas {vertex=v, helices=hs}) = VHMeas {vertex=v, helices= (iflt is hs)}

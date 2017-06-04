@@ -28,11 +28,10 @@ library
                     , Stuff
                     , Data.SimpleMatrix
                     , Data.Cov
+                    , Test.FVT
                     , Test.Input
                     , Test.Random
                     , Test.Probability
-                    , Test.Cluster
-                    , Test.Test
   build-depends:      base >= 4.7 && < 5
                     , text
                     , semigroups

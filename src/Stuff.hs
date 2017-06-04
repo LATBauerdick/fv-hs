@@ -17,6 +17,7 @@ module Stuff ( (<>), Semiring (..), Ring (..)
   , Tuple (..)
   , List (..)
   , to0fix, to1fix, to2fix, to3fix, to5fix
+  , iflt, irem
   , toNumber, intFromString, numberFromString
   , sqr, div', mod', divMod'
   , normals
@@ -49,6 +50,15 @@ uJust = fromJust
 (<<<) :: (b -> c) -> (a -> b) -> a -> c
 (<<<) = (.)
 infixr 9 <<<
+
+-- filter list of objects given list of indices in [a]
+-- return list with only those b that have  indices that  are in rng [a]
+iflt :: ( Eq a, Enum a, Num a ) => [a] -> [b] -> [b]
+iflt rng hl =
+  [h | (h, i) <- zip hl [0..], i `elem` rng ]
+
+irem :: (Eq a, Enum a, Num a) => a -> [b] -> [b]
+irem indx hl = [ h | (h,i) <- zip hl [0..], i /= indx ]
 
 -- | A simple product type for wrapping a pair of component values.
 -- type Tuple a b = (a, b)
@@ -133,3 +143,5 @@ normals n g = (ns, g') where
                         (n1,n2,g') = boxMuller g
   (g', ls) = foldl doNormals (g, []) is
   ns = A.fromList <<< L.take n $ ls
+
+
