@@ -428,7 +428,7 @@ instance SW (Vec a) (Cov a) Number where
 --    mc' = M.transpose mv * mc * mv
 --    n = uidx (M.toArray mc') 0
 instance SW (Cov a) (Cov a) (Cov a) where
-  (.*.) ca cb = undefined
+  (.*.) ca cb = ca `debug` "called SW Cova Cova"
 --  sw c1 c2 = c' where
 --    j' = c1 *. c2 *. c1
 --    c' = fromArray $ toArray j'
@@ -463,7 +463,7 @@ instance SW (Jac a b) (Cov a) (Cov b) where
           MA.unsafeWrite v (ixc i0 j0) $
             sum [ (uidx va (ixa k0 i0 )) * (uidx vint (ixb k0 j0))
               | k0 <- [0 .. (n-1)] ]
-      pure v
+      pure v `debug` "called SW Jac Cov xxxxxxxxxxxxxxxxxxxxxxxxxxx"
 -------------------------------------------------------
 -------------------------------------------------------
 ---- NUMERICAL INSTANCE

@@ -27,7 +27,7 @@ module FV.Types
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
-  ( length, unsafeIndex, drop, zip, map, foldl )
+  ( head, length, unsafeIndex, drop, zip, map, foldl )
 import Data.Semigroup
 import Data.Foldable ( fold )
 import Control.Monad (guard)
@@ -130,7 +130,8 @@ instance Show QMeas where
 showQMeas :: QMeas -> String
 showQMeas (QMeas q cq w2pt) = s' where
   f :: String -> (Number, Number) -> String
-  f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
+  -- f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
+  f s (x, dx)  = s <> show x <> " +-" <> show dx
   m          = mπ
   wp         = w2pt
   qs :: Array Number
@@ -148,7 +149,7 @@ showQMeas (QMeas q cq w2pt) = s' where
               , 0.0, wp/w, 0.0, pt*pt*tl/e
               , 0.0, 0.0, 1.0, 0.0]
   cq'        = jj .*. cq
-  p'         = [pt, pz, psi, e]
+  p'         = [pt, pz, psi, e] `debug` (show cq')
   dp         = A.map sqrt $ diag cq'
   d1         = uidx dp 0
   d2         = uidx dp 1
