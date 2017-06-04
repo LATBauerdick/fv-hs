@@ -597,6 +597,8 @@ subm2 n (Cov {vc=v}) = Cov {vc= _subm2 v} where
 -- except for its diagonal elements which are returned in p[1..n].
 
 
+chol :: forall a. Cov a -> Jac a a
+chol = choldc
 choldc :: forall a. Cov a -> Jac a a
 choldc (Cov {vc= a}) = Jac {vj= a'} where
   ll = A.length a
@@ -702,7 +704,7 @@ cholInv (Cov {vc= a}) = Cov {vc= a'} where
         _ <- MA.unsafeWrite arr (ixarr j0 i0) ((msum)/(mp_j))
         pure ()
     pure arr
-      
+
   a' = A.create $ do
     v <- MA.new $ n * (n+1) `div` 2
     let ixa = indVs n

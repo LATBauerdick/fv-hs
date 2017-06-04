@@ -1,68 +1,89 @@
-{-# LANGUAGE BangPatterns, RankNTypes #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ExplicitForAll #-}
+--{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+--{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+--{-# LANGUAGE RebindableSyntax #-}
+--{-# LANGUAGE ScopedTypeVariables #-}
 
-module Test.Random ( doRandom ) where
+{-# LANGUAGE OverloadedLists #-}
+--{-# LANGUAGE NamedFieldPuns #-}
+
+module Test.Random ( testRandom ) where
 
 import Prelude
-import Control.Parallel.Strategies
-import System.Random
-import Data.Random.Normal
+-- import Control.Monad.Eff (Eff)
+-- import Control.Monad.Eff.Console ( CONSOLE, log )
+-- import Control.Monad.Eff.Random ( RANDOM )
+-- import Data.List.Lazy ( replicateM )
+import Data.Vector.Unboxed as A
+  ( zipWith, replicateM, fromList )
+-- import Data.Traversable ( for )
+-- import Data.Tuple ( Tuple (..) )
 import Statistics.Sample ( meanVariance )
+import Statistics.Sample ( meanVariance )
+import System.Random ( RandomGen, newStdGen )
 
-import qualified Data.Vector.Unboxed as V ( Vector, fromList, toList )
+import Data.Cov ( chol, fromArray, toArray, (*.), Vec5 )
+import FV.Fit ( fit )
+import FV.Types ( VHMeas(..), HMeas(..), MMeas(..)
+  , invMass, fromQMeas, fitMomenta )
+import Stuff
 
-import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
+{-- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts --}
+{-- import Graphics.Histogram --}
 
-import FV.Types ( XMeas (..), VHMeas (..), HMeas (..), Prong (..), MMeas (..)
-             , invMass, q2p, v3,l3,v5,l5 )
-import Data.SimpleMatrix ( toList, fromList, chol, scalar )
-import FV.Fit ( fit, fitw )
+-- | Randomizable TypeClass to provide randomize method
+-- | for MC smearing of a measurement
+class Randomizable a where
+  randomize :: RandomGen g => a -> g -> (a, g)
+-- | randomize a single helix parameters measurement, based on the cov matrix
+-- | return randomized helix
+instance Randomizable HMeas where
+  randomize (HMeas h hh w0) g = (HMeas h' hh w0, g') where
+    (rs, g') = normals 5 g
+    r5 :: Vec5
+    r5 = fromArray rs
+    h' = fromArray $ A.zipWith (+) (toArray h) (toArray (chol hh *. r5))
 
-import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
-import Graphics.Histogram
-
--- class Randomizable a where
---   randomize :: forall e. a -> IO a
--- instance Randomizable HMeas where
---   randomize (HMeas h hh w0) = do
---     rs <- normals 5
---     let h' = fromArray $ zipWith (+) (toArray h)
---                                      (toArray (chol hh * fromArray rs))
---     pure $ HMeas h' hh w0
-
-doRandom :: Int -> VHMeas -> IO ()
-doRandom cnt vm = do
-  putStrLn $ "Fit Mass  " ++ (show . invMass . map q2p . fitMomenta . fit $ vm)
-
-  g <- newStdGen
-  let hf :: V.Vector Double
-      hf = V.fromList
-          . withStrategy (parBuffer 100 rdeepseq)
-          . map fitm
-          . take cnt . gen vm . normals $ g -- produce a list of cnt randomized VHMeas
-      (mean, var) = meanVariance hf
-  putStrLn $ "Mean Mass " ++ show (MMeas mean (sqrt var))
-  let hist = histogram binSturges (V.toList hf)
-  _ <- plot "invMass.png" hist
-  return ()
-
-gen :: VHMeas -> [Double] -> [VHMeas]
-gen v rs = v' : gen v rs' where
-  (v', rs') = randVH v rs
+-- | randomize a vertex measurement by randomizing each helix parameter measurement
+-- | leaving the initial vertex untouched
+instance Randomizable VHMeas where
+  randomize (VHMeas { vertex= v, helices= hl}) g = 
+    (VHMeas { vertex= v, helices= hl' }, g') where
+      doit :: RandomGen g => HMeas -> (List HMeas, g) -> (List HMeas, g)
+      doit h (hs, g) = (hs', g') where
+        (h', g') = randomize h g
+        hs' = h' : hs
+      (hl', g') = foldr doit ([], g) hl
 
 -- calc fitted invariant mass of VHMeas
-fitm :: VHMeas -> Double
+fitm :: VHMeas -> Number
 fitm vm = m where
-  (MMeas m _) = invMass . map q2p . fitMomenta $ fit vm
+  MMeas {m= m} = invMass <<< map fromQMeas <<< fitMomenta $ fit vm
 
--- randomize the helices in the supplied VHMeas
--- and return randomized VHMeas and remaining randoms list
-randVH :: VHMeas -> [Double] -> (VHMeas, [Double])
-randVH (VHMeas v hl) rs = (VHMeas v hl', rs') where
-  (rs', hl') = mapAccumL randH rs hl
+testRandom :: forall e. Int
+              -> VHMeas
+              -> IO String
+testRandom cnt vm = do
+  g <- newStdGen
+  let ls :: [Int]
+      ls = [ 0 .. (cnt-1) ]
+      (ms, g') = foldl doit ([], g) ls where
+        doit :: RandomGen g => (List Number, g) -> Int -> (List Number, g)
+        doit (ms, g) _ = (ms', g') where
+          (vm', g') = randomize vm g
+          m = fitm vm'
+          ms' = m : ms
+  let (m, dm2) = meanVariance $ A.fromList ms
 
--- randomize a single helix parameters measurement, based on the cov matrix
--- return randomized helix and "remaining" random numbers
-randH :: [Double] -> HMeas -> ([Double], HMeas)
-randH (r0:r1:r2:r3:r4:rs) (HMeas h hh w0) = (rs, HMeas h' hh w0) where
-  h' = v5 $ zipWith (+) (l5 h) (l5 (chol hh * v5 [r0,r1,r2,r3,r4]))
+  pure $ "Fit Mass  "
+          <> (show <<< invMass <<< map fromQMeas
+                              <<< fitMomenta <<< fit $ vm)
+          <> "\nMean Mass " <> show (MMeas {m=m, dm=sqrt dm2})
+  {-- let hist = histogram binSturges (V.toList hf) --}
+  {-- _ <- plot "invMass.png" hist --}
 

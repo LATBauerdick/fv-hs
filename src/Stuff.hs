@@ -19,15 +19,19 @@ module Stuff ( (<>), Semiring (..), Ring (..)
   , to0fix, to1fix, to2fix, to3fix, to5fix
   , toNumber, intFromString, numberFromString
   , sqr, div', mod', divMod'
+  , normals
   )  where
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
   ( Vector, length, fromList, toList, unsafeIndex, create, replicate
-  , singleton, map, foldl, zipWith )
+  , singleton, map, foldl, zipWith
+    , replicateM, concat, take )
 import Data.Maybe (  Maybe (..), fromJust )
 import Text.Printf ( printf )
 import Text.Read ( readMaybe )
+import System.Random ( RandomGen, random )
+import Data.List as L ( take )
 
 --------------------------------------------------------------
 -- adapting for PureScript
@@ -106,3 +110,26 @@ intFromString :: String -> Maybe Int
 intFromString s = readInt s where
   readInt = readMaybe :: String -> Maybe Int
 
+
+-- | generate a list of n normally distributed random values
+-- | usinging the Box-Muller method and the random function
+boxMuller :: RandomGen g => g -> (Number, Number, g)
+boxMuller g = let
+                (u1, g1) = random g
+                (u2, g2) = random g1
+                r = sqrt (-2.0 * log u1)
+                t = 2.0 * pi * u2
+                b1 = r * cos t
+                b2 = r * sin t
+             in ( b1, b2, g2 )
+normals :: RandomGen g => Int -> g -> (Array Number, g)
+normals n g = (ns, g') where
+  nto :: Int
+  nto = n `div` 2
+  is :: List Int
+  is = [0 .. n `div` 2]
+  doNormals :: RandomGen g => (g, List Number) -> Int -> (g, List Number)
+  doNormals (g, ns) _ = (g', n1:n2:ns) where
+                        (n1,n2,g') = boxMuller g
+  (g', ls) = foldl doNormals (g, []) is
+  ns = A.fromList <<< L.take n $ ls

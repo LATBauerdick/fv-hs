@@ -52,9 +52,7 @@ kAdd' :: XMeas -> HMeas -> Vec3 -> Vec3 -> Number -> Int -> XMeas
 --        i == 0 && trace ("kadd'-->" <> show i <> "|" <> show v0 <> show h) false = undefined
 kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
   jj    = J.expand x_e q_e
-  aa    = jj.aa
-  bb    = jj.bb
-  h0    = jj.h0
+  Jacs {aajacs=aa, bbjacs=bb, h0jacs=h0} = jj
   aaT   = tr aa
   bbT   = tr bb
   x_k   = case invMaybe (bb .*. gg) of
@@ -76,7 +74,7 @@ kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
 kSmooth :: VHMeas -> XMeas -> Prong
 --kSmooth vm v | trace ("kSmooth " <> (show <<< length <<< helices $ vm) <> ", vertex at " <> (show v) ) false = undefined
 kSmooth (VHMeas {vertex= v0, helices= hl}) v = pr' where
-  (Tuple ql chi2l) = unzip $ mapMaybe (ksm v) hl
+  (ql, chi2l) = unzip $ mapMaybe (ksm v) hl
   hl' = hl
   n = length hl
   n' = length ql
@@ -85,13 +83,10 @@ kSmooth (VHMeas {vertex= v0, helices= hl}) v = pr' where
 
 -- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
 -- if we can't invert, return Nothing and this track will not be included
-ksm :: XMeas -> HMeas -> Maybe (Tuple QMeas Chi2)
+ksm :: XMeas -> HMeas -> Maybe (QMeas, Chi2)
 ksm (XMeas x cc) (HMeas h hh w0) = do
   let
-      jj = J.expand x (J.hv2q h x)
-      aa = jj.aa
-      bb = jj.bb
-      h0 = jj.h0
+      Jacs {aajacs=aa, bbjacs=bb, h0jacs=h0} = J.expand x (J.hv2q h x)
       gg   = inv hh
   ww <- invMaybe (bb .*. gg)
   let p    = h - h0
@@ -122,5 +117,5 @@ ksm (XMeas x cc) (HMeas h hh w0) = do
                       cx'' = if cx' < 0.0 then 2000.0 `debug` ("--> ksm chi2 is " <> show cx' <> ", " <> show ch <> ", " <> show ((max cx' 0.0) + ch))
                                         else cx'
       𝜒2 = cx + ch
-  pure (Tuple (QMeas q dd w0) (Chi2 𝜒2))
+  pure ((QMeas q dd w0), (Chi2 𝜒2))
 
