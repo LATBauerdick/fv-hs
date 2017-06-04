@@ -15,8 +15,8 @@
 module FV.Fit where
 
 import Prelude
-import qualified Data.Vector.Unboxed as A ( foldl, unzip, mapMaybe, length )
-import Data.Maybe ( Maybe (..) )
+import qualified Data.Vector.Unboxed as A ( foldl, unzip, length )
+import Data.Maybe ( Maybe (..), mapMaybe )
 
 import Stuff
 import Data.Cov
@@ -30,7 +30,7 @@ fit :: VHMeas -> Prong
 fit vhm = kSmooth vhm <<< kFilter $ vhm
 
 kFilter :: VHMeas -> XMeas
-kFilter (VHMeas {vertex, helices}) = foldl kAdd vertex helices
+kFilter (VHMeas {vertex=v, helices=hl}) = foldl kAdd v hl
 
 kAdd :: XMeas -> HMeas -> XMeas
 kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
@@ -39,7 +39,7 @@ kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e 1e6 0 where
   x_e   = v
   q_e   = J.hv2q h v
 
-goodEnough :: Number -> Number -> Int -> Boolean
+goodEnough :: Number -> Number -> Int -> Bool
 --goodEnough c0 c i | i < 99 && trace ("." <> show i <> "|" <> to1fix (abs (c-c0)) <> " " <> to1fix c) false = undefined
 goodEnough c0 c i = abs (c - c0) < chi2cut || i > iterMax where
   chi2cut = 0.5
@@ -75,13 +75,13 @@ kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
 
 kSmooth :: VHMeas -> XMeas -> Prong
 --kSmooth vm v | trace ("kSmooth " <> (show <<< length <<< helices $ vm) <> ", vertex at " <> (show v) ) false = undefined
-kSmooth (VHMeas {vertex: v0, helices: hl}) v = pr' where
+kSmooth (VHMeas {vertex= v0, helices= hl}) v = pr' where
   (Tuple ql chi2l) = unzip $ mapMaybe (ksm v) hl
   hl' = hl
   n = length hl
   n' = length ql
   n'' = if n == n' then n else n' `debug` "kSmooth killed helices"
-  pr' = Prong { fitVertex: v, fitMomenta: ql, fitChi2s: chi2l, nProng: n'', measurements: VHMeas {vertex: v0, helices: hl'} }
+  pr' = Prong { fitVertex= v, fitMomenta= ql, fitChi2s= chi2l, nProng= n'', measurements= VHMeas {vertex= v0, helices= hl'} }
 
 -- kalman smoother step: calculate 3-mom q and chi2 at kalman filter'ed vertex
 -- if we can't invert, return Nothing and this track will not be included

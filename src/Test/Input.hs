@@ -15,10 +15,11 @@ module Test.Input ( hSlurp, hSlurpMCtruth ) where
 
 import Prelude
 import Control.Monad (guard)
---import Data.Array as A ( take, drop, (!!), fromFoldable, mapMaybe, range, slice )
---import Data.List as L ( head, index, slice, mapMaybe, drop )
+import qualified Data.Vector.Unboxed as A
+  ( fromList )
+import Data.List as L ( head, drop, take )
 --import Data.Tuple (Tuple (..), fst)
-import Data.Maybe ( Maybe (Nothing, Just) )
+import Data.Maybe ( mapMaybe )
 --import Control.Plus (empty)
 
 import Data.Cov
@@ -26,7 +27,7 @@ import FV.Types ( MCtruth (..), VHMeas (..), XMeas (..), HMeas (..) )
 import Stuff
 
 
-type FilePath = String -- from Node.Path
+-- type FilePath = String -- from Node.Path
 
 {-- listToArray :: forall a. List a -> Array a --}
 {-- listToArray = ?whatGoesHere --}
@@ -37,14 +38,14 @@ hSlurpMCtruth ds = mc where
   ws = words ds
   npu :: Maybe Int
   npu = do
-              key <- L.head ws
+              key <- pure <<< L.head $ ws
               guard $ key == "PU_zpositions:"
-              snpu <- L.index ws 1
-              Data.Int.fromString snpu
+              snpu <- pure <<< L.head <<< L.drop 1 $ ws
+              intFromString snpu
   mc = case npu of
               Nothing -> Nothing
-              Just n -> let
-                            mcArr = fromFoldable $ L.mapMaybe fromString $ L.slice 2 (2+n) ws
+              Just _ -> let
+                            mcArr = mapMaybe numberFromString <<< L.drop 2 $ ws
                         in Just $ MCtruth { pu_zpositions= mcArr }
 
 -- slurps up a String with a bunch of Doubles
@@ -54,40 +55,40 @@ hSlurp ds = vhm where
   ws = words ds
   npu :: Maybe Int
   npu = do
-              key <- L.head ws
+              key <- pure <<< L.head $ ws
               guard $ key == "PU_zpositions:"
-              snpu <- L.index ws 1
-              Data.Int.fromString snpu
+              snpu <- pure <<< L.head <<< L.drop 1 $ ws
+              intFromString snpu
   vhm = case npu of
-              Nothing -> hSlurp' $ fromFoldable $ L.mapMaybe fromString ws
-              Just n -> let vArr = fromFoldable $ L.mapMaybe fromString (L.drop (n+2) ws)
+          Nothing -> hSlurp' $ mapMaybe numberFromString ws
+          Just n  -> let vArr = mapMaybe numberFromString (L.drop (n+2) ws)
                         in hSlurp' vArr
 
 -- slurp in the measurements of vertex and helices
-hSlurp' :: Array Number -> Maybe VHMeas
+hSlurp' :: List Number -> Maybe VHMeas
 hSlurp' inp = do
-  let v0    = fromArray $ take 3 inp       -- initial vertex pos
-      cv0   = fromArray (take 9 $ drop 3 inp) -- cov matrix
+  let v0    = fromArray <<< A.fromList <<< L.take 3 $ inp       -- initial vertex pos
+      cv0   = fromArray <<< A.fromList <<< L.take 9 <<< L.drop 3 $ inp -- cov matrix
       v     = XMeas v0 cv0
-  w2pt      <- inp !! 12  -- how to calc pt from w; 1 in case of CMS
-  mnt       <- inp !! 13  -- number of helices to follow --}
+  w2pt      <- pure <<< L.head <<< L.drop 12 $ inp  -- how to calc pt from w; 1 in case of CMS
+  mnt       <- pure <<< L.head <<< L.drop 13 $ inp  -- number of helices to follow --}
   let nt    = round mnt
       f     = case w2pt of
                   1.0 -> nxtH'        -- CMS case
-                  otherwise -> nxtH   -- Aleph case
-      hl    = mapMaybe (\i -> f w2pt (slice (i*30+14) (i*30+44) inp)) $ range 0 (nt-1)
+                  _   -> nxtH   -- Aleph case
+      hl    = mapMaybe (\i -> f w2pt (L.take 30 <<< L.drop (i*30+14) $ inp)) $ [0 .. (nt-1)]
 
   pure $ VHMeas { vertex= v, helices= hl }
 
 -- get the next helix, Aleph case
-nxtH :: Number -> Array Number -> Maybe HMeas
+nxtH :: Number -> List Number -> Maybe HMeas
 nxtH w0 ds = do
-  let h    = fromArray $ take 5 ds
-      ch   = fromArray $ take 25 $ drop 5 ds
+  h    <- pure <<< fromArray <<< A.fromList <<< L.take 5 $ ds
+  ch   <- pure <<< fromArray <<< A.fromList <<< L.take 25 <<< L.drop 5 $ ds
   pure $ HMeas h ch w0
 
 -- get the next helix, CMS case
-nxtH' :: Number -> Array Number -> Maybe HMeas
+nxtH' :: Number -> List Number -> Maybe HMeas
 nxtH' _ ds = do
   -- FV works in terms of a perigee system
   -- w = omega = 1/R is curvature radius
@@ -101,11 +102,8 @@ nxtH' _ ds = do
   -- theta = dip angle
   -- etc
   --
-  h0 <- ds !! 0
-  h1 <- ds !! 1
-  h2 <- ds !! 2
-  h3 <- ds !! 3
-  h4 <- ds !! 4
+  [h0,h1,h2,h3,h4] <- pure <<< A.fromList <<< L.take 5 $ ds
+  ch               <- pure <<< A.fromList <<< L.take 25 <<< L.drop 5 $ ds
   let w0                = 0.003*3.8  -- CMS case: field is 3.8 T, give R in cm
       st                = sin h1
       ct                = cos h1
@@ -125,7 +123,7 @@ nxtH' _ ds = do
       h' :: Vec5
       h'                = fromArray [w, tl, h2, h3, h4]
       ch' :: Cov5
-      ch'               = fromArray $ take 25 $ drop 5 ds
+      ch'               = fromArray ch
       ch''              = jj .*. ch'
 
   pure $ HMeas h' ch'' w0

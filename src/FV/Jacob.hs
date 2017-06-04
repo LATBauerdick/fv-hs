@@ -35,8 +35,8 @@ hv2q h v = q where
   w0   = uidx h_ 0
   tl0  = uidx h_ 1
   psi0 = uidx h_ 2
-  d0   = uidx h_ 3
-  z0   = uidx h_ 4
+  -- d0   = uidx h_ 3
+  -- z0   = uidx h_ 4
   xi = mod' (psi0 - phi + 2.0*pi) (2.0*pi)
   cxi = cos xi
   sxi = sin xi
@@ -49,7 +49,7 @@ hv2q h v = q where
                     gamma = atan r*cxi/(oow0-r*sxi)
 
 expand :: Vec3 -> Vec3 -> Jacs
-expand v q = Jacs {aa= aa', bb= bb', h0= h0'} where
+expand v q = Jacs {aajacs= aa, bbjacs= bb, h0jacs= h0} where
   v_  = val v
   xx  = uidx v_ 0
   yy  = uidx v_ 1
@@ -140,14 +140,14 @@ expand v q = Jacs {aa= aa', bb= bb', h0= h0'} where
   q01                = w
   q02                = tl
   q03                = psi
-  h0'                = fromArray [
+  h0                 = fromArray [
       0.0,
       0.0,
       psi0 - a31*v01 - a32*v02 - b31*q01 - b33*q03,
       d0 - a41*v01 - a42*v02 - b41*q01 - b43*q03,
       z0 - a51*v01 - a52*v02 - a53*v03 - b51*q01 - b52*q02 - b53*q03]
-  aa' = fromArray [a11,a12,a13,a21,a22,a23,a31,a32,a33,a41,a42,a43,a51,a52,a53]
-  bb' = fromArray [b11,b12,b13,b21,b22,b23,b31,b32,b33,b41,b42,b43,b51,b52,b53]
+  aa = fromArray [a11,a12,a13,a21,a22,a23,a31,a32,a33,a41,a42,a43,a51,a52,a53]
+  bb = fromArray [b11,b12,b13,b21,b22,b23,b31,b32,b33,b41,b42,b43,b51,b52,b53]
   {-- aaT = tr aa `debug` ( "v0 --->> " <> (show v) <> --}
   {--                        "q0 --->> " <> (show q) <> --}
   {--                        "aa --->> " <> show aa <> --}

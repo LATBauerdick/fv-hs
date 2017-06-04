@@ -17,7 +17,7 @@ module Stuff ( (<>), Semiring (..), Ring (..)
   , Tuple (..)
   , List (..)
   , to0fix, to1fix, to2fix, to3fix, to5fix
-  , toNumber
+  , toNumber, intFromString, numberFromString
   , sqr, div', mod', divMod'
   )  where
 
@@ -27,6 +27,7 @@ import qualified Data.Vector.Unboxed as A
   , singleton, map, foldl, zipWith )
 import Data.Maybe (  Maybe (..), fromJust )
 import Text.Printf ( printf )
+import Text.Read ( readMaybe )
 
 --------------------------------------------------------------
 -- adapting for PureScript
@@ -96,4 +97,12 @@ divMod' n d = (Tuple f (n - (toNumber f) * d)) where
 mod' :: Number -> Number -> Number
 mod' n d = n - (toNumber f) * d where
     f = div' n d
+
+-- | convert from String to Number and Int
+numberFromString :: String -> Maybe Number
+numberFromString s = readDouble s where
+  readDouble = readMaybe :: String -> Maybe Double
+intFromString :: String -> Maybe Int
+intFromString s = readInt s where
+  readInt = readMaybe :: String -> Maybe Int
 

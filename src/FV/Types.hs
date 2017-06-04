@@ -26,7 +26,7 @@ module FV.Types
   ) where
 
 import Prelude
-import qualified Data.Vector.Unboxed as A 
+import qualified Data.Vector.Unboxed as A
   ( length, unsafeIndex, drop, zip, map, foldl )
 import Data.Semigroup
 import Data.Foldable ( fold )
