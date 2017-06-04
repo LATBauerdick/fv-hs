@@ -27,7 +27,7 @@ module FV.Types
 
 import Prelude
 import qualified Data.Vector.Unboxed as A 
-  ( length, unsafeIndex, drop, zip, foldl )
+  ( length, unsafeIndex, drop, zip, map, foldl )
 import Data.Semigroup
 import Data.Foldable ( fold )
 import Control.Monad (guard)
@@ -47,11 +47,11 @@ instance Semiring Chi2 where
 data Prong = Prong
           { nProng        :: Int
           , fitVertex     :: XMeas
-          , fitMomenta    :: Array QMeas
-          , fitChi2s      :: Array Chi2
+          , fitMomenta    :: List QMeas
+          , fitChi2s      :: List Chi2
           , measurements  :: VHMeas
           }
--- fitMomenta :: Prong -> Array QMeas
+-- fitMomenta :: Prong -> List QMeas
 -- fitMomenta (Prong {fitMomenta= f}) = f
 instance Show Prong where
   show _ = "Prong!!!!!!!!"
@@ -61,11 +61,11 @@ instance Show Prong where
 --
 data VHMeas = VHMeas {
     vertex      :: XMeas
-  , helices     :: Array HMeas
+  , helices     :: List HMeas
                      }
 -- vertex :: VHMeas -> XMeas
 -- vertex (VHMeas {vertex=v}) = v
--- helices :: VHMeas -> Array HMeas
+-- helices :: VHMeas -> List HMeas
 -- helices (VHMeas {helices=hs}) = hs
 {-- instance Semigroup VHMeas where --}
 {--   append (VHMeas v hs) (VHMeas _ hs') = VHMeas v ( hs ++ hs' ) --}
@@ -77,28 +77,29 @@ instance Show VHMeas where
 
 vBlowup :: Number -> VHMeas -> VHMeas
 {-- vBlowup scale vm = over vertexLens (blowup scale) vm where --}
-vBlowup scale (VHMeas {vertex= v, helices= hs}) = VHMeas {vertex= (blowup scale v), helices= hs} where
+vBlowup scale (VHMeas {vertex= v, helices= hs}) =
+    VHMeas {vertex= (blowup scale v), helices= hs} where
   blowup :: Number -> XMeas -> XMeas -- blow up diag of cov matrix
   blowup s (XMeas v cv) = XMeas v cv' where
     cv' = scaleDiag s cv
 
 -- | filter list of objects given list of indices in [a]
 -- | return list with only those b that have  indices that  are in rng [a]
-iflt :: forall a. Array Int -> Array a  -> Array a
+iflt :: forall a. List Int -> List a  -> List a
 iflt rng hl = hl
 -- do
 --   i <- rng
 --   pure $ A.unsafeIndex hl i
 
 -- | remove element at index
-irem :: forall a. Int -> [a] -> [a]
+irem :: forall a. Int -> List a -> List a
 irem indx hl = hl
 -- do
 --   i <- [0 .. ((length hl)-1)]
 --   guard $ i /= indx
 --   pure $ A.unsafeIndex hl i
 
-hFilter :: Array Int -> VHMeas -> VHMeas
+hFilter :: List Int -> VHMeas -> VHMeas
 hFilter is (VHMeas {vertex=v, helices=hs}) = VHMeas {vertex=v, helices= (iflt is hs)}
 
 hRemove :: Int -> VHMeas -> VHMeas
@@ -108,7 +109,7 @@ hRemove indx (VHMeas {vertex=v, helices=hs}) = VHMeas {vertex=v, helices=(irem i
 -- MCtruth
 --
 data MCtruth = MCtruth {
-    pu_zpositions :: Array Number
+    pu_zpositions :: List Number
                        }
 instance Show MCtruth where
   show (MCtruth {pu_zpositions=puz}) = "MCtruth w/" <> show (length puz)
@@ -122,13 +123,13 @@ instance Show MCtruth where
 data HMeas = HMeas Vec5 Cov5 Number
 instance Show HMeas where
   show (HMeas h ch w0) = s' where
-    sh = map sqrt $ diag ch
+    sh = A.map sqrt $ diag ch
     hs = toArray h
     s00 = to5fix x <> " +-" <> to5fix dx where
       x  = uidx hs 0
       dx = uidx sh 0
-    s' = foldl f s00 (drop 1 $ zip hs sh) where
-      f s (Tuple x dx)  = s <> to3fix x <> " +-" <> to3fix dx
+    s' = A.foldl f s00 (A.drop 1 $ A.zip hs sh) where
+      f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
 
 -----------------------------------------------
 -- QMeas
@@ -142,8 +143,8 @@ instance Show QMeas where
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
 showQMeas :: QMeas -> String
 showQMeas (QMeas q cq w2pt) = s' where
-  f :: String -> (Tuple Number Number) -> String
-  f s (Tuple x dx)  = s <> to3fix x <> " +-" <> to3fix dx
+  f :: String -> (Number, Number) -> String
+  f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
   m          = mπ
   wp         = w2pt
   qs :: Array Number
@@ -162,13 +163,13 @@ showQMeas (QMeas q cq w2pt) = s' where
               , 0.0, 0.0, 1.0, 0.0]
   cq'        = jj .*. cq
   p'         = [pt, pz, psi, e]
-  dp         = map sqrt $ diag cq'
+  dp         = A.map sqrt $ diag cq'
   d1         = uidx dp 0
   d2         = uidx dp 1
   d3         = uidx dp 2
   d4         = uidx dp 3
   dp'        = [d1, d2, d3*180.0/pi, d4]
-  s'         = (foldl f "" $ zip p' dp' ) <> " GeV"
+  s'         = (A.foldl f "" $ A.zip p' dp' ) <> " GeV"
 
 fromHMeas :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
 fromHMeas (HMeas h ch w2pt) = QMeas q cq w2pt where
@@ -192,12 +193,11 @@ instance Show PMeas where
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
 showPMeas :: PMeas -> String
 showPMeas (PMeas p cp) = s' where
-  sp :: Array Number
-  sp         = map sqrt $ diag cp
-  f s (Tuple x dx)  = s <> to3fix x <> " +-" <> to3fix dx -- \xc2b1 ±±±±±
-  s' = (foldl f "" $ zip (toArray p) sp) <> " GeV"
+  sp         = A.map sqrt $ diag cp
+  f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx -- \xc2b1 ±±±±±
+  s' = (A.foldl f "" $ A.zip (toArray p) sp) <> " GeV"
 
-invMass :: Array PMeas -> MMeas
+invMass :: List PMeas -> MMeas
 invMass ps = pmass <<< fold $ ps
 
 pmass :: PMeas -> MMeas
@@ -323,13 +323,11 @@ instance Show XMeas where
 -- return a string showing vertex position vector with errors
 showXMeas :: XMeas -> String
 showXMeas (XMeas v cv) = s' where
-  vv :: Array Number
   vv         = toArray v
   x          = uidx vv 0
   y          = uidx vv 1
   z          = uidx vv 2
-  s2v :: Array Number
-  s2v        = map sqrt $ diag cv
+  s2v        = A.map sqrt $ diag cv
   dx         = uidx s2v 0
   dy         = uidx s2v 1
   dz         = uidx s2v 2

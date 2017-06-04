@@ -24,7 +24,7 @@ library
   hs-source-dirs:     src
   exposed-modules:    FV.Fit
                     , FV.Types
-                    , FV.Coeff
+                    , FV.Jacob
                     , Stuff
                     , Data.SimpleMatrix
                     , Data.Cov

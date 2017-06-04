@@ -82,7 +82,10 @@ type Jac55 = Jac Dim5 Dim5
 type Vec3 = Vec Dim3
 type Vec4 = Vec Dim4
 type Vec5 = Vec Dim5
-data Jacs = Jacs {aa :: Jac53, bb :: Jac53, h0 :: Vec5}
+data Jacs = Jacs
+            { aa :: Jac53
+            , bb :: Jac53
+            , h0 :: Vec5}
 
 -- access to arrays of symmetrical matrices
 uGet :: Array Number -> Int -> Int -> Int -> Number
