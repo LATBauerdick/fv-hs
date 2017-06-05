@@ -130,8 +130,7 @@ instance Show QMeas where
 showQMeas :: QMeas -> String
 showQMeas (QMeas q cq w2pt) = s' where
   f :: String -> (Number, Number) -> String
-  -- f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
-  f s (x, dx)  = s <> show x <> " +-" <> show dx
+  f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
   m          = mπ
   wp         = w2pt
   qs :: Array Number
@@ -149,7 +148,7 @@ showQMeas (QMeas q cq w2pt) = s' where
               , 0.0, wp/w, 0.0, pt*pt*tl/e
               , 0.0, 0.0, 1.0, 0.0]
   cq'        = jj .*. cq
-  p'         = [pt, pz, psi, e] `debug` (show cq')
+  p'         = [pt, pz, psi, e]
   dp         = A.map sqrt $ diag cq'
   d1         = uidx dp 0
   d2         = uidx dp 1
@@ -174,7 +173,8 @@ data PMeas = PMeas Vec4 Cov4
 instance Semigroup PMeas where
   (<>) (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
 instance Monoid PMeas where
-  mempty = PMeas zero zero
+  mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
+  mempty = PMeas (fromArray $ [0.0,0.0,0.0,0.0]) zero
 instance Show PMeas where
   show = showPMeas
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors

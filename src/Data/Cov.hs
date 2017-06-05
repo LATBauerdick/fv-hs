@@ -176,13 +176,11 @@ instance Mat1 (Jac a b) where
                               9  -> M.fromArray2 3 3 v
                               16 -> M.fromArray2 4 4 v
                               25 -> M.fromArray2 5 5 v
-                              12 -> M.fromArray2 3 4 v `debug` "this should not have happened ??????????????????? 4 3"
-                              15 -> M.fromArray2 5 3 v `debug` "this should not have happened ??????????????????? 5 3"
+                              12 -> M.fromArray2 3 4 v `debug` "toMatrix Jac a b this should not have happened ??????????????????? 4 3"
+                              15 -> M.fromArray2 5 3 v `debug` "toMatrix Jac a b this should not have happened ??????????????????? 5 3"
                               _  -> error $ "mat1Jacaa toMatrix "
                                           <> show (A.length v)
 
---{{{
---}}}
 -----------------------------------------------------------------
 -- | funcitons for symetric matrices: Cov
 -- | type class SymMat
@@ -247,6 +245,7 @@ instance SymMat (Cov Dim4) where
   diag (Cov {vc=v}) = _diag v where
     _diag :: Array Number -> Array Number
     _diag [a11,_,_,_,a22,_,_,a33,_,a44] = A.fromList [a11,a22,a33,a44]
+    _diag _ = error $ "diag Cov Dim4: this should never happen " <> show v
 --  chol a = choldc a
 instance SymMat (Cov Dim5) where
   inv m = cholInv m
@@ -433,7 +432,7 @@ instance SW (Cov a) (Cov a) (Cov a) where
 --    j' = c1 *. c2 *. c1
 --    c' = fromArray $ toArray j'
 instance SW (Jac a b) (Cov a) (Cov b) where
-  (.*.) (Jac {vj= va}) (Cov {vc= vb}) = Cov {vc= v'} where
+  (.*.) (Jac {vj= va}) (Cov {vc= vb}) = Cov {vc= v'}  where
     l = A.length vb
     n = case l of
               6  -> 3
@@ -454,8 +453,8 @@ instance SW (Jac a b) (Cov a) (Cov b) where
               | k0 <- [0 .. ( n-1)] ]
       pure v
     v' = A.create $ do
-      v <- MA.new $ n*m
-      let ixa = indV m
+      v <- MA.new $ (m * (m+1)) `div` 2
+      let ixa = indV n
           ixb = indV m
           ixc = indVs m
       numLoop 0 (m-1) $ \i0 ->
@@ -463,7 +462,7 @@ instance SW (Jac a b) (Cov a) (Cov b) where
           MA.unsafeWrite v (ixc i0 j0) $
             sum [ (uidx va (ixa k0 i0 )) * (uidx vint (ixb k0 j0))
               | k0 <- [0 .. (n-1)] ]
-      pure v `debug` "called SW Jac Cov xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      pure v
 -------------------------------------------------------
 -------------------------------------------------------
 ---- NUMERICAL INSTANCE
@@ -573,8 +572,8 @@ subm n (Vec {vv=v}) = Vec {vv= _subm v} where
 subm2 :: Int -> Cov5 -> Cov3
 subm2 n (Cov {vc=v}) = Cov {vc= _subm2 v} where
   _subm2 :: Array Number -> Array Number
-  _subm2 [a,b,c,_,d,e,_,_,f] = A.fromList [a,b,c,d,e,f]
-  _subm2 _ = undefined
+  _subm2 [a,b,c,_,_,d,e,_,_,f,_,_,_,_,_] = A.fromList [a,b,c,d,e,f]
+  _subm2 _ = error $ "subm2 Cov4 Cov3 this clearly can't possibly happen..."
 
 
 -- CHOLESKY DECOMPOSITION
