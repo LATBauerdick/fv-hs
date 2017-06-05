@@ -454,7 +454,7 @@ instance SW (Jac a b) (Cov a) (Cov b) where
       pure v
     v' = A.create $ do
       v <- MA.new $ (m * (m+1)) `div` 2
-      let ixa = indV n
+      let ixa = indV m
           ixb = indV m
           ixc = indVs m
       numLoop 0 (m-1) $ \i0 ->
