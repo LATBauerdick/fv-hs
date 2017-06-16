@@ -102,9 +102,6 @@ ksm (XMeas x cc) (HMeas h hh w0) = do
       gb   = gg - gg .*. (bbT .*. ww)
       uu'  = uu - aa .*. gb
       duu  = det uu'
-      xxx = "-------->>>>>>>>"
-              <> show (uu')
-              <> show duu
       bad  = duu < 0.0
       cx   = if det uu' < 0.0 then 1000.0
                                 `debug` ("--> ksm bad " <> show (det uu')

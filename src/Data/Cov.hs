@@ -600,11 +600,11 @@ chol :: forall a. Cov a -> Jac a a
 chol = choldc
 choldc :: forall a. Cov a -> Jac a a
 choldc (Cov {vc= a}) = Jac {vj= a'} where
-  ll = A.length a
-  n = case ll of
+  n = case A.length a of
         6  -> 3
         10 -> 4
         15 -> 5
+  ll = n*n
   a' = A.create $ do -- make a Array of n x n +n space for diagonal +1 for summing
     arr <- MA.new $ (ll+n+1)
     -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
@@ -613,8 +613,9 @@ choldc (Cov {vc= a}) = Jac {vj= a'} where
     numLoop 0 (n-1) $ \i0 -> do
       numLoop i0 (n-1) $ \j0 -> do
         let aij = uidx a (ixa i0 j0)
-        _ <- if i0==j0 then MA.unsafeWrite arr (ll + i0) aij
-                         else MA.unsafeWrite arr (ixarr j0 i0) aij
+--        _ <- if i0==j0 then MA.unsafeWrite arr (ll + i0) aij
+--                         else MA.unsafeWrite arr (ixarr j0 i0) aij
+        _ <- MA.unsafeWrite arr (ixarr j0 i0) aij
         numLoop 0 i0 $ \k0 -> do
           maik <- MA.unsafeRead arr (ixarr i0 k0)
           majk <- MA.unsafeRead arr (ixarr j0 k0)
@@ -627,7 +628,7 @@ choldc (Cov {vc= a}) = Jac {vj= a'} where
                             else MA.unsafeRead arr (ixarr j0 i0)
           let 
               sum = if i0==j0 && msum < 0.0
-                        then error ("choldInv: not a positive definite matrix "
+                        then error ("choldc: not a positive definite matrix "
                                      <> show a)
                         else msum
           p_i' <- MA.unsafeRead arr (ll+i0)
@@ -649,11 +650,11 @@ choldc (Cov {vc= a}) = Jac {vj= a'} where
 --
 cholInv :: forall a. Cov a -> Cov a
 cholInv (Cov {vc= a}) = Cov {vc= a'} where
-  ll = A.length a
-  n = case ll of
+  n = case A.length a of
         6  -> 3
         10 -> 4
         15 -> 5
+  ll = n*n
   l = A.create $ do -- make a Array of n x n +n space for diagonal +1 for summing
     arr <- MA.new $ (ll+n+1)
     -- loop over input array using Numerical Recipies algorithm (chapter 2.9)
@@ -676,7 +677,7 @@ cholInv (Cov {vc= a}) = Cov {vc= a'} where
                             else MA.unsafeRead arr (ixarr j0 i0)
           let 
               sum = if i0==j0 && msum < 0.0
-                        then error ("choldInv: not a positive definite matrix "
+                        then error ("cholInv: not a positive definite matrix "
                                      <> show a)
                         else msum
           p_i' <- MA.unsafeRead arr (ll+i0)
@@ -783,14 +784,14 @@ testCov2 = s where
     <> "A = L * L^T         " <> show ch3
     <> "L                   " <> show (choldc ch3)
         {-- <> "L * L^T             " <> show ((choldc ch3) *. tr (choldc ch3)) --}
-    <> "A^(-1) = L' * L'^T  " <> show (inv ch3)
-    <> "A^(-1) from cholInv " <> show (cholInv ch3)
-    <> "A = L * L^T         " <> show ch5
-    <> "L                   " <> show (choldc ch5)
-        {-- <> "L * L^T             " <> show ((choldc ch5) *. tr (choldc ch5)) --}
-    <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
-    <> "A^(-1) from cholInv " <> show (cholInv ch5)
-    <> "det this            " <> show (det ch5)
+    -- <> "A^(-1) = L' * L'^T  " <> show (inv ch3)
+    -- <> "A^(-1) from cholInv " <> show (cholInv ch3)
+    -- <> "A = L * L^T         " <> show ch5
+    -- <> "L                   " <> show (choldc ch5)
+    --     {-- <> "L * L^T             " <> show ((choldc ch5) *. tr (choldc ch5)) --}
+    -- <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
+    -- <> "A^(-1) from cholInv " <> show (cholInv ch5)
+    -- <> "det this            " <> show (det ch5)
         {-- <> "chol" <> show ch5 --}
         {-- <> show (choldc ch5) <> show ( choldc ch5 *. tr (choldc ch5)) --}
     <> "\n" -- <> testCov2 

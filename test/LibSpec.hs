@@ -25,6 +25,8 @@ spec =
     describe "Cov" $ do
       it "testCov works" $ do
         let  s = testCov2
+        putStrLn s
+        -- putStrLn $ testCov 0
         (head s) `shouldBe` 'T'
 
     -- describe "FSMW Tests" $ do
@@ -75,11 +77,10 @@ spec =
             HMeas _ _ w = head hl
         w `shouldBe` 4.5451703e-3
 
-      it "test 1 works" $ do
-        ds <- readFile "dat/tr05129e001412.dat"
-        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp $ ds
-      --   _ <- test ["1"]
-        (1 :: Int) `shouldBe` 1
+      -- it "test 1 works" $ do
+      --   ds <- readFile "dat/tr05129e001412.dat"
+      --   _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp $ ds
+      --   (1 :: Int) `shouldBe` 1
 
       -- it "test p works" $ do
       --   _ <- test ["p"]
