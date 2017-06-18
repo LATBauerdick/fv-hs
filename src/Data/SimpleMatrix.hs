@@ -28,6 +28,7 @@ import qualified Data.Vector.Unboxed as A
   )
 import Data.Foldable ( sum )
 import Data.String as S ( unlines, unwords )
+import Text.Printf ( printf )
 
 --------------------------------------------------------------
 -- adapting for PureScript
@@ -52,6 +53,8 @@ indVs :: Int -> Int -> Int -> Int
 indVs w i0 j0 | i0 <= j0  = (i0*w - i0*(i0-1) `div` 2 + j0-i0)
               | otherwise = (j0*w - j0*(j0-1) `div` 2 + i0-j0)
 
+to3fix :: Number -> String
+to3fix = printf "%8.3f"
 
 ------------------------------------------------------------------------
 -- | Dense Matrix implementation
@@ -125,9 +128,9 @@ instance Show Matrix where
     ls = do
       i <- [1 .. r]
       let ws :: [String]
-          ws = map (\j -> fillBlanks mx (show $ unsafeGet i j m)) [1 .. c]
+          ws = map (\j -> fillBlanks mx (to3fix $ unsafeGet i j m)) [1 .. c]
       pure $ "( " <> S.unwords ws <> " )"
-    mx = A.maximum $ A.map (length <<< show) v
+    mx = A.maximum $ A.map (length <<< to3fix) v
     -- mx = fromMaybe 0 (maximum $ map (length <<< show) v)
     fillBlanks k str =
        (replicate (k - length str) ' ') <> str

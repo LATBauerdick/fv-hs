@@ -15,4 +15,4 @@ extra-deps:
 - gnuplot-0.5.4.1
 - probability-0.2.5.1
 - data-accessor-transformers-0.2.1.7
-resolver: lts-6.29
+resolver: lts-8.18

@@ -24,7 +24,7 @@ import qualified Data.Vector.Unboxed.Mutable as MA
 import Control.Loop ( numLoop )
 import Data.Foldable ( sum )
 import Data.Maybe ( Maybe (..), fromJust )
-import Control.Monad (guard)
+import Control.Monad ( guard, void )
 
 -- import Data.Int ( toNumber, ceil )
 -- import Math ( abs, sqrt )
@@ -613,35 +613,32 @@ choldc (Cov {vc= a}) = Jac {vj= a'} where
     numLoop 0 (n-1) $ \i0 -> do
       numLoop i0 (n-1) $ \j0 -> do
         let aij = uidx a (ixa i0 j0)
---        _ <- if i0==j0 then MA.unsafeWrite arr (ll + i0) aij
---                         else MA.unsafeWrite arr (ixarr j0 i0) aij
-        _ <- MA.unsafeWrite arr (ixarr j0 i0) aij
+        void $ if i0==j0 then MA.unsafeWrite arr (ll + i0) aij
+                        else MA.unsafeWrite arr (ixarr j0 i0) aij
         numLoop 0 i0 $ \k0 -> do
-          maik <- MA.unsafeRead arr (ixarr i0 k0)
-          majk <- MA.unsafeRead arr (ixarr j0 k0)
+          aik <- MA.unsafeRead arr (ixarr i0 k0)
+          ajk <- MA.unsafeRead arr (ixarr j0 k0)
           maij <- if i0==j0 then MA.unsafeRead arr (ll+i0)
                             else MA.unsafeRead arr (ixarr j0 i0)
-          let sum = (maij) - (maik) * (majk)
-          _ <- if i0==j0 then MA.unsafeWrite arr (ll+i0) sum
-                           else MA.unsafeWrite arr (ixarr j0 i0) sum
-          msum <- if i0==j0 then MA.unsafeRead arr (ll+i0)
-                            else MA.unsafeRead arr (ixarr j0 i0)
-          let 
-              sum = if i0==j0 && msum < 0.0
+          let sum = maij - aik * ajk
+          void $ if i0==j0 then MA.unsafeWrite arr (ll+i0) sum
+                          else MA.unsafeWrite arr (ixarr j0 i0) sum
+        msum <- if i0==j0 then MA.unsafeRead arr (ll+i0)
+                         else MA.unsafeRead arr (ixarr j0 i0)
+        let sum = if i0==j0 && msum < 0.0
                         then error ("choldc: not a positive definite matrix "
                                      <> show a)
                         else msum
-          p_i' <- MA.unsafeRead arr (ll+i0)
-          let 
-              p_i = if i0 == j0 then sqrt sum else p_i'
-          _ <- if i0==j0 then MA.unsafeWrite arr (ll+i0) p_i
-                         else MA.unsafeWrite arr (ixarr j0 i0) (sum/p_i)
-          pure ()
+        p_i' <- MA.unsafeRead arr (ll+i0)
+        let p_i = if i0 == j0 then sqrt sum else p_i'
+        void $ if i0==j0 then MA.unsafeWrite arr (ll+i0) p_i
+                      else MA.unsafeWrite arr (ixarr j0 i0) (sum/p_i)
+        pure ()
 
-     -- copy diagonal back into array
+    -- copy diagonal back into array
     numLoop 0 (n-1) $ \i0 -> do
       aii <- MA.unsafeRead arr (ll+i0)
-      _ <- MA.unsafeWrite arr (ixarr i0 i0) aii
+      void $ MA.unsafeWrite arr (ixarr i0 i0) aii
       pure ()
     pure $ MA.unsafeTake ll arr
 
@@ -663,58 +660,53 @@ cholInv (Cov {vc= a}) = Cov {vc= a'} where
     numLoop 0 (n-1) $ \i0 -> do
       numLoop i0 (n-1) $ \j0 -> do
         let aij = uidx a (ixa i0 j0)
-        _ <- if i0==j0 then MA.unsafeWrite arr (ll + i0) aij
-                         else MA.unsafeWrite arr (ixarr j0 i0) aij
+        void $ if i0==j0 then MA.unsafeWrite arr (ll + i0) aij
+                      else MA.unsafeWrite arr (ixarr j0 i0) aij
         numLoop 0 i0 $ \k0 -> do
-          maik <- MA.unsafeRead arr (ixarr i0 k0)
-          majk <- MA.unsafeRead arr (ixarr j0 k0)
+          aik <- MA.unsafeRead arr (ixarr i0 k0)
+          ajk <- MA.unsafeRead arr (ixarr j0 k0)
           maij <- if i0==j0 then MA.unsafeRead arr (ll+i0)
                             else MA.unsafeRead arr (ixarr j0 i0)
-          let sum = (maij) - (maik) * (majk)
-          _ <- if i0==j0 then MA.unsafeWrite arr (ll+i0) sum
-                           else MA.unsafeWrite arr (ixarr j0 i0) sum
-          msum <- if i0==j0 then MA.unsafeRead arr (ll+i0)
-                            else MA.unsafeRead arr (ixarr j0 i0)
-          let 
-              sum = if i0==j0 && msum < 0.0
+          let sum = maij - aik * ajk
+          void $ if i0==j0 then MA.unsafeWrite arr (ll+i0) sum
+                          else MA.unsafeWrite arr (ixarr j0 i0) sum
+        msum <- if i0==j0 then MA.unsafeRead arr (ll+i0)
+                         else MA.unsafeRead arr (ixarr j0 i0)
+        let sum = if i0==j0 && msum < 0.0
                         then error ("cholInv: not a positive definite matrix "
                                      <> show a)
                         else msum
-          p_i' <- MA.unsafeRead arr (ll+i0)
-          let 
-              p_i = if i0 == j0 then sqrt sum else p_i'
-          _ <- if i0==j0 then MA.unsafeWrite arr (ll+i0) p_i
-                         else MA.unsafeWrite arr (ixarr j0 i0) (sum/p_i)
-          pure ()
-
-     -- invert L -> L^(-1)
-    numLoop 0 (n-1) $ \i0 -> do
-      mp_i <- MA.unsafeRead arr (ll+i0)
-      _ <- MA.unsafeWrite arr (ixarr i0 i0) (1.0/mp_i)
-      numLoop (i0+1) (n-1) $ \j0 -> do
-        _ <- MA.unsafeWrite arr (ll+n) 0.0
-        numLoop i0 j0 $ \k0 -> do
-          majk <- MA.unsafeRead arr (ixarr j0 k0)
-          maki <- MA.unsafeRead arr (ixarr k0 i0)
-          sum <- MA.unsafeRead arr (ll+n)
-          _ <- MA.unsafeWrite arr (ll+n) ((sum) - (majk) * (maki))
-          pure ()
-        msum <- MA.unsafeRead arr (ll+n)
-        mp_j <- MA.unsafeRead arr (ll+j0)
-        _ <- MA.unsafeWrite arr (ixarr j0 i0) ((msum)/(mp_j))
+        p_i' <- MA.unsafeRead arr (ll+i0)
+        let p_i = if i0 == j0 then sqrt sum else p_i'
+        void $ if i0==j0 then MA.unsafeWrite arr (ll+i0) p_i
+                      else MA.unsafeWrite arr (ixarr j0 i0) (sum/p_i)
         pure ()
+
+    -- invert L -> L^(-1)
+    numLoop 0 (n-1) $ \i0 -> do
+      p_i <- MA.unsafeRead arr (ll+i0)
+      void $ MA.unsafeWrite arr (ixarr i0 i0) (1.0/p_i)
+      numLoop (i0+1) (n-1) $ \j0 -> do
+        void $ MA.unsafeWrite arr (ll+n) 0.0
+        numLoop i0 j0 $ \k0 -> do
+          ajk <- MA.unsafeRead arr (ixarr j0 k0)
+          aki <- MA.unsafeRead arr (ixarr k0 i0)
+          sum <- MA.unsafeRead arr (ll+n)
+          void $ MA.unsafeWrite arr (ll+n) (sum - ajk * aki)
+        msum <- MA.unsafeRead arr (ll+n)
+        p_j <- MA.unsafeRead arr (ll+j0)
+        void $ MA.unsafeWrite arr (ixarr j0 i0) (msum/p_j)
     pure arr
 
   a' = A.create $ do
     v <- MA.new $ n * (n+1) `div` 2
-    let ixa = indVs n
-        ixb = indVs n
+    let ixa = indV n
+        ixb = indV n
         ixc = indVs n
-    numLoop 0 (n-1) $ \i0 -> 
-      numLoop i0 (n-1) $ \j0 -> 
+    numLoop 0 (n-1) $ \i0 ->
+      numLoop i0 (n-1) $ \j0 ->
         MA.unsafeWrite v (ixc i0 j0) $
-          sum [ (uidx l (ixa k0 i0)) * (uidx l (ixb k0 j0)) 
-               | k0 <- [0 .. n-1] ]
+          sum [ (uidx l (ixa k0 i0)) * (uidx l (ixb k0 j0)) | k0 <- [0 .. n-1] ]
     pure v
 
 
@@ -783,14 +775,14 @@ testCov2 = s where
     <> "chol: -----------------\n"
     <> "A = L * L^T         " <> show ch3
     <> "L                   " <> show (choldc ch3)
-        {-- <> "L * L^T             " <> show ((choldc ch3) *. tr (choldc ch3)) --}
-    -- <> "A^(-1) = L' * L'^T  " <> show (inv ch3)
-    -- <> "A^(-1) from cholInv " <> show (cholInv ch3)
-    -- <> "A = L * L^T         " <> show ch5
-    -- <> "L                   " <> show (choldc ch5)
-    --     {-- <> "L * L^T             " <> show ((choldc ch5) *. tr (choldc ch5)) --}
-    -- <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
-    -- <> "A^(-1) from cholInv " <> show (cholInv ch5)
+    <> "L * L^T             " <> show ((choldc ch3) *. tr (choldc ch3))
+    <> "A^(-1) = L' * L'^T  " <> show (inv ch3)
+    <> "A^(-1) from cholInv " <> show (cholInv ch3)
+    <> "A = L * L^T         " <> show ch5
+    <> "L                   " <> show (choldc ch5)
+    <> "L * L^T             " <> show ((choldc ch5) *. tr (choldc ch5))
+    <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
+    <> "A^(-1) from cholInv " <> show (cholInv ch5)
     -- <> "det this            " <> show (det ch5)
         {-- <> "chol" <> show ch5 --}
         {-- <> show (choldc ch5) <> show ( choldc ch5 *. tr (choldc ch5)) --}
