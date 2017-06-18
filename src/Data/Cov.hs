@@ -413,7 +413,7 @@ instance TrMat (Jac a b) (Jac b a) where
           ixc = indV na
       numLoop 0 (nb-1) $ \i0 ->
         numLoop 0 (na-1) $ \j0 ->
-          MA.unsafeWrite v (ixc j0 i0) $ 12.0 -- uidx va (ixa i0 j0)
+          MA.unsafeWrite v (ixc j0 i0) (uidx va (ixa i0 j0))
       pure v
 class SW a b c | a b -> c where
   (.*.) :: a -> b -> c
@@ -776,17 +776,15 @@ testCov2 = s where
     <> "A = L * L^T         " <> show ch3
     <> "L                   " <> show (choldc ch3)
     <> "L * L^T             " <> show ((choldc ch3) *. tr (choldc ch3))
-    <> "A^(-1) = L' * L'^T  " <> show (inv ch3)
-    <> "A^(-1) from cholInv " <> show (cholInv ch3)
+    <> "A^(-1) = L' * L'^T  " <> show (cholInv ch3)
+    <> "A * A^(-1)          " <> show (ch3 *. cholInv ch3)
     <> "A = L * L^T         " <> show ch5
     <> "L                   " <> show (choldc ch5)
     <> "L * L^T             " <> show ((choldc ch5) *. tr (choldc ch5))
-    <> "A^(-1) = L' * L'^T  " <> show (inv ch5)
-    <> "A^(-1) from cholInv " <> show (cholInv ch5)
-    -- <> "det this            " <> show (det ch5)
-        {-- <> "chol" <> show ch5 --}
-        {-- <> show (choldc ch5) <> show ( choldc ch5 *. tr (choldc ch5)) --}
-    <> "\n" -- <> testCov2 
+    <> "A^(-1) = L' * L'^T  " <> show (cholInv ch5)
+    <> "A * A^(-1)          " <> show (ch5 *. cholInv ch5)
+    <> "det this            " <> show (det ch5)
+    <> "\n" -- <> testCov2
   c3 :: Cov3
   c3 = fromArray [1.0,2.0,3.0,4.0,5.0,6.0]
   c4 :: Cov4
