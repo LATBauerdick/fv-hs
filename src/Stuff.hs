@@ -12,7 +12,7 @@
 {-# LANGUAGE OverloadedLists #-}
 --{-# LANGUAGE NamedFieldPuns #-}
 module Stuff ( (<>), Semiring (..), Ring (..)
-  , (<<<), uidx, uJust,debug
+  , (<<<), uidx, uJust, debug, trace
   , Number, Array
   , Tuple (..)
   , List (..)

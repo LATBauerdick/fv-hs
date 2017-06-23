@@ -23,7 +23,7 @@ import qualified Data.Vector.Unboxed.Mutable as MA
   ( new, unsafeWrite, unsafeRead, unsafeTake )
 import Control.Loop ( numLoop )
 import Data.Foldable ( sum )
-import Data.Maybe ( Maybe (..), fromJust )
+import Data.Maybe ( Maybe (..) )
 import Control.Monad ( guard, void )
 
 -- import Data.Int ( toNumber, ceil )
@@ -192,7 +192,12 @@ class SymMat a where
 -- chol :: Cov a -> Jac a a                -- | Cholsky decomposition
 
 instance SymMat (Cov Dim3) where
-  inv m = uJust (invMaybe m)
+  inv m | trace ( "inv " <> (show m) ) False = undefined
+  inv m = m' where
+    mm = invMaybe m
+    m' = case mm of
+           Nothing -> error $ "can't invert 3x3 matrix " <> show m
+           Just x -> x
   invMaybe (Cov {vc=v}) = _inv v where
     _inv :: Array Number -> Maybe (Cov Dim3)
     _inv [a11,a12,a13,a22,a23,a33] = do
@@ -415,23 +420,54 @@ instance TrMat (Jac a b) (Jac b a) where
         numLoop 0 (na-1) $ \j0 ->
           MA.unsafeWrite v (ixc j0 i0) (uidx va (ixa i0 j0))
       pure v
-class SW a b c | a b -> c where
+class SwMat a b c | a b -> c where
   (.*.) :: a -> b -> c
 --(.*.) = sw
 infixl 7 .*.
-instance SW (Vec a) (Cov a) Number where
-  (.*.) v c = undefined
---  sw v c = n where
---    mv = toMatrix v
---    mc = toMatrix c
---    mc' = M.transpose mv * mc * mv
---    n = uidx (M.toArray mc') 0
-instance SW (Cov a) (Cov a) (Cov a) where
-  (.*.) ca cb = ca `debug` "called SW Cova Cova"
+instance SwMat (Vec a) (Cov a) Number where
+  (.*.) v c = n where
+    n = v *. (c *. v)
+    -- mv = toMatrix v
+    -- mc = toMatrix c
+    -- mc' = M.transpose mv * mc * mv
+    -- n = uidx (M.toArray mc') 0
+instance SwMat (Cov a) (Cov a) (Cov a) where
+  (.*.) (Cov {vc = va}) (Cov {vc= vb}) = Cov {vc = v'} where
+    -- error $ "called sw Cova Cova"
 --  sw c1 c2 = c' where
 --    j' = c1 *. c2 *. c1
 --    c' = fromArray $ toArray j'
-instance SW (Jac a b) (Cov a) (Cov b) where
+    l = A.length vb
+    n = case l of
+              6  -> 3
+              10 -> 4
+              15 -> 5
+              _  -> error $ "sw cov cov: don'w know how to " <> show l
+    m = n -- > mxn * nxn * nxm -> mxm
+    vint :: Array Number
+    vint = A.create $ do
+      v <- MA.new $ n*m
+      let ixa = indVs n
+      let ixb = indVs m
+      let ixc = indV m
+      numLoop 0 (n-1) $ \i0 ->
+        numLoop 0 (m-1) $ \j0 ->
+          MA.unsafeWrite v (ixc i0 j0) $
+            sum [ (uidx vb (ixa i0 k0)) * (uidx va (ixb k0 j0))
+              | k0 <- [0 .. ( n-1)] ]
+      pure v
+    v' = A.create $ do
+      v <- MA.new $ (m * (m+1)) `div` 2
+      let ixa = indVs m
+          ixb = indV m
+          ixc = indVs m
+      numLoop 0 (m-1) $ \i0 ->
+        numLoop i0 (m-1) $ \j0 ->
+          MA.unsafeWrite v (ixc i0 j0) $
+            sum [ (uidx va (ixa k0 i0 )) * (uidx vint (ixb k0 j0))
+              | k0 <- [0 .. (n-1)] ]
+      pure v
+instance SwMat (Jac a b) (Cov a) (Cov b) where
   (.*.) (Jac {vj= va}) (Cov {vc= vb}) = Cov {vc= v'}  where
     l = A.length vb
     n = case l of
