@@ -65,22 +65,22 @@ spec =
       --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
       --   (1 :: Int) `shouldBe` 1
 
-      it "hSlurp works" $ do
+      it "hSlurp CMS event" $ do
         ds <- readFile "dat/tav-4.dat"
         let VHMeas _ hl = uJust $ hSlurp ds
             HMeas _ _ w = head hl
         w `shouldBe` 0.0114
 
-      it "hSlurp works" $ do
+      it "hSlurp Aleph event" $ do
         ds <- readFile "dat/tr05129e001412.dat"
         let VHMeas _ hl = uJust <<< hSlurp $ ds
             HMeas _ _ w = head hl
         w `shouldBe` 4.5451703e-3
 
-      it "test 1 works" $ do
-        ds <- readFile "dat/tr05129e001412.dat"
-        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp $ ds
-        (1 :: Int) `shouldBe` 1
+      -- it "test FVT 1" $ do
+      --   ds <- readFile "dat/tr05129e001412.dat"
+      --   _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp $ ds
+      --   (1 :: Int) `shouldBe` 1
 
       -- it "test p works" $ do
       --   _ <- test ["p"]

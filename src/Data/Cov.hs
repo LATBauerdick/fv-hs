@@ -122,7 +122,7 @@ instance Mat (Cov a) where
       10  -> Cov {vc= a}
       15  -> Cov {vc= a}
       _   -> Cov {vc= let
-          n = floor . sqrt . fromIntegral $ l
+          n = floor <<< sqrt <<< fromIntegral $ l
           iv = indV n
         in A.fromList $ do -- only upper triangle
           i0 <- [0 .. (n-1)]
@@ -189,7 +189,7 @@ class SymMat a where
   invMaybe :: a -> Maybe a     -- | Maybe inverse matrix
   det :: a -> Number           -- | determinant
   diag :: a -> Array Number    -- | Array of diagonal elements
--- chol :: Cov a -> Jac a a                -- | Cholsky decomposition
+  -- chol :: Cov a -> Jac a a                -- | Cholsky decomposition
 
 instance SymMat (Cov Dim3) where
   inv m | trace ( "inv " <> (show m) ) False = undefined
@@ -219,7 +219,7 @@ instance SymMat (Cov Dim3) where
   diag (Cov {vc=v}) = _diag v where
     _diag :: Array Number -> Array Number
     _diag [a11,_,_,a22,_,a33] = A.fromList [a11,a22,a33]
---  chol a = choldc a
+  -- chol a = choldc a
 instance SymMat (Cov Dim4) where
   inv m = uJust (invMaybe m)
   invMaybe (Cov {vc=v}) = _inv v where
@@ -251,7 +251,7 @@ instance SymMat (Cov Dim4) where
     _diag :: Array Number -> Array Number
     _diag [a11,_,_,_,a22,_,_,a33,_,a44] = A.fromList [a11,a22,a33,a44]
     _diag _ = error $ "diag Cov Dim4: this should never happen " <> show v
---  chol a = choldc a
+  -- chol a = choldc a
 instance SymMat (Cov Dim5) where
   inv m = cholInv m
   invMaybe m = Just (cholInv m)
@@ -278,7 +278,7 @@ instance SymMat (Cov Dim5) where
   diag (Cov {vc=v}) = _diag v where
     _diag :: Array Number -> Array Number
     _diag [a,_,_,_,_,b,_,_,_,c,_,_,d,_,e] = A.fromList [a,b,c,d,e]
---  chol a = choldc a
+  -- chol a = choldc a
 
 class MulMat a b c | a b -> c where
   (*.) :: a -> b -> c

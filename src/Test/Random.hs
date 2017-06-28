@@ -27,7 +27,7 @@ import Statistics.Sample ( meanVariance )
 import Statistics.Sample ( meanVariance )
 import System.Random ( RandomGen, newStdGen )
 
-import Data.Cov ( chol, fromArray, toArray, (*.), Vec5 )
+import Data.Cov ( chol, fromArray, toArray, (*.), Vec5, Cov5 )
 import FV.Fit ( fit )
 import FV.Types ( VHMeas(..), HMeas(..), MMeas(..)
   , invMass, fromQMeas, fitMomenta )
