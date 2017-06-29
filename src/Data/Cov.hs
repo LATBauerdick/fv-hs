@@ -88,15 +88,11 @@ data Jacs = Jacs
             , h0jacs :: Vec5}
 
 -- access to arrays of symmetrical matrices
-uGet :: Array Number -> Int -> Int -> Int -> Number
-uGet a w i j | i <= j     = uidx a ((i-1)*w - (i-1)*(i-2) `div` 2 + j-i)
-             | otherwise = uidx a ((j-1)*w - (j-1)*(j-2) `div` 2 + i-j)
 indV :: Int -> Int -> Int -> Int
 indV w i0 j0 = (i0*w+j0)
 indVs :: Int -> Int -> Int -> Int
-indVs w i0 j0 | i0 <= j0  = (i0*w - i0*(i0-1) `div` 2 + j0-i0)
-              | otherwise = (j0*w - j0*(j0-1) `div` 2 + i0-j0)
-
+indVs w i0 j0 | i0 <= j0   = (i0*w - (i0*(i0-1)) `div` 2 + j0-i0)
+              | otherwise = (j0*w - (j0*(j0-1)) `div` 2 + i0-j0)
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
@@ -128,14 +124,13 @@ instance Mat (Cov a) where
           i0 <- [0 .. (n-1)]
           j0 <- [i0 .. (n-1)]
           pure $ uidx a (iv i0 j0) }
-
   toArray c@(Cov {vc=v}) = v' where
     l = A.length v
     n = case l of
       6  -> 3
       10 -> 4
       15 -> 5
-      _  -> error $ "matacov toArray not supported " <> show l
+      _  -> error $ "matCova: toArray not supported for length " <> show l
     iv = indVs n
     v' = A.fromList $ do
       i0 <- [0..(n-1)]
@@ -185,14 +180,14 @@ instance Mat1 (Jac a b) where
 -- | funcitons for symetric matrices: Cov
 -- | type class SymMat
 class SymMat a where
-  inv :: a -> a                -- | inverse matrix
-  invMaybe :: a -> Maybe a     -- | Maybe inverse matrix
-  det :: a -> Number           -- | determinant
-  diag :: a -> Array Number    -- | Array of diagonal elements
-  -- chol :: Cov a -> Jac a a                -- | Cholsky decomposition
+  inv :: Cov a -> Cov a                   -- | inverse matrix
+  invMaybe :: Cov a -> Maybe (Cov a)      -- | Maybe inverse matrix
+  det :: Cov a -> Number                  -- | determinant
+  diag :: Cov a -> Array Number           -- | Array of diagonal elements
+  -- chol :: Cov a -> Jac a a             -- | Cholsky decomposition
 
-instance SymMat (Cov Dim3) where
-  inv m | trace ( "inv " <> (show m) ) False = undefined
+instance SymMat Dim3 where
+--  inv m | trace ( "inv " <> (show m) ) False = undefined
   inv m = m' where
     mm = invMaybe m
     m' = case mm of
@@ -220,7 +215,7 @@ instance SymMat (Cov Dim3) where
     _diag :: Array Number -> Array Number
     _diag [a11,_,_,a22,_,a33] = A.fromList [a11,a22,a33]
   -- chol a = choldc a
-instance SymMat (Cov Dim4) where
+instance SymMat Dim4 where
   inv m = uJust (invMaybe m)
   invMaybe (Cov {vc=v}) = _inv v where
     _inv :: Array Number -> Maybe (Cov Dim4)
@@ -252,7 +247,7 @@ instance SymMat (Cov Dim4) where
     _diag [a11,_,_,_,a22,_,_,a33,_,a44] = A.fromList [a11,a22,a33,a44]
     _diag _ = error $ "diag Cov Dim4: this should never happen " <> show v
   -- chol a = choldc a
-instance SymMat (Cov Dim5) where
+instance SymMat Dim5 where
   inv m = cholInv m
   invMaybe m = Just (cholInv m)
   det (Cov {vc=v}) = _det v where
@@ -735,7 +730,7 @@ cholInv (Cov {vc= a}) = Cov {vc= a'} where
     pure arr
 
   a' = A.create $ do
-    v <- MA.new $ n * (n+1) `div` 2
+    v <- MA.new $ (n * (n+1)) `div` 2
     let ixa = indV n
         ixb = indV n
         ixc = indVs n
@@ -786,7 +781,7 @@ testCov2 = s where
   xv5 = fromArray [1.0,1.0,1.0,1.0,1.0] :: Vec5
   s =  "Test Cov 2----------------------------------------------\n"
     <> "Vec *. Vec = " <> show (v3 *. v3) <> "\n"
---    <> "Cov *. Cov = " <> show ((one::Cov3) *. inv (one::Cov3)) <> "\n"
+    <> "Cov *. Cov = " <> show (((fromArray[1.0,2.0,3.0,4.0,5.0,6.0])::Cov3) *. ((fromArray [0.0,0.0,1.0,1.0,0.0,0.0])::Cov3) *. inv (one::Cov3)) <> "\n"
 --    <> "Vec + Vec = " <> show (v5 + v5) <> "\n"
 --    <> "chol Cov = " <> show (chol (one::Cov5)) <> "\n"
 --    <> "Vec .*. Cov = " <> show (v5 .*. inv (one::Cov5)) <> "\n"
