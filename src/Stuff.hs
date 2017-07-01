@@ -12,7 +12,7 @@
 {-# LANGUAGE OverloadedLists #-}
 --{-# LANGUAGE NamedFieldPuns #-}
 module Stuff ( (<>), Semiring (..), Ring (..)
-  , (<<<), uidx, uJust, debug, trace
+  , (<<<), uidx, uJust, debug, trace, unsafePartial
   , Number, Array
   , Tuple (..)
   , List (..)
@@ -25,8 +25,9 @@ module Stuff ( (<>), Semiring (..), Ring (..)
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
-  ( Vector, length, fromList, toList, unsafeIndex, create, replicate
-  , singleton, map, foldl, zipWith
+  ( Vector, length, fromList, toList, unsafeIndex
+    , create, replicate
+    , singleton, map, foldl, zipWith
     , replicateM, concat, take )
 import Data.Maybe (  Maybe (..), fromJust )
 import Text.Printf ( printf )
@@ -50,6 +51,8 @@ uJust = fromJust
 (<<<) :: (b -> c) -> (a -> b) -> a -> c
 (<<<) = (.)
 infixr 9 <<<
+unsafePartial :: forall a. a -> a
+unsafePartial x = x
 
 -- filter list of objects given list of indices in [a]
 -- return list with only those b that have  indices that  are in rng [a]

@@ -177,7 +177,7 @@ instance Mat1 (Jac a b) where
                                           <> show (A.length v)
 
 -----------------------------------------------------------------
--- | funcitons for symetric matrices: Cov
+-- | functions for symetric matrices: Cov
 -- | type class SymMat
 class SymMat a where
   inv :: Cov a -> Cov a                   -- | inverse matrix
@@ -195,7 +195,7 @@ instance SymMat Dim3 where
            Just x -> x
   invMaybe (Cov {vc=v}) = _inv v where
     _inv :: Array Number -> Maybe (Cov Dim3)
-    _inv [a11,a12,a13,a22,a23,a33] = do
+    _inv = unsafePartial $ \[a11,a12,a13,a22,a23,a33] -> do
       let det = (a33*a12*a12 - 2.0*a13*a23*a12 + a13*a13*a22
                 +a11*(a23*a23 - a22*a33))
       guard $ (abs det) > 1.0e-50
@@ -210,7 +210,8 @@ instance SymMat Dim3 where
       pure $ Cov {vc=v'}
   det (Cov {vc=v}) = _det $ A.toList v where
     _det :: [Number] -> Number
-    _det [a,b,c,d,e,f] = a*d*f - a*e*e - b*b*f + 2.0*b*c*e - c*c*d
+    _det = unsafePartial $ \[a,b,c,d,e,f] ->
+                  a*d*f - a*e*e - b*b*f + 2.0*b*c*e - c*c*d
   diag (Cov {vc=v}) = _diag v where
     _diag :: Array Number -> Array Number
     _diag [a11,_,_,a22,_,a33] = A.fromList [a11,a22,a33]
@@ -635,6 +636,8 @@ choldc (Cov {vc= a}) = Jac {vj= a'} where
         6  -> 3
         10 -> 4
         15 -> 5
+        _  -> error $ "choldc: cannot deal with A.length "
+                    <> show (A.length a)
   ll = n*n
   a' = A.create $ do -- make a Array of n x n +n space for diagonal +1 for summing
     arr <- MA.new $ (ll+n+1)
