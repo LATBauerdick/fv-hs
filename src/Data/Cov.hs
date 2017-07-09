@@ -89,7 +89,7 @@ data Jacs = Jacs
 
 -- access to arrays of symmetrical matrices
 indV :: Int -> Int -> Int -> Int
-indV w i0 j0 = (i0*w+j0)
+indV w i0 j0 = (i0*w+j0) -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
 indVs :: Int -> Int -> Int -> Int
 indVs w i0 j0 | i0 <= j0   = (i0*w - (i0*(i0-1)) `div` 2 + j0-i0)
               | otherwise = (j0*w - (j0*(j0-1)) `div` 2 + i0-j0)
@@ -311,8 +311,8 @@ instance MulMat (Jac a b) (Cov b) (Jac a b) where
     vc = A.create $ do
       v <- MA.new $ na * nb
       let ixa = indV nb
-          ixb = indVs na
-          ixc = indV na
+          ixb = indVs nb
+          ixc = indV nb
       numLoop 0 (na-1) $ \i0 ->
         numLoop 0 (nb-1) $ \j0 ->
           MA.unsafeWrite v (ixc i0 j0) $
@@ -331,12 +331,12 @@ instance MulMat (Cov a) (Jac a b) (Jac a b) where
     vc = A.create $ do
       v <- MA.new $ na * nb
       let ixa = indVs na
-          ixb = indV na
-          ixc = indV na
+          ixb = indV nb
+          ixc = indV nb
       numLoop 0 (na-1) $ \i0 -> 
         numLoop 0 (nb-1) $ \j0 -> 
           MA.unsafeWrite v (ixc i0 j0) $
-          sum [ (uidx va (ixa i0 k0)) * (uidx vb (ixb k0 j0)) 
+          sum [ (uidx va (ixa i0 k0)) * (uidx vb (ixb k0 j0))
                  | k0 <- [0 .. na-1] ]
       pure v
 instance MulMat (Jac a b) (Vec b) (Vec a) where
@@ -345,13 +345,10 @@ instance MulMat (Jac a b) (Vec b) (Vec a) where
     na = (A.length va) `div` nb
     vc = A.create $ do
       v <- MA.new $ na
-      let ixa = indVs nb
-          ixb = indV 1
-          ixc = indV 1
-
+      let ixa = indV nb
       numLoop 0 (na-1) $ \i0 -> 
         MA.unsafeWrite v i0 $
-        sum [ (uidx va (ixa i0 k0)) * (uidx vb k0 )
+        sum [ (uidx va (ixa i0 k0)) * (uidx vb k0)
                  | k0 <- [0 .. nb-1] ]
       pure v
 instance MulMat (Jac a b) (Jac b a) (Jac a a) where -- Dim3 x Dim5
@@ -367,7 +364,7 @@ instance MulMat (Jac a b) (Jac b a) (Jac a a) where -- Dim3 x Dim5
     na = (A.length va) `div` nb
     vc :: Array Number
     vc = A.create $ do
-      v <- MA.new $ na * nb
+      v <- MA.new $ na * na
       let ixa = indV nb
           ixb = indV na
           ixc = indV na
@@ -381,12 +378,10 @@ instance MulMat (Cov a) (Vec a) (Vec a) where
   (*.) (Cov {vc= va}) (Vec {vv=vb}) = Vec {vv=vc} where
     nb = A.length vb
     na = nb
+    ixa = indVs na
     vc = A.create $ do
       v <- MA.new $ na
-      let ixa = indVs na
-          ixb = indV 1
-          ixc = indV 1
-      numLoop 0 (na-1) $ \i0 -> 
+      numLoop 0 (na-1) $ \i0 ->
         MA.unsafeWrite v i0 $
         sum [ (uidx va (ixa i0 k0)) * (uidx vb k0 )
                  | k0 <- [0 .. na-1] ]
@@ -414,7 +409,7 @@ instance TrMat (Jac a b) (Jac b a) where
           ixc = indV na
       numLoop 0 (nb-1) $ \i0 ->
         numLoop 0 (na-1) $ \j0 ->
-          MA.unsafeWrite v (ixc j0 i0) (uidx va (ixa i0 j0))
+          MA.unsafeWrite v (ixc i0 j0) (uidx va (ixa j0 i0))
       pure v
 class SwMat a b c | a b -> c where
   (.*.) :: a -> b -> c
@@ -423,10 +418,6 @@ infixl 7 .*.
 instance SwMat (Vec a) (Cov a) Number where
   (.*.) v c = n where
     n = v *. (c *. v)
-    -- mv = toMatrix v
-    -- mc = toMatrix c
-    -- mc' = M.transpose mv * mc * mv
-    -- n = uidx (M.toArray mc') 0
 instance SwMat (Cov a) (Cov a) (Cov a) where
   (.*.) (Cov {vc = va}) (Cov {vc= vb}) = Cov {vc = v'} where
     -- error $ "called sw Cova Cova"
@@ -438,7 +429,7 @@ instance SwMat (Cov a) (Cov a) (Cov a) where
               6  -> 3
               10 -> 4
               15 -> 5
-              _  -> error $ "sw cov cov: don'w know how to " <> show l
+              _  -> error $ "sw cov cov: don't know how to " <> show l
     m = n -- > mxn * nxn * nxm -> mxm
     vint :: Array Number
     vint = A.create $ do
@@ -470,7 +461,7 @@ instance SwMat (Jac a b) (Cov a) (Cov b) where
               6  -> 3
               10 -> 4
               15 -> 5
-              _  -> error $ "swJac: don'w know how to " <> show l
+              _  -> error $ "swJac: don't know how to " <> show l
     m = (A.length va) `div` n -- > mxn * nxn * nxm -> mxm
     vint :: Array Number
     vint = A.create $ do
@@ -492,7 +483,7 @@ instance SwMat (Jac a b) (Cov a) (Cov b) where
       numLoop 0 (m-1) $ \i0 ->
         numLoop i0 (m-1) $ \j0 ->
           MA.unsafeWrite v (ixc i0 j0) $
-            sum [ (uidx va (ixa k0 i0 )) * (uidx vint (ixb k0 j0))
+            sum [ (uidx va (ixa k0 i0)) * (uidx vint (ixb k0 j0))
               | k0 <- [0 .. (n-1)] ]
       pure v
 -------------------------------------------------------
@@ -604,9 +595,7 @@ subm n (Vec {vv=v}) = Vec {vv= _subm v} where
 subm2 :: Int -> Cov5 -> Cov3
 subm2 n (Cov {vc=v}) = Cov {vc= _subm2 v} where
   _subm2 :: Array Number -> Array Number
-  _subm2 [a,b,c,_,_,d,e,_,_,f,_,_,_,_,_] = A.fromList [a,b,c,d,e,f]
-  _subm2 _ = error $ "subm2 Cov4 Cov3 this clearly can't possibly happen..."
-
+  _subm2 = unsafePartial $ \[a,b,c,_,_,d,e,_,_,f,_,_,_,_,_] -> [a,b,c,d,e,f]
 
 -- CHOLESKY DECOMPOSITION
 

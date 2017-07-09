@@ -11,7 +11,8 @@ import Test.Input ( hSlurp )
 -- import Test.Cluster ( doCluster, fsmw )
 import Test.FVT ( testFVT )
 import Data.Cov ( testCov2 )
-import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..) )
+import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..), hFilter, vBlowup )
+import Test.Random ( testRandom )
 
 
 import Stuff
@@ -77,9 +78,15 @@ spec =
             HMeas _ _ w = head hl
         w `shouldBe` 4.5451703e-3
 
-      it "test FVT 1" $ do
+      it "--Test FVT" $ do
         ds <- readFile "dat/tr05129e001412.dat"
         _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp $ ds
+        (1 :: Int) `shouldBe` 1
+
+      it "--Test Random" $ do
+        ds <- readFile "dat/tr05129e001412.dat"
+        _ <- testRandom 100 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
+                            <<< uJust <<< hSlurp $ ds
         (1 :: Int) `shouldBe` 1
 
       -- it "test p works" $ do
