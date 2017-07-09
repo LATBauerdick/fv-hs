@@ -81,7 +81,7 @@ spec =
       it "--Test FVT" $ do
         ds <- readFile "dat/tr05129e001412.dat"
         _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp $ ds
-        (1 :: Int) `shouldBe` 1
+        1 `shouldBe` 1
 
       it "--Test Random" $ do
         ds <- readFile "dat/tr05129e001412.dat"

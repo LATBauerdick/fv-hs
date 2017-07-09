@@ -583,14 +583,12 @@ instance Ring (Vec a) where
 scaleDiag :: Number -> Cov3 -> Cov3
 scaleDiag s (Cov {vc=v}) = (Cov {vc= _sc $ A.toList v}) where
   _sc :: [Number] -> Array Number
-  _sc [a,_,_,b,_,c] = A.fromList [s*a,0.0,0.0,s*b,0.0,s*c]
-  _sc _ = undefined
+  _sc = unsafePartial $ \[a,_,_,b,_,c] -> [s*a,0.0,0.0,s*b,0.0,s*c]
 
 subm :: Int -> Vec5 -> Vec3
 subm n (Vec {vv=v}) = Vec {vv= _subm v} where
   _subm :: Array Number -> Array Number
-  _subm [a,b,c,_,_] = A.fromList [a,b,c]
-  _subm _ = undefined
+  _subm = unsafePartial $ \[a,b,c,_,_] -> [a,b,c]
 
 subm2 :: Int -> Cov5 -> Cov3
 subm2 n (Cov {vc=v}) = Cov {vc= _subm2 v} where
