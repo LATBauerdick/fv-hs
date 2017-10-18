@@ -24,7 +24,7 @@ spec :: Spec
 spec =
   describe "Lib Tests" $ do
     describe "Cov" $ do
-      it "testCov works" $ do
+      it "testCov------------------------" $ do
         let  s = testCov2
         putStrLn s
         -- putStrLn $ testCov 0
@@ -85,8 +85,9 @@ spec =
 
       it "--Test Random" $ do
         ds <- readFile "dat/tr05129e001412.dat"
-        _ <- testRandom 100 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
+        out <- testRandom 100 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
                             <<< uJust <<< hSlurp $ ds
+        putStrLn out
         (1 :: Int) `shouldBe` 1
 
       -- it "test p works" $ do

@@ -15,7 +15,7 @@ module Stuff ( (<>), Semiring (..), Ring (..)
   , (<<<), uidx, uJust, debug, trace, unsafePartial
   , Number, Array
   , Tuple (..)
-  , List (..)
+  , List, range, fromList
   , to0fix, to1fix, to2fix, to3fix, to5fix
   , iflt, irem
   , toNumber, intFromString, numberFromString
@@ -25,7 +25,7 @@ module Stuff ( (<>), Semiring (..), Ring (..)
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
-  ( Vector, length, fromList, toList, unsafeIndex
+  ( Vector, Unbox, length, fromList, toList, unsafeIndex
     , create, replicate
     , singleton, map, foldl, zipWith
     , replicateM, concat, take )
@@ -33,7 +33,7 @@ import Data.Maybe (  Maybe (..), fromJust )
 import Text.Printf ( printf )
 import Text.Read ( readMaybe )
 import System.Random ( RandomGen, random )
-import Data.List as L ( take )
+import qualified Data.List as L ( take )
 
 --------------------------------------------------------------
 -- adapting for PureScript
@@ -69,6 +69,10 @@ data Tuple a b = Tuple a b
 
 -- List, PureScript does not provide sugar
 type List a = [a]
+range :: Int -> Int -> [Int]
+range f t = [ f .. t ]
+fromList :: [Number] ->  Array Number
+fromList = A.fromList
 
 -- | Allows `Tuple`s to be rendered as a string with `show` whenever there are
 -- | `Show` instances for both component types.

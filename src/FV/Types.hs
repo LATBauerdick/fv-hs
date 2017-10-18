@@ -45,6 +45,7 @@ instance Semiring Chi2 where
   mul (Chi2 c0) (Chi2 c1) = Chi2 (c0*c1)
   one = Chi2 1.0
 instance Num Chi2 where
+  fromInteger i = Chi2 $ fromInteger i
   (+) (Chi2 a) (Chi2 b) = Chi2 (a+b)
 data Prong = Prong
           { nProng        :: Int
@@ -143,10 +144,9 @@ showQMeas (QMeas q cq w2pt) = s' where
   psi        = psi0*180.0/pi
   e          = sqrt(pt*pt  + pz*pz + m*m)
   jj :: Jac34
-  jj         = fromArray
-              [ -wp/w/w, -wp/w/w*tl, 0.0, -(pz*pz + pt*pt)/w/e
-              , 0.0, wp/w, 0.0, pt*pt*tl/e
-              , 0.0, 0.0, 1.0, 0.0]
+  jj         = Jac { vj = [ -wp/w/w, -wp/w/w*tl, 0.0, -(pz*pz + pt*pt)/w/e
+                          , 0.0, wp/w, 0.0, pt*pt*tl/e
+                          , 0.0, 0.0, 1.0, 0.0], nr = 3 }
   cq'        = jj .*. cq
   p'         = [pt, pz, psi, e]
   dp         = A.map sqrt $ diag cq'
