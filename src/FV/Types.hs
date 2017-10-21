@@ -33,6 +33,7 @@ import Data.Foldable ( fold )
 import Control.Monad (guard)
 
 import Data.Cov
+import Data.Cov.Jac ( Jac (..) )
 import Stuff
 
 -----------------------------------------------
@@ -144,7 +145,7 @@ showQMeas (QMeas q cq w2pt) = s' where
   psi        = psi0*180.0/pi
   e          = sqrt(pt*pt  + pz*pz + m*m)
   jj :: Jac34
-  jj         = Jac { vj = [ -wp/w/w, -wp/w/w*tl, 0.0, -(pz*pz + pt*pt)/w/e
+  jj         = Jac { v = [ -wp/w/w, -wp/w/w*tl, 0.0, -(pz*pz + pt*pt)/w/e
                           , 0.0, wp/w, 0.0, pt*pt*tl/e
                           , 0.0, 0.0, 1.0, 0.0], nr = 3 }
   cq'        = jj .*. cq

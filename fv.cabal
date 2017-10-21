@@ -28,6 +28,9 @@ library
                     , Stuff
                     , Data.SimpleMatrix
                     , Data.Cov
+                    , Data.Cov.Cov
+                    , Data.Cov.Jac
+                    , Data.Cov.Vec
                     , Test.FVT
                     , Test.Input
                     , Test.Random
