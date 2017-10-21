@@ -687,11 +687,11 @@ cholInv (Cov {v= a}) = Cov {v= a'} where
 
   a' = fromList $ do
     let idx = indV n
-    i <- range 0 (n-1)
-    j <- range i (n-1)
+    i0 <- range 0 (n-1)
+    j0 <- range i0 (n-1)
     let aij = sum $ do
-                  k <- range 0 (n-1)
-                  pure $ (uidx l (idx k i)) * (uidx l (idx k j))
+                  k0 <- range 0 (n-1)
+                  pure $ (uidx l (idx k0 i0)) * (uidx l (idx k0 j0))
     pure $ aij
 
 --C version Numerical Recipies 2.9
