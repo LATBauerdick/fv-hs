@@ -34,25 +34,15 @@ import Control.Monad ( guard, void )
 import Data.String as S ( unlines, unwords )
 -- import Partial.Unsafe ( unsafePartial )
 
+import Stuff
+
 import Data.Cov.Cov
 import Data.Cov.Jac
 import Data.Cov.Vec
 
-import Stuff
-
 newtype Dim3 = DDim3 Int
 newtype Dim4 = DDim4 Int
 newtype Dim5 = DDim5 Int
-class DDim a where
-  ddim :: a -> Int
-instance DDim Dim3 where
-  ddim _ = 3
-instance DDim Dim4 where
-  ddim _ = 4
-instance DDim Dim5 where
-  ddim _ = 5
-instance DDim a where
-  ddim _ = undefined
 
 type Cov3 = Cov Dim3
 type Cov4 = Cov Dim4
@@ -612,8 +602,7 @@ choldc (Cov {v= a}) = Jac {v= a', nr= n} where
         msum <- if i0==j0 then MA.unsafeRead arr (ll+i0)
                          else MA.unsafeRead arr (ixarr j0 i0)
         let sum = if i0==j0 && msum < 0.0
-                        then error ("choldc: not a positive definite matrix "
-                                     <> show a)
+                        then error ("choldc: not a positive definite matrix " <> show a)
                         else msum
         p_i' <- MA.unsafeRead arr (ll+i0)
         let p_i = if i0 == j0 then sqrt sum else p_i'
@@ -626,6 +615,7 @@ choldc (Cov {v= a}) = Jac {v= a', nr= n} where
       aii <- MA.unsafeRead arr (ll+i0)
       void $ MA.unsafeWrite arr (ixarr i0 i0) aii
       pure ()
+
     pure $ MA.unsafeTake ll arr
 
 -- | Matrix inversion using Cholesky decomposition
