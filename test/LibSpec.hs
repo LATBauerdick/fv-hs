@@ -78,15 +78,28 @@ spec =
             HMeas _ _ w = head hl
         w `shouldBe` 4.5451703e-3
 
-      it "--Test FVT" $ do
-        ds <- readFile "dat/tr05129e001412.dat"
-        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp $ ds
+      it "--Test FVT 1" $ do
+        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< readFile "dat/tr05129e001412.dat"
+        1 `shouldBe` 1
+
+      it "--Test FVT 2" $ do
+        ds <- readFile "dat/tr05158e004656.dat"
+        _ <- testFVT [0,1,2,4,5] <<< uJust <<< hSlurp $ ds
+        1 `shouldBe` 1
+
+      it "--Test FVT 3" $ do -- this file has an additional track that makes the fit bad
+        ds <- readFile "dat/tr07849e007984.dat"
+        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< readFile "dat/tr07849e007984.dat"
+        -- let vf = fitVertex $ pr
+        --     h = head . helices . hFilter [6] $ vm
+        --     Just (_, chi2, _) =  ksm vf h
+        -- putStrLn $ printf "chi2 of track 6 w/r to fit vertex is %8.1f" (chi2::Double)
         1 `shouldBe` 1
 
       it "--Test Random" $ do
-        ds <- readFile "dat/tr05129e001412.dat"
         out <- testRandom 100 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
-                            <<< uJust <<< hSlurp $ ds
+                            <<< uJust <<< hSlurp
+                            =<< readFile "dat/tr05129e001412.dat"
         putStrLn out
         (1 :: Int) `shouldBe` 1
 

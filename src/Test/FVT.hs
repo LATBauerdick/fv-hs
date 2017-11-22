@@ -97,7 +97,8 @@ doFitTest vm' l5 = do
   let Prong {fitVertex=fv, fitMomenta=fqs, fitChi2s=fcs, nProng=np} = fit <<< hFilter l5 $ vm
   putStrLn $           "Refitted vertex -> " <> show fv
   traverse_ (putStrLn <<< showQChi2) $ zip fqs fcs
-  putStrLn $           "Inv Mass " <> show np <> " refit" <> (show <<< invMass <<< map fromQMeas $ fqs)
+  putStrLn $           "Inv Mass " <> show np <> " refit" 
+                       <> (show <<< invMass <<< map fromQMeas $ fqs)
   putStrLn $           "Final vertex -> " <> show fv
   putStrLn $           "end of doFitTest------------------------------------------"
 
