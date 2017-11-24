@@ -1,8 +1,8 @@
-{-# LANGUAGE EmptyDataDecls #-}
+-- {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE ExplicitForAll #-}
 --{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
+-- {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 --{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
@@ -110,21 +110,21 @@ div' :: Number -> Number -> Int
 div' n d = floor ( n /  d)
 
 -- | generalisation of 'divMod' to any instance of Real
-divMod' :: Number -> Number -> (Tuple Int Number)
-divMod' n d = (Tuple f (n - (toNumber f) * d)) where
+divMod' :: Number -> Number -> Tuple Int Number
+divMod' n d = Tuple f (n - toNumber f * d) where
     f = div' n d
 
 -- | generalisation of 'mod' to any instance of Real
 mod' :: Number -> Number -> Number
-mod' n d = n - (toNumber f) * d where
+mod' n d = n - toNumber f * d where
     f = div' n d
 
 -- | convert from String to Number and Int
 numberFromString :: String -> Maybe Number
-numberFromString s = readDouble s where
+numberFromString  = readDouble where
   readDouble = readMaybe :: String -> Maybe Double
 intFromString :: String -> Maybe Int
-intFromString s = readInt s where
+intFromString = readInt where
   readInt = readMaybe :: String -> Maybe Int
 
 

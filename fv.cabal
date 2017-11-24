@@ -34,6 +34,7 @@ library
                     , Test.FVT
                     , Test.Input
                     , Test.Random
+                    , Test.Cluster
                     , Test.Probability
   build-depends:      base >= 4.7 && < 5
                     , text

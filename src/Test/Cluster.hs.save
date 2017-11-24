@@ -7,11 +7,10 @@
 module Test.Cluster ( doCluster, fsmw ) where
 
 import FV.Types (  VHMeas (..), HMeas (..), QMeas (..), Prong (..)
-  , XMeas (..), xXMeas, yXMeas
-  , XFit (..), Chi2 (..)
+  , XMeas (..), XFit (..), Chi2
   , chi2Vertex, zVertex, z0Helix )
-import FV.Fit ( kAdd, kAddF, ksm', kChi2, fit )
-import Data.Cov.Vec
+import FV.Fit ( kAdd, kAddF, ksm, ksm', kChi2, fit )
+import Data.SimpleMatrix as M ( fromList, toList )
 
 --import Data.Text
 
@@ -26,7 +25,6 @@ import Text.Printf ( printf )
 -- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
 import Graphics.Histogram
 
-import Stuff
 import Debug.Trace ( trace, traceShow )
 debug :: a -> String -> a
 debug = flip trace
@@ -56,8 +54,9 @@ doCluster vm' = do
     Node p1 _ -> print $ fitVertex p1
   return ()
 
-ftvtx :: Prong -> (Number, List Chi2)
+ftvtx :: Prong -> (Double, [Double])
 ftvtx p = ( zVertex . xFit . fitVertex $ p, fitChi2s p)
+
 
 xFit :: XMeas -> XFit
 xFit (XMeas v vv) = XFit v vv 1e6
@@ -95,7 +94,7 @@ vList vm = Node p vRight where
              Just vm' -> vList vm'
 
 wght :: Double -> Chi2 -> Double -- weight function with Temperature t
-wght t (Chi2 chi2) = w where
+wght t chi2 = w where
   chi2cut = 3.0
   w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
 
@@ -103,18 +102,20 @@ cluster'' :: VHMeas -> (Prong, Maybe VHMeas)
 cluster'' vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
 cluster'' (VHMeas v hl) = trace (
         "--> cluster debug:"
-        <> "\n--> cluster fit zs " <> show zs
-        <> "\n--> cluster fit vertex " <> show (fitVertex p)
-        <> "\n--> cluster # remaining helices " <> show ( length hlr) <> (show . fmap z0Helix . take 3 $ hlr)
-        ) ( p, r ) where
+        ++ "\n--> cluster fit zs " ++ show zs
+        ++ "\n--> cluster fit vertex " ++ (show $ fitVertex p)
+        ++ "\n--> cluster # remaining helices " ++ (show $ length hlr) ++ (show . fmap z0Helix . take 3 $ hlr)
+                              )
+    $ ( p, r ) where
   -- split off 10 h with lowest z and determine initial fit position with FSMW
   (hl', hlr) = splitAt 10 . sortOn z0Helix $ hl
 
   -- constract vertex v0 at z=z0 as starting point, using cov matrix from v
   zs = sort . filter (\x -> abs x < 10.0) . map (zVertex . kAddF (xFit v)) $ hl'
   z0 = fsmw (length zs) zs
-  XMeas vx0 cx0  = v
-  v0 = XMeas Vec {v= fromList [xXMeas v, yXMeas v, z0]} cx0
+  XMeas x0 cx0  = v
+  [xx0, yx0]    = M.toList 2 x0
+  v0            = XMeas (M.fromList 3 [xx0, yx0, z0]) cx0
 
   -- do the fit with v0
   p             = fit (VHMeas v0 hl')
@@ -127,7 +128,7 @@ cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
 cluster (VHMeas v hllll) = trace (
         "--> cluster debug:"
-        ++ "\n--> cluster zs=" ++ take 160 (show zs)
+        ++ "\n--> cluster zs=" ++ (take 160 $ show zs)
         ++ printf "\n--> cluster z0=%9.3f " (z0 :: Double)
         ++ "\n--> cluster v0=" ++ show v0
         ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 hl)
@@ -155,26 +156,27 @@ cluster (VHMeas v hllll) = trace (
         ++ printf "\n--> cluster nothing=%5d just=%5d" (length hlnothing) (length hljust)
         ++ "\n--> cluster nProng=" ++ show nProng
                                   )
-    ( p, r ) where
+    $ ( p, r ) where
 
   sDouble :: Double -> String
-  sDouble c = if c > 0.001
-                then printf "%6.3f" c
-                else " eps"
+  sDouble c = case c > 0.001 of
+                True -> printf "%6.3f" c
+                False -> " eps"
 
-  bDouble :: Chi2 -> String
-  bDouble (Chi2 c) = if c<999.9 
-                then printf "%6.1f" c
-                else " big"
+  bDouble :: Double -> String
+  bDouble c = case c<999.9 of
+                True -> printf "%6.1f" c
+                False -> " big"
 
   hl = hllll
 
-  -- FSMW method to find initial z for primary vertex
+  -- FSMW method to fund initial z for primary vertex
   zs = sort . filter (\x -> abs x < 10.0) . map (zVertex . kAddF (xFit v)) $ hl
   z0 = fsmw (length zs) zs
   -- constract vertex v0 at z=z0 as starting point, using cov matrix from v
-  XMeas vx0 cx0  = v
-  v0 = XMeas Vec {v= fromList [xXMeas v, yXMeas v, z0]} cx0
+  XMeas x0 cx0  = v
+  [xx0, yx0]    = M.toList 2 x0
+  v0 = XMeas (M.fromList 3 [xx0, yx0, z0]) cx0
   -- filter hl for v1, with starting point v0
   hl0 :: [Maybe HMeas]
   hl0           = map (filtProb 0.00001 v0) hl
@@ -192,22 +194,22 @@ cluster (VHMeas v hllll) = trace (
 
   c21s          = map (\mh -> case mh of
                                 Just h -> kChi2 v1 h
-                                Nothing -> Chi2 0.0) hl0
+                                Nothing -> 0.0) hl0
   ws1 = fmap (max 0.001 . wght t0) c21s
   v2 = foldl kAddW' v1 $ zip hl0 ws1
   c22s          = map (\mh -> case mh of
                                 Just h -> kChi2 v2 h
-                                Nothing -> Chi2 0.0) hl0
+                                Nothing -> 0.0) hl0
   ws2 = fmap (max 0.001 . wght t0) c22s
   v3 = foldl kAddW' v2 $ zip hl0 ws2
   c23s          = map (\mh -> case mh of
                                 Just h -> kChi2 v3 h
-                                Nothing -> Chi2 0.0) hl0
+                                Nothing -> 0.0) hl0
   ws3 = fmap (max 0.001 . wght 4.0) c23s
   v4 = foldl kAddW' v3 $ zip hl0 ws3
   c24s          = map (\mh -> case mh of
                                 Just h -> kChi2 v4 h
-                                Nothing -> Chi2 0.0) hl0
+                                Nothing -> 0.0) hl0
   ws4 = fmap (max 0.001 . wght 1.0) c24s
   v5 = foldl kAddW' v4 $ zip hl0 ws4
 
@@ -233,9 +235,10 @@ cluster (VHMeas v hllll) = trace (
   measurements = VHMeas v hljust
   p = Prong  {..}
 
-  nnn = fromIntegral (length hlnothing) `div` 3
-  r = if null hlnothing then Nothing
-        else  Just (VHMeas v (drop nnn  hlnothing))
+  nnn = (fromIntegral (length hlnothing)) `div` (fromIntegral 3)
+  r = case length hlnothing of
+        0 -> Nothing
+        _ -> Just (VHMeas v (drop nnn  hlnothing))
 
 -- -------------------------------------------------------
 -- use robust Mode finding to get initial vertex position

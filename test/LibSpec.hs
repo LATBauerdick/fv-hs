@@ -6,12 +6,13 @@ import Test.QuickCheck ( property )
 import Control.Monad ( (<=<) )
 import Data.List ( sort )
 import Data.Maybe ( mapMaybe )
+import Data.Foldable ( traverse_ )
 
 import Test.Input ( hSlurp )
--- import Test.Cluster ( doCluster, fsmw )
+import Test.Cluster ( doCluster, fsmw )
 import Test.FVT ( testFVT )
 import Data.Cov ( testCov2 )
-import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..), hFilter, vBlowup )
+import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..), hFilter, vBlowup, fromHMeas )
 import Test.Random ( testRandom )
 
 
@@ -90,11 +91,27 @@ spec =
       it "--Test FVT 3" $ do -- this file has an additional track that makes the fit bad
         ds <- readFile "dat/tr07849e007984.dat"
         _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< readFile "dat/tr07849e007984.dat"
+        ds <- readFile "dat/tr07849e007984.dat"
+        let vm = uJust <<< hSlurp $ ds
+        -- pr <- showProng . fitw . hFilter l5 . vBlowup 10000.0 $ vm
         -- let vf = fitVertex $ pr
         --     h = head . helices . hFilter [6] $ vm
         --     Just (_, chi2, _) =  ksm vf h
         -- putStrLn $ printf "chi2 of track 6 w/r to fit vertex is %8.1f" (chi2::Double)
         1 `shouldBe` 1
+
+      it "--Test Cluster" $ do
+        let
+            showMomentum :: HMeas -> String
+            showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
+            showHelix :: HMeas -> String
+            showHelix h = "Helix ->" <> (show h)
+        ds <- readFile "dat/tav-0.dat"
+        let vm = uJust $ hSlurp ds
+        traverse_ (putStrLn <<< showHelix) $ helices vm
+        traverse_ (putStrLn <<< showMomentum) $ helices vm
+        doCluster vm
+        (1 :: Int) `shouldBe` 1
 
       it "--Test Random" $ do
         out <- testRandom 100 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
