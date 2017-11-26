@@ -26,7 +26,6 @@ library
                     , FV.Types
                     , FV.Jacob
                     , Stuff
-                    , Data.SimpleMatrix
                     , Data.Cov
                     , Data.Cov.Cov
                     , Data.Cov.Jac

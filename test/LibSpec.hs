@@ -29,7 +29,7 @@ spec =
         let  s = testCov2
         putStrLn s
         -- putStrLn $ testCov 0
-        (head s) `shouldBe` 'T'
+        head s `shouldBe` 'T'
 
     -- describe "FSMW Tests" $ do
     --   it "FSMW5 works" $ do
@@ -63,10 +63,6 @@ spec =
     --     fsmw n xs `shouldBe` 26.16
 
     describe "FV Test" $ do
-      -- it "doCluster works" $ do
-      --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
-      --   (1 :: Int) `shouldBe` 1
-
       it "hSlurp CMS event" $ do
         ds <- readFile "dat/tav-4.dat"
         let VHMeas _ hl = uJust $ hSlurp ds
@@ -105,12 +101,13 @@ spec =
             showMomentum :: HMeas -> String
             showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
             showHelix :: HMeas -> String
-            showHelix h = "Helix ->" <> (show h)
+            showHelix h = "Helix ->" <> show h
         ds <- readFile "dat/tav-0.dat"
         let vm = uJust $ hSlurp ds
         traverse_ (putStrLn <<< showHelix) $ helices vm
         traverse_ (putStrLn <<< showMomentum) $ helices vm
         doCluster vm
+   --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
       it "--Test Random" $ do

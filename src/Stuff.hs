@@ -25,10 +25,10 @@ module Stuff ( (<>), Semiring (..), Ring (..)
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
-  ( Vector, Unbox, length, fromList, toList, unsafeIndex
-    , create, replicate
-    , singleton, map, foldl, zipWith
-    , replicateM, concat, take )
+    ( Vector
+    , fromList
+    , unsafeIndex
+    )
 import Data.Maybe (  Maybe (..), fromJust )
 import Text.Printf ( printf )
 import Text.Read ( readMaybe )
@@ -141,13 +141,10 @@ boxMuller g = let
              in ( b1, b2, g2 )
 normals :: RandomGen g => Int -> g -> (Array Number, g)
 normals n g = (ns, g') where
-  nto :: Int
-  nto = n `div` 2
   is :: List Int
   is = [0 .. n `div` 2]
   doNormals :: RandomGen g => (g, List Number) -> Int -> (g, List Number)
-  doNormals (g, ns) _ = (g', n1:n2:ns) where
-                        (n1,n2,g') = boxMuller g
+  doNormals (g_, ns_) _ = (g'_, n1:n2:ns_) where (n1,n2,g'_) = boxMuller g_
   (g', ls) = foldl doNormals (g, []) is
   ns = A.fromList <<< L.take n $ ls
 

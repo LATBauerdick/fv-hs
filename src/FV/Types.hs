@@ -29,7 +29,7 @@ module FV.Types
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
-  ( head, length, unsafeIndex, drop, zip, map, foldl )
+  ( head, length, drop, zip, map, foldl )
 import Data.Semigroup
 import Data.Foldable ( fold )
 import Control.Monad (guard)
@@ -114,7 +114,7 @@ instance Show MCtruth where
 --
 data HMeas = HMeas Vec5 Cov5 Number
 instance Show HMeas where
-  show (HMeas h ch w0) = s' where
+  show (HMeas h ch _) = s' where
     sh = A.map sqrt $ diag ch
     hs = toArray h
     s00 = to5fix x <> " +-" <> to5fix dx where
@@ -123,10 +123,10 @@ instance Show HMeas where
     s' = A.foldl f s00 (A.drop 1 $ A.zip hs sh) where
       f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
 
-z0Helix :: HMeas -> Double
+z0Helix :: HMeas -> Number
 z0Helix (HMeas h _ _) = z0 where
   v = val h
-  z0 = A.unsafeIndex v 4
+  z0 = uidx v 4
 -----------------------------------------------
 -- QMeas
 -- 3-vector and covariance matrix for momentum measurement
@@ -334,19 +334,19 @@ showXMeas (XMeas v cv) = s' where
               <> ", " <> to2fix z <> "), x y z ="
 
 xXMeas (XMeas v _) = x where
-  x = uidx (toArray v) 0
+  x = uidx (val v) 0
 yXMeas (XMeas v _) = y where
-  y = uidx (toArray v) 1
+  y = uidx (val v) 1
 zXMeas (XMeas v _) = z where
-  z = uidx (toArray v) 2
+  z = uidx (val v) 2
 
-data XFit = XFit Vec3 Cov3 Number
+data XFit = XFit Vec3 Cov3 Chi2
 instance Show XFit where
-  show (XFit x xx c2) = showXMeas (XMeas x xx)
+  show (XFit x xx c2) = showXMeas (XMeas x xx) <> ", chi2=" <> show c2
 
-chi2Vertex :: XFit -> Double
+chi2Vertex :: XFit -> Chi2
 chi2Vertex (XFit _ _ c2) = c2
 
 zVertex :: XFit -> Double
 zVertex (XFit v _ _) = z where
-  z = A.unsafeIndex (val v) 2
+  z = uidx (val v) 2
