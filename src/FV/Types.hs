@@ -14,9 +14,9 @@
 
 module FV.Types
   ( MCtruth (..)
-  , Prong (..), fitMomenta
+  , Prong (..)
   , Chi2 (..)
-  , VHMeas (..), vertex, helices, hFilter
+  , VHMeas (..), hFilter
   , XMeas (..), vBlowup, xXMeas, yXMeas, zXMeas
   , DMeas (..), Pos, distance
   , HMeas (..)
@@ -51,6 +51,10 @@ instance Semiring Chi2 where
   one = Chi2 1.0
 instance Num Chi2 where
   fromInteger i = Chi2 $ fromInteger i
+  negate (Chi2 c) = Chi2 (negate c)
+  abs (Chi2 c) = Chi2 (abs c)
+  signum (Chi2 c) = Chi2 (signum c)
+  (*) = error "cannot multiply Chi2*Chi2 to return a Chi2"
   (+) (Chi2 a) (Chi2 b) = Chi2 (a+b)
 data Prong = Prong
           { nProng        :: Int
@@ -80,22 +84,22 @@ data VHMeas = VHMeas {
 {--   mempty = VHMeas (XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)) [] --}
 
 instance Show VHMeas where
-  show VHMeas {vertex=v, helices=hs} = "VHMeas w/ " <> show (length hs)
-                                    <> " tracks. " <> show v
+  show VHMeas {vertex=v_, helices=hs} = "VHMeas w/ " <> show (length hs)
+                                    <> " tracks. " <> show v_
 
 vBlowup :: Number -> VHMeas -> VHMeas
 {-- vBlowup scale vm = over vertexLens (blowup scale) vm where --}
-vBlowup scale VHMeas {vertex= v, helices= hs} =
-    VHMeas {vertex= blowup scale v, helices= hs} where
+vBlowup scale VHMeas {vertex= v_, helices= hs} =
+    VHMeas {vertex= blowup scale v_, helices= hs} where
   blowup :: Number -> XMeas -> XMeas -- blow up diag of cov matrix
-  blowup s (XMeas v cv) = XMeas v cv' where
+  blowup s (XMeas v__ cv) = XMeas v__ cv' where
     cv' = scaleDiag s cv
 
 hFilter :: List Int -> VHMeas -> VHMeas
-hFilter is VHMeas {vertex=v, helices=hs} = VHMeas {vertex=v, helices= iflt is hs}
+hFilter is VHMeas {vertex=v_, helices=hs} = VHMeas {vertex=v_, helices= iflt is hs}
 
 hRemove :: Int -> VHMeas -> VHMeas
-hRemove indx VHMeas {vertex=v, helices=hs} = VHMeas {vertex=v, helices=irem indx hs}
+hRemove indx VHMeas {vertex=v_, helices=hs} = VHMeas {vertex=v_, helices=irem indx hs}
 
 -----------------------------------------------
 -- MCtruth
@@ -314,6 +318,7 @@ instance Semigroup XMeas where
   (<>) (XMeas x1 cx1) (XMeas x2 cx2) = XMeas (x1 + x2) (cx1 + cx2)
 instance Monoid XMeas where
   mempty = XMeas zero zero
+  mappend = undefined
 instance Show XMeas where
   show = showXMeas
 -- return a string showing vertex position vector with errors
@@ -333,10 +338,13 @@ showXMeas (XMeas v cv) = s' where
     "(r,z) =" <> "(" <> to2fix (sqrt (x*x + y*y))
               <> ", " <> to2fix z <> "), x y z ="
 
+xXMeas :: XMeas -> Number
 xXMeas (XMeas v _) = x where
   x = uidx (val v) 0
+yXMeas :: XMeas -> Number
 yXMeas (XMeas v _) = y where
   y = uidx (val v) 1
+zXMeas :: XMeas -> Number
 zXMeas (XMeas v _) = z where
   z = uidx (val v) 2
 

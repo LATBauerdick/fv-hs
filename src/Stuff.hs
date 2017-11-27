@@ -16,6 +16,8 @@ module Stuff ( (<>), Semiring (..), Ring (..)
   , Number, Array
   , Tuple (..)
   , List, range, fromList
+  , indV, indVs
+  , prettyMatrix
   , to0fix, to1fix, to2fix, to3fix, to5fix
   , iflt, irem
   , toNumber, intFromString, numberFromString
@@ -26,7 +28,7 @@ module Stuff ( (<>), Semiring (..), Ring (..)
 import Prelude
 import qualified Data.Vector.Unboxed as A
     ( Vector
-    , fromList
+    , fromList, map, maximum
     , unsafeIndex
     )
 import Data.Maybe (  Maybe (..), fromJust )
@@ -34,6 +36,7 @@ import Text.Printf ( printf )
 import Text.Read ( readMaybe )
 import System.Random ( RandomGen, random )
 import qualified Data.List as L ( take )
+import Data.String as S ( unlines, unwords )
 
 --------------------------------------------------------------
 -- adapting for PureScript
@@ -53,6 +56,33 @@ uJust = fromJust
 infixr 9 <<<
 unsafePartial :: forall a. a -> a
 unsafePartial x = x
+
+-- access to arrays of symmetrical matrices
+indV :: Int -> Int -> Int -> Int
+indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
+indVs :: Int -> Int -> Int -> Int
+indVs w i0 j0 | i0 <= j0   = i0*w - (i0*(i0-1)) `div` 2 + j0-i0
+              | otherwise = j0*w - (j0*(j0-1)) `div` 2 + i0-j0
+
+-- pretty print of matrix
+prettyMatrix :: Int -> Int -> Array Number -> String
+prettyMatrix r c v = S.unlines ls where
+  -- | /O(1)/. Unsafe variant of 'getElem', without bounds checking.
+  unsafeGet :: Int          -- ^ Row
+            -> Int          -- ^ Column
+            -> Array Number -- ^ Matrix
+            -> Number
+  unsafeGet i j vv = unsafePartial $ A.unsafeIndex vv $ encode c i j
+  encode :: Int -> Int -> Int -> Int
+  encode m i j = (i-1)*m + j - 1
+  ls = do
+    i <- range 1 r
+    let ws :: List String
+        ws = map (\j -> fillBlanks mx (to3fix $ unsafeGet i j v)) (range 1 c)
+    pure $ "( " <> S.unwords ws <> " )"
+  mx = A.maximum $ A.map (length <<< to3fix) v
+  fillBlanks k str =
+    (replicate (k - length str) ' ') <> str
 
 -- filter list of objects given list of indices in [a]
 -- return list with only those b that have  indices that  are in rng [a]

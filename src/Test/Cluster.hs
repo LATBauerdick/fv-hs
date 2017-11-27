@@ -40,16 +40,16 @@ doCluster vm' = do
   -- let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
   --  _ <- plot "cluster-pd.png" histp
 
-  let Node _ ht = vList vm
-  putStrLn "---------------------------------------------------------"
-  print $ vList vm
-  -- print . nProng $ p0
-  -- print . vertex . measurements $ p0
-  -- print . fitVertex $ p0
-  -- print . zip (fitChi2s p0) . map z0Helix . helices . measurements $ p0
-  case ht of
-    Empty     -> putStrLn "Empty"
-    Node p1 _ -> print $ fitVertex p1
+  -- let Node _ ht = vList vm
+  -- putStrLn "---------------------------------------------------------"
+  -- print $ vList vm
+  -- -- print . nProng $ p0
+  -- -- print . vertex . measurements $ p0
+  -- -- print . fitVertex $ p0
+  -- -- print . zip (fitChi2s p0) . map z0Helix . helices . measurements $ p0
+  -- case ht of
+  --   Empty     -> putStrLn "Empty"
+  --   Node p1 _ -> print $ fitVertex p1
   return ()
 
 ftvtx :: Prong -> (Number, List Chi2)
@@ -125,7 +125,7 @@ cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
 cluster (VHMeas v hllll) = trace (
         "--> cluster debug:"
-        ++ "\n--> cluster zs=" ++ take 160 (show zs)
+        ++ "\n--> cluster zs=" <> take 160 (show zs)
         ++ printf "\n--> cluster z0=%9.3f " (z0 :: Number)
         ++ "\n--> cluster v0=" ++ show v0
         ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 hl)
@@ -248,7 +248,7 @@ fsmw 2 [x0, x1] = 0.5 * (x1+x0)
 fsmw 3 [x0, x1, x2] = case 2*x1-x0-x2 of
                        xx | xx < 0 -> (x0+x1)/2.0
                        xx | xx > 0 -> (x1+x2)/2.0
-                       xx | xx == 0 -> x1
+                       _ -> x1
 -- fsmw 4 [x0, x1, x2, x3] = x where
 --   w  = weightOfInterval [x0, x1, x2, x3]
 --   w0 = weightOfInterval [x0, x1, x2]

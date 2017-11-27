@@ -83,7 +83,7 @@ doFitTest vm' l5 = do
   putStrLn $ "Inv Mass " <> showLen pl5 <> " helix" <> show (invMass pl5)
 
   putStrLn             "Fitting Vertex --------------------"
-  let pr = fit vm
+  let -- pr = fit vm
       Prong {fitVertex= vf, fitMomenta= ql, fitChi2s= cl} = fit vm
   putStrLn $           "Fitted vertex -> " <> show vf
   traverse_ (putStrLn <<< showQChi2) $ zip ql cl

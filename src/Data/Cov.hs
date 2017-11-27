@@ -31,7 +31,6 @@ import Control.Monad ( guard, void )
 -- import Data.Int ( toNumber, ceil )
 -- import Math ( abs, sqrt )
 -- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
-import Data.String as S ( unlines, unwords )
 -- import Partial.Unsafe ( unsafePartial )
 
 import Stuff
@@ -58,12 +57,6 @@ type Vec4 = Vec Dim4
 type Vec5 = Vec Dim5
 data Jacs = Jacs { aajacs :: Jac53, bbjacs :: Jac53, h0jacs :: Vec5}
 
--- access to arrays of symmetrical matrices
-indV :: Int -> Int -> Int -> Int
-indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
-indVs :: Int -> Int -> Int -> Int
-indVs w i0 j0 | i0 <= j0   = i0*w - (i0*(i0-1)) `div` 2 + j0-i0
-              | otherwise = j0*w - (j0*(j0-1)) `div` 2 + i0-j0
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
@@ -106,42 +99,8 @@ instance Mat (Jac a b) where
   elementwise f (Jac {v= va}) (Jac {v= vb, nr= r}) = (Jac {v= vc, nr= r}) where
     vc = A.zipWith f va vb
 
-prettyMatrix :: Int -> Int -> Array Number -> String
-prettyMatrix r c v = unlines ls where
-  -- | /O(1)/. Unsafe variant of 'getElem', without bounds checking.
-  unsafeGet :: Int          -- ^ Row
-            -> Int          -- ^ Column
-            -> Array Number -- ^ Matrix
-            -> Number
-  unsafeGet i j vv = unsafePartial $ A.unsafeIndex vv $ encode c i j
-  encode :: Int -> Int -> Int -> Int
-  encode m i j = (i-1)*m + j - 1
-  ls = do
-    i <- range 1 r
-    let ws :: List String
-        ws = map (\j -> fillBlanks mx (to3fix $ unsafeGet i j v)) (range 1 c)
-    pure $ "( " <> S.unwords ws <> " )"
-  mx = A.maximum $ A.map (length <<< to3fix) v
-  fillBlanks k str =
-    (replicate (k - length str) ' ') <> str
-
 class ShowMat a where
   showMatrix :: a -> String
-instance ShowMat (Cov a) where
-  showMatrix (Cov {v}) = let
-    makeSymMat :: Int -> Array Number -> Array Number
-    makeSymMat n vs = fromList $ do
-      let iv = indVs n
-      i <- range 0 (n-1)
-      j <- range 0 (n-1)
-      pure $ uidx vs (iv i j)
-    in
-      case A.length v of
-                            6  -> prettyMatrix 3 3 $ makeSymMat 3 v
-                            10 -> prettyMatrix 4 4 $ makeSymMat 4 v
-                            15 -> prettyMatrix 5 5 $ makeSymMat 5 v
-                            _ -> error $ "showCova showMatrix "
-                                          <> show (A.length v)
 instance ShowMat (Vec a) where
   showMatrix (Vec {v}) = prettyMatrix (A.length v) 1 v
 instance ShowMat (Jac Dim5 Dim3) where
@@ -161,7 +120,8 @@ instance ArrMat (Cov Dim3) where
     c' = case l of
       6   -> Cov {v= a}
       _   -> Cov {v= let
-          n = floor <<< sqrt <<< fromIntegral $ l
+          s =  sqrt (fromIntegral l)
+          n = floor s
           iv = indV n
         in fromList $ do -- only upper triangle
           i0 <- range 0 (n-1)
@@ -453,13 +413,6 @@ instance SwMat (Jac a b) (Cov a) (Cov b) where
 -------------------------------------------------------
 ---- NUMERICAL INSTANCE
 
-instance Num (Cov a) where
-  fromInteger i = Cov {v= A.singleton <<< fromInteger $ i}
-  negate (Cov {v=v}) = Cov {v=A.map negate v}
-  abs (Cov {v=v}) = Cov {v=A.map abs v}
-  signum (Cov {v=v}) = Cov {v=A.map signum v}
-  (+) = elementwise (+)
-  (*) = error "cannot multiply Cov*Cov to return a Cov, use *. instead"
 instance Num (Vec a) where
   fromInteger i = Vec {v= A.singleton <<< fromInteger $ i}
   negate (Vec {v=v}) = Vec {v=A.map negate v}
@@ -475,8 +428,6 @@ instance Num (Jac a b) where
   (+) = elementwise (+)
   (*) = error "cannot multiply Jac*Jac to return a Jac, use *. instead"
 
-instance Show (Cov a) where
-  show c = "Show (Cov a) \n" <> showMatrix c
 instance Show (Vec a) where
   show c = "Show (Vec a) \n" <> showMatrix c
 instance Show (Jac a b) where
@@ -788,3 +739,4 @@ testCov2 = s where
 
   ch5 :: Cov5
   ch5 = fromArray [2.0, -1.0, 0.0, 0.0, 0.0, 2.0, -1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0]
+
