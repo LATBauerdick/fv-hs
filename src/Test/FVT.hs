@@ -43,7 +43,7 @@ showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
 showHelix :: HMeas -> String
 showHelix h = "Helix ->" <> (show h)
 showProng :: Prong -> String
-showProng (Prong {nProng= n, fitVertex= v, fitMomenta= ql, fitChi2s= cl, measurements= m}) =
+showProng (Prong {nProng= n, fitVertex= v, fitMomenta= ql, fitChi2s= cl}) =
   let
       showCl :: String -> List Chi2 -> String
       showCl = foldl (\s (Chi2 x) -> s <> to1fix x)

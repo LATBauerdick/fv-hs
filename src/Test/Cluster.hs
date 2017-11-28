@@ -23,7 +23,7 @@ import Text.Printf ( printf )
 -- import Control.Monad ( when )
 -- import Data.Maybe ( mapMaybe )
 -- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
---import Graphics.Histogram
+import Graphics.Histogram
 
 import Stuff
 
@@ -35,10 +35,10 @@ doCluster vm' = do
   putStrLn $ "# tracks  -> " <> show (length <<< helices $ vm')
   putStrLn $ "# after cleanup-> " <> show (length <<< helices $ vm)
 
-  -- let histz = histogramNumBins 90 $ zs vm
-  -- _ <- plot "cluster-z.png" histz
-  -- let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
-  --  _ <- plot "cluster-pd.png" histp
+  let histz = histogramNumBins 90 $ zs vm
+  _ <- plot "cluster-z.png" histz
+  let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
+  _ <- plot "cluster-pd.png" histp
 
   -- let Node _ ht = vList vm
   -- putStrLn "---------------------------------------------------------"
@@ -60,10 +60,10 @@ xFit (XMeas v vv) = XFit v vv (Chi2 1e6)
 
 gamma :: Chi2 -> Number
 gamma (Chi2 c2) = Math.Gamma.q 1.0 c2
---probs :: VHMeas -> [Number]
---probs (VHMeas v hl) = filter (> 0.01) $ map (gamma . chi2Vertex . kAddF (xFit v)) hl
---zs :: VHMeas -> [Number]
---zs (VHMeas v hl) = filter (\x -> abs x<10.0) $ map (zVertex . kAddF (xFit v)) hl
+probs :: VHMeas -> [Number]
+probs (VHMeas v hl) = filter (> 0.01) $ map (gamma . chi2Vertex . kAddF (xFit v)) hl
+zs :: VHMeas -> [Number]
+zs (VHMeas v hl) = filter (\x -> abs x<10.0) $ map (zVertex . kAddF (xFit v)) hl
 
 cleanup :: VHMeas -> VHMeas
 -- remove vm helices that are incompatible with vm vertex
@@ -98,7 +98,7 @@ wght t (Chi2 chi2) = w where
   w = 1.0/(1.0 + exp ((chi2-chi2cut)/2.0/t))
 
 -- cluster'' :: VHMeas -> (Prong, Maybe VHMeas)
--- cluster'' vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
+-- cluster'' vm | trace ("--> cluster called with " <> (show . length . helices $ vm) <> " helices, initial vertex at " <> (show . vertex $ vm) ) False = undefined
 -- cluster'' (VHMeas v hl) = trace (
 --         "--> cluster debug:"
 --         <> "\n--> cluster fit zs " <> show zs
@@ -122,36 +122,36 @@ wght t (Chi2 chi2) = w where
 --         _ -> Just (VHMeas v hlr)
 
 cluster :: VHMeas -> (Prong, Maybe VHMeas)
-cluster vm | trace ("--> cluster called with " ++ (show . length . helices $ vm) ++ " helices, initial vertex at " ++ (show . vertex $ vm) ) False = undefined
+cluster vm | trace ("--> cluster called with " <> (show . length . helices $ vm) <> " helices, initial vertex at " <> (show . vertex $ vm) ) False = undefined
 cluster (VHMeas v hllll) = trace (
         "--> cluster debug:"
-        ++ "\n--> cluster zs=" <> take 160 (show zs)
-        ++ printf "\n--> cluster z0=%9.3f " (z0 :: Number)
-        ++ "\n--> cluster v0=" ++ show v0
-        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 hl)
-        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $ take 10 $ drop 10 hl)
-        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 20 hl)
-        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 30 hl)
-        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 40 hl)
-        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 50 hl)
-        ++ "\n--> cluster fit v0 hl0 " ++ (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 60 hl)
-        ++ "\n--> cluster v1: #hl0=" ++ (show . length . catMaybes $ hl0) ++ " v1=" ++ show v1
-        ++ "\n--> cluster chi2s1" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c21s
-        ++ "\n--> cluster weights1" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws1
-        ++ "\n--> cluster v2=" ++ show v2
-        ++ "\n--> cluster chi2s2" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c22s
-        ++ "\n--> cluster weights2" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws2
-        ++ "\n--> cluster v3=" ++ show v3
-        ++ "\n--> cluster chi2s3" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c23s
-        ++ "\n--> cluster weights3" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws3
-        ++ "\n--> cluster v4=" ++ show v4
-        ++ "\n--> cluster chi2s4" ++ (take 160 . foldl (\s c -> s ++ bDouble c) "") c24s
-        ++ "\n--> cluster weights4" ++ (take 160 . foldl (\s w -> s ++ sDouble w) "") ws4
-        ++ "\n--> cluster v5=" ++ show v5
-        ++ "\n-----------------------------------------------------------------"
-        ++ "\n--> cluster #hl1=" ++ (show . length . catMaybes $ hl1) ++ " vv=" ++ show vv
-        ++ printf "\n--> cluster nothing=%5d just=%5d" (length hlnothing) (length hljust)
-        ++ "\n--> cluster nProng=" ++ show nProng
+        <> "\n--> cluster zs=" <> take 160 (show zs)
+        <> printf "\n--> cluster z0=%9.3f " (z0 :: Number)
+        <> "\n--> cluster v0=" <> show v0
+        <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $take 10 hl)
+        <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $ take 10 $ drop 10 hl)
+        <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 20 hl)
+        <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 30 hl)
+        <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 40 hl)
+        <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 50 hl)
+        <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $take 10 $ drop 60 hl)
+        <> "\n--> cluster v1: #hl0=" <> (show . length . catMaybes $ hl0) <> " v1=" <> show v1
+        <> "\n--> cluster chi2s1" <> (take 160 . foldl (\s c -> s <> bDouble c) "") c21s
+        <> "\n--> cluster weights1" <> (take 160 . foldl (\s w -> s <> sDouble w) "") ws1
+        <> "\n--> cluster v2=" <> show v2
+        <> "\n--> cluster chi2s2" <> (take 160 . foldl (\s c -> s <> bDouble c) "") c22s
+        <> "\n--> cluster weights2" <> (take 160 . foldl (\s w -> s <> sDouble w) "") ws2
+        <> "\n--> cluster v3=" <> show v3
+        <> "\n--> cluster chi2s3" <> (take 160 . foldl (\s c -> s <> bDouble c) "") c23s
+        <> "\n--> cluster weights3" <> (take 160 . foldl (\s w -> s <> sDouble w) "") ws3
+        <> "\n--> cluster v4=" <> show v4
+        <> "\n--> cluster chi2s4" <> (take 160 . foldl (\s c -> s <> bDouble c) "") c24s
+        <> "\n--> cluster weights4" <> (take 160 . foldl (\s w -> s <> sDouble w) "") ws4
+        <> "\n--> cluster v5=" <> show v5
+        <> "\n-----------------------------------------------------------------"
+        <> "\n--> cluster #hl1=" <> (show . length . catMaybes $ hl1) <> " vv=" <> show vv
+        <> printf "\n--> cluster nothing=%5d just=%5d" (length hlnothing) (length hljust)
+        <> "\n--> cluster nProng=" <> show nProng
                                   )
     ( p, r ) where
 
@@ -253,7 +253,7 @@ fsmw 3 [x0, x1, x2] = case 2*x1-x0-x2 of
 --   w  = weightOfInterval [x0, x1, x2, x3]
 --   w0 = weightOfInterval [x0, x1, x2]
 --   w1 = weightOfInterval [x1, x2, x3]
---   x  = if w0/w < w1/w then fsmw 3 [x0, x1, x2] else fsmw 3 [x1, x2, x3] `debug` (show w ++ ", " ++ show w0 ++ ", " ++ show w1)
+--   x  = if w0/w < w1/w then fsmw 3 [x0, x1, x2] else fsmw 3 [x1, x2, x3] `debug` (show w <> ", " <> show w0 <> ", " <> show w1)
 fsmw n xs = h where
   h = if n>6 then hsm n xs -- for large n, fall back to no-weight hsm formula
           else fsmw n' xs' where
@@ -262,7 +262,7 @@ fsmw n xs = h where
             findMin :: (WeightedPoint, Int) -> (WeightedPoint, Int) -> (WeightedPoint, Int)
             findMin (w0, j0) (w, j) = if w<w0 || w0<0 then (w, j) else (w0, j0)
             (_, j') = foldl' findMin (-1.0, 0) . zip (map ( \j ->  weightOfInterval . take n' . drop j $ xs ) [0..n-n']) $ [0..]
-            xs' = take n' . drop j' $ xs -- `debug` ("fsmw--> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs)
+            xs' = take n' . drop j' $ xs -- `debug` ("fsmw--> " <> show n <> ", " <> show n' <> ", " <> show j' <> ", " <> show xs)
 
 -- HalfSampleMode
 -- see Bickel & Frühwirth, On a Fast, Robust Estimator of the Mode, 2006
@@ -278,12 +278,12 @@ hsm n xs = fsmw n' xs' where
   calcWeight :: WeightedPoint -> WeightedPoint -> WeightedPoint
   calcWeight = (-)
   (_, j') = foldl' findMin (wmin, 0) . zip (zipWith calcWeight xns xs) $ [0..]
-  xs' = take n' . drop j' $ xs --`debug` ("hsm---> " ++ show n ++ ", " ++ show n' ++ ", " ++ show j' ++ ", " ++ show xs ++ ", " ++ show xns)
+  xs' = take n' . drop j' $ xs --`debug` ("hsm---> " <> show n <> ", " <> show n' <> ", " <> show j' <> ", " <> show xs <> ", " <> show xns)
 
 wDist :: WeightedPoint -> WeightedPoint -> WeightedPoint
 wDist x0 x1 = 1.0 / sqrt (x1 - x0 + dmin) where dmin = 0.001 -- 10 µm
 weightOfInterval :: [WeightedPoint] -> WeightedPoint
-weightOfInterval xs = w where --`debug` ("weightOfInterval--> " ++ show xs ++ ", " ++ show ws ++ ", " ++ show w) where
+weightOfInterval xs = w where --`debug` ("weightOfInterval--> " <> show xs <> ", " <> show ws <> ", " <> show w) where
   ws = [ wDist x0 x1 | x0 <- xs , x1 <- xs, x1>x0]
   w  = (last xs - head xs) / sum ws
 
