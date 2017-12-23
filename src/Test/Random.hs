@@ -64,14 +64,14 @@ fitm :: VHMeas -> Number
 fitm vm = m where
   MMeas {m= m} = invMass <<< map fromQMeas <<< fitMomenta $ fit vm
 
-testRandom :: forall e. Int
-              -> VHMeas
-              -> IO String
+testRandom ::Int
+             -> VHMeas
+             -> IO String
 testRandom cnt vm = do
   g <- newStdGen
   let ls :: [Int]
       ls = [ 0 .. (cnt-1) ]
-      (ms, g') = foldl doit ([], g) ls where
+      (ms, _) = foldl doit ([], g) ls where
         doit :: RandomGen g => (List Number, g) -> Int -> (List Number, g)
         doit (ms, g) _ = (ms', g') where
           (vm', g') = randomize vm g

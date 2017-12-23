@@ -70,7 +70,7 @@ sh2 = Rnd.print $ simHist 2000 5 seed
 
 
 doProbability :: Int -> VHMeas -> IO ()
-doProbability cnt vm = do
+doProbability _ _ = do
   putStrLn $ "----------------------------------------------"
   print $ hist 2 seed
   putStrLn $ "----------------------------------------------"

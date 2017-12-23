@@ -15,7 +15,7 @@ parse :: [String] -> IO ()
 parse ["-h"] = usage   >> exit
 parse ["-v"] = version >> exit
 parse []     = exit -- test ["1"]
-parse args   = exit -- test args
+parse _   = exit -- test args
 
 usage :: IO ()
 usage   = putStrLn "Usage: fvt [-vh] [test# ..]"

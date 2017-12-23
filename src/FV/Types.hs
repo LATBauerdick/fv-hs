@@ -1,8 +1,8 @@
-{-# LANGUAGE EmptyDataDecls #-}
+-- {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE ExplicitForAll #-}
 --{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
+-- {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 --{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
@@ -14,20 +14,22 @@
 
 module FV.Types
   ( MCtruth (..)
-  , Prong (..), fitMomenta
+  , Prong (..)
   , Chi2 (..)
-  , VHMeas (..), vertex, helices, hFilter
-  , XMeas (..), vBlowup
+  , VHMeas (..), hFilter
+  , XMeas (..), vBlowup, xXMeas, yXMeas, zXMeas
   , DMeas (..), Pos, distance
   , HMeas (..)
   , QMeas (..), fromHMeas
   , PMeas (..), fromQMeas, invMass
   , MMeas (..)
+  , XFit (..)
+  , chi2Vertex, zVertex, z0Helix
   ) where
 
 import Prelude.Extended
 import qualified Data.Vector.Unboxed as A
-  ( head, length, unsafeIndex, drop, zip, map, foldl )
+  ( head, length, drop, zip, map, foldl )
 import Data.Semigroup
 import Data.Foldable ( fold )
 import Control.Monad (guard)
@@ -39,6 +41,8 @@ import Data.Cov.Jac ( Jac (..) )
 -- Prong
 -- a prong results from a vertex fit of N helices
 newtype Chi2  = Chi2 Number
+instance Show Chi2 where
+  show (Chi2 c2) = show c2
 instance Semiring Chi2 where
   add (Chi2 c0) (Chi2 c1) = Chi2 (c0+c1)
   zero = Chi2 0.0
@@ -46,6 +50,10 @@ instance Semiring Chi2 where
   one = Chi2 1.0
 instance Num Chi2 where
   fromInteger i = Chi2 $ fromInteger i
+  negate (Chi2 c) = Chi2 (negate c)
+  abs (Chi2 c) = Chi2 (abs c)
+  signum (Chi2 c) = Chi2 (signum c)
+  (*) = error "cannot multiply Chi2*Chi2 to return a Chi2"
   (+) (Chi2 a) (Chi2 b) = Chi2 (a+b)
 data Prong = Prong
           { nProng        :: Int
@@ -75,31 +83,31 @@ data VHMeas = VHMeas {
 {--   mempty = VHMeas (XMeas (Matrix.zero 3 1) (Matrix.zero 3 3)) [] --}
 
 instance Show VHMeas where
-  show (VHMeas {vertex=v, helices=hs}) = "VHMeas w/ " <> show (length hs)
-                                    <> " tracks. " <> show v
+  show VHMeas {vertex=v_, helices=hs} = "VHMeas w/ " <> show (length hs)
+                                    <> " tracks. " <> show v_
 
 vBlowup :: Number -> VHMeas -> VHMeas
 {-- vBlowup scale vm = over vertexLens (blowup scale) vm where --}
-vBlowup scale (VHMeas {vertex= v, helices= hs}) =
-    VHMeas {vertex= (blowup scale v), helices= hs} where
+vBlowup scale VHMeas {vertex= v_, helices= hs} =
+    VHMeas {vertex= blowup scale v_, helices= hs} where
   blowup :: Number -> XMeas -> XMeas -- blow up diag of cov matrix
-  blowup s (XMeas v cv) = XMeas v cv' where
+  blowup s (XMeas v__ cv) = XMeas v__ cv' where
     cv' = scaleDiag s cv
 
 hFilter :: List Int -> VHMeas -> VHMeas
-hFilter is (VHMeas {vertex=v, helices=hs}) = VHMeas {vertex=v, helices= (iflt is hs)}
+hFilter is VHMeas {vertex=v_, helices=hs} = VHMeas {vertex=v_, helices= iflt is hs}
 
 hRemove :: Int -> VHMeas -> VHMeas
-hRemove indx (VHMeas {vertex=v, helices=hs}) = VHMeas {vertex=v, helices=(irem indx hs)}
+hRemove indx VHMeas {vertex=v_, helices=hs} = VHMeas {vertex=v_, helices=irem indx hs}
 
 -----------------------------------------------
 -- MCtruth
 --
-data MCtruth = MCtruth {
+newtype MCtruth = MCtruth {
     pu_zpositions :: List Number
                        }
 instance Show MCtruth where
-  show (MCtruth {pu_zpositions=puz}) = "MCtruth w/" <> show (length puz)
+  show MCtruth {pu_zpositions=puz} = "MCtruth w/" <> show (length puz)
                                                 <> " PU z positions."
 
 
@@ -109,7 +117,7 @@ instance Show MCtruth where
 --
 data HMeas = HMeas Vec5 Cov5 Number
 instance Show HMeas where
-  show (HMeas h ch w0) = s' where
+  show (HMeas h ch _) = s' where
     sh = A.map sqrt $ diag ch
     hs = toArray h
     s00 = to5fix x <> " +-" <> to5fix dx where
@@ -118,6 +126,10 @@ instance Show HMeas where
     s' = A.foldl f s00 (A.drop 1 $ A.zip hs sh) where
       f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
 
+z0Helix :: HMeas -> Number
+z0Helix (HMeas h _ _) = z0 where
+  v = val h
+  z0 = uidx v 4
 -----------------------------------------------
 -- QMeas
 -- 3-vector and covariance matrix for momentum measurement
@@ -155,7 +167,7 @@ showQMeas (QMeas q cq w2pt) = s' where
   d3         = uidx dp 2
   d4         = uidx dp 3
   dp'        = [d1, d2, d3*180.0/pi, d4]
-  s'         = (A.foldl f "" $ A.zip p' dp' ) <> " GeV"
+  s'         = A.foldl f "" ( A.zip p' dp' ) <> " GeV"
 
 fromHMeas :: HMeas -> QMeas -- just drop the d0, z0 part... fix!!!!
 fromHMeas (HMeas h ch w2pt) = QMeas q cq w2pt where
@@ -174,7 +186,7 @@ instance Semigroup PMeas where
   (<>) (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
 instance Monoid PMeas where
   mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
-  mempty = PMeas (fromArray $ [0.0,0.0,0.0,0.0]) zero
+  mempty = PMeas (fromArray [0.0,0.0,0.0,0.0]) zero
 instance Show PMeas where
   show = showPMeas
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
@@ -182,10 +194,10 @@ showPMeas :: PMeas -> String
 showPMeas (PMeas p cp) = s' where
   sp         = A.map sqrt $ diag cp
   f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx -- \xc2b1 ±±±±±
-  s' = (A.foldl f "" $ A.zip (toArray p) sp) <> " GeV"
+  s' = A.foldl f "" (A.zip (toArray p) sp) <> " GeV"
 
 invMass :: List PMeas -> MMeas
-invMass ps = pmass <<< fold $ ps
+invMass = pmass <<< fold
 
 pmass :: PMeas -> MMeas
 pmass (PMeas p cp) = mm  where
@@ -226,7 +238,7 @@ fromQMeas (QMeas q0 cq0 w2pt) = PMeas p0 cp0 where
   px   = pt * cph
   py   = pt * sph
   pz   = pt * tl
-  sqr  = \x -> x*x
+  sqr x= x*x
   e    = sqrt(px*px + py*py + pz*pz + m*m)
   ps   = w2pt / w
   dpdk = ps*ps/w2pt
@@ -271,7 +283,7 @@ data MMeas = MMeas
             , dm :: Number
             }
 instance Show MMeas where
-  show (MMeas {m=m, dm=dm}) = " " <> to1fix (m*1000.0) <> " +-" <> to1fix (dm*1000.0) <> " MeV"
+  show MMeas {m=m, dm=dm} = " " <> to1fix (m*1000.0) <> " +-" <> to1fix (dm*1000.0) <> " MeV"
 
 -----------------------------------------------
 -- XMeas
@@ -305,6 +317,7 @@ instance Semigroup XMeas where
   (<>) (XMeas x1 cx1) (XMeas x2 cx2) = XMeas (x1 + x2) (cx1 + cx2)
 instance Monoid XMeas where
   mempty = XMeas zero zero
+  mappend = undefined
 instance Show XMeas where
   show = showXMeas
 -- return a string showing vertex position vector with errors
@@ -320,7 +333,27 @@ showXMeas (XMeas v cv) = s' where
   dz         = uidx s2v 2
   f :: Number -> Number -> String -> String
   f x dx s  = s <> to2fix x <>  " +-" <> to2fix dx
-  s' = (f z dz) <<< (f y dy) <<< (f x dx) $
+  s' = f z dz <<< f y dy <<< f x dx $
     "(r,z) =" <> "(" <> to2fix (sqrt (x*x + y*y))
               <> ", " <> to2fix z <> "), x y z ="
 
+xXMeas :: XMeas -> Number
+xXMeas (XMeas v _) = x where
+  x = uidx (val v) 0
+yXMeas :: XMeas -> Number
+yXMeas (XMeas v _) = y where
+  y = uidx (val v) 1
+zXMeas :: XMeas -> Number
+zXMeas (XMeas v _) = z where
+  z = uidx (val v) 2
+
+data XFit = XFit Vec3 Cov3 Chi2
+instance Show XFit where
+  show (XFit x xx c2) = showXMeas (XMeas x xx) <> ", chi2=" <> show c2
+
+chi2Vertex :: XFit -> Chi2
+chi2Vertex (XFit _ _ c2) = c2
+
+zVertex :: XFit -> Double
+zVertex (XFit v _ _) = z where
+  z = uidx (val v) 2

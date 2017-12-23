@@ -1,8 +1,8 @@
-{-# LANGUAGE EmptyDataDecls #-}
+-- {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE ExplicitForAll #-}
 --{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
+-- {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 --{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE RankNTypes #-}
@@ -18,6 +18,8 @@ module Prelude.Extended
   , Number, Array
   , Tuple (..)
   , List, range, fromList
+  , indV, indVs
+  , prettyMatrix
   , to0fix, to1fix, to2fix, to3fix, to5fix
   , iflt, irem
   , toNumber, intFromString, numberFromString
@@ -27,15 +29,16 @@ module Prelude.Extended
 
 import Prelude
 import qualified Data.Vector.Unboxed as A
-  ( Vector, Unbox, length, fromList, toList, unsafeIndex
-    , create, replicate
-    , singleton, map, foldl, zipWith
-    , replicateM, concat, take )
+    ( Vector
+    , fromList, map, maximum
+    , unsafeIndex
+    )
 import Data.Maybe (  Maybe (..), fromJust )
 import Text.Printf ( printf )
 import Text.Read ( readMaybe )
 import System.Random ( RandomGen, random )
 import qualified Data.List as L ( take )
+import Data.String as S ( unlines, unwords )
 
 --------------------------------------------------------------
 -- adapting for PureScript
@@ -55,6 +58,33 @@ uJust = fromJust
 infixr 9 <<<
 unsafePartial :: forall a. a -> a
 unsafePartial x = x
+
+-- access to arrays of symmetrical matrices
+indV :: Int -> Int -> Int -> Int
+indV w i0 j0 = i0*w+j0 -- w=nj width of niXnj matrix, i0=0..ni-1, j0=0..nj-1
+indVs :: Int -> Int -> Int -> Int
+indVs w i0 j0 | i0 <= j0   = i0*w - (i0*(i0-1)) `div` 2 + j0-i0
+              | otherwise = j0*w - (j0*(j0-1)) `div` 2 + i0-j0
+
+-- pretty print of matrix
+prettyMatrix :: Int -> Int -> Array Number -> String
+prettyMatrix r c v = S.unlines ls where
+  -- | /O(1)/. Unsafe variant of 'getElem', without bounds checking.
+  unsafeGet :: Int          -- ^ Row
+            -> Int          -- ^ Column
+            -> Array Number -- ^ Matrix
+            -> Number
+  unsafeGet i j vv = unsafePartial $ A.unsafeIndex vv $ encode c i j
+  encode :: Int -> Int -> Int -> Int
+  encode m i j = (i-1)*m + j - 1
+  ls = do
+    i <- range 1 r
+    let ws :: List String
+        ws = map (\j -> fillBlanks mx (to3fix $ unsafeGet i j v)) (range 1 c)
+    pure $ "( " <> S.unwords ws <> " )"
+  mx = A.maximum $ A.map (length <<< to3fix) v
+  fillBlanks k str =
+    (replicate (k - length str) ' ') <> str
 
 -- filter list of objects given list of indices in [a]
 -- return list with only those b that have  indices that  are in rng [a]
@@ -112,21 +142,21 @@ div' :: Number -> Number -> Int
 div' n d = floor ( n /  d)
 
 -- | generalisation of 'divMod' to any instance of Real
-divMod' :: Number -> Number -> (Tuple Int Number)
-divMod' n d = (Tuple f (n - (toNumber f) * d)) where
+divMod' :: Number -> Number -> Tuple Int Number
+divMod' n d = Tuple f (n - toNumber f * d) where
     f = div' n d
 
 -- | generalisation of 'mod' to any instance of Real
 mod' :: Number -> Number -> Number
-mod' n d = n - (toNumber f) * d where
+mod' n d = n - toNumber f * d where
     f = div' n d
 
 -- | convert from String to Number and Int
 numberFromString :: String -> Maybe Number
-numberFromString s = readDouble s where
+numberFromString  = readDouble where
   readDouble = readMaybe :: String -> Maybe Double
 intFromString :: String -> Maybe Int
-intFromString s = readInt s where
+intFromString = readInt where
   readInt = readMaybe :: String -> Maybe Int
 
 
@@ -143,13 +173,10 @@ boxMuller g = let
              in ( b1, b2, g2 )
 normals :: RandomGen g => Int -> g -> (Array Number, g)
 normals n g = (ns, g') where
-  nto :: Int
-  nto = n `div` 2
   is :: List Int
   is = [0 .. n `div` 2]
   doNormals :: RandomGen g => (g, List Number) -> Int -> (g, List Number)
-  doNormals (g, ns) _ = (g', n1:n2:ns) where
-                        (n1,n2,g') = boxMuller g
+  doNormals (g_, ns_) _ = (g'_, n1:n2:ns_) where (n1,n2,g'_) = boxMuller g_
   (g', ls) = foldl doNormals (g, []) is
   ns = A.fromList <<< L.take n $ ls
 

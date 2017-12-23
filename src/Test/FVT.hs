@@ -41,7 +41,7 @@ showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
 showHelix :: HMeas -> String
 showHelix h = "Helix ->" <> (show h)
 showProng :: Prong -> String
-showProng (Prong {nProng= n, fitVertex= v, fitMomenta= ql, fitChi2s= cl, measurements= m}) =
+showProng (Prong {nProng= n, fitVertex= v, fitMomenta= ql, fitChi2s= cl}) =
   let
       showCl :: String -> List Chi2 -> String
       showCl = foldl (\s (Chi2 x) -> s <> to1fix x)
@@ -81,7 +81,7 @@ doFitTest vm' l5 = do
   putStrLn $ "Inv Mass " <> showLen pl5 <> " helix" <> show (invMass pl5)
 
   putStrLn             "Fitting Vertex --------------------"
-  let pr = fit vm
+  let -- pr = fit vm
       Prong {fitVertex= vf, fitMomenta= ql, fitChi2s= cl} = fit vm
   putStrLn $           "Fitted vertex -> " <> show vf
   traverse_ (putStrLn <<< showQChi2) $ zip ql cl
@@ -95,7 +95,8 @@ doFitTest vm' l5 = do
   let Prong {fitVertex=fv, fitMomenta=fqs, fitChi2s=fcs, nProng=np} = fit <<< hFilter l5 $ vm
   putStrLn $           "Refitted vertex -> " <> show fv
   traverse_ (putStrLn <<< showQChi2) $ zip fqs fcs
-  putStrLn $           "Inv Mass " <> show np <> " refit" <> (show <<< invMass <<< map fromQMeas $ fqs)
+  putStrLn $           "Inv Mass " <> show np <> " refit" 
+                       <> (show <<< invMass <<< map fromQMeas $ fqs)
   putStrLn $           "Final vertex -> " <> show fv
   putStrLn $           "end of doFitTest------------------------------------------"
 
