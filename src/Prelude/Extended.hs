@@ -11,7 +11,9 @@
 
 {-# LANGUAGE OverloadedLists #-}
 --{-# LANGUAGE NamedFieldPuns #-}
-module Stuff ( (<>), Semiring (..), Ring (..)
+module Prelude.Extended
+  ( module Prelude
+  , (<>), Semiring (..), Ring (..)
   , (<<<), uidx, uJust, debug, trace, unsafePartial
   , Number, Array
   , Tuple (..)

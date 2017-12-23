@@ -25,7 +25,7 @@ library
   exposed-modules:    FV.Fit
                     , FV.Types
                     , FV.Jacob
-                    , Stuff
+                    , Prelude.Extended
                     , Data.SimpleMatrix
                     , Data.Cov
                     , Data.Cov.Cov

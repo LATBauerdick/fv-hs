@@ -17,10 +17,9 @@ module FV.Jacob
   , hv2q
   ) where
 
-import Prelude
+import Prelude.Extended
 --import Math ( sqrt, atan2, cos, sin, atan, pi )
 
-import Stuff (mod', uidx, debug)
 import Data.Cov (Jacs (..), Vec3, Vec5, fromArray, val )
 import Data.Cov.Jac ( Jac (..) )
 

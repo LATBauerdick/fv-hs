@@ -14,7 +14,7 @@
 
 module Test.Random ( testRandom ) where
 
-import Prelude
+import Prelude.Extended
 -- import Control.Monad.Eff (Eff)
 -- import Control.Monad.Eff.Console ( CONSOLE, log )
 -- import Control.Monad.Eff.Random ( RANDOM )
@@ -31,7 +31,6 @@ import Data.Cov ( chol, fromArray, toArray, (*.), Vec5, Cov5 )
 import FV.Fit ( fit )
 import FV.Types ( VHMeas(..), HMeas(..), MMeas(..)
   , invMass, fromQMeas, fitMomenta )
-import Stuff
 
 {-- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts --}
 {-- import Graphics.Histogram --}

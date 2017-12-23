@@ -18,7 +18,7 @@
 module Data.Cov
     where
 
-import Prelude
+import Prelude.Extended
 import qualified Data.Vector.Unboxed as A (
     replicate, length, unsafeIndex, foldl
   , Vector, create, replicate, singleton, map, foldl, zipWith, maximum )
@@ -33,8 +33,6 @@ import Control.Monad ( guard, void )
 -- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
 import Data.String as S ( unlines, unwords )
 -- import Partial.Unsafe ( unsafePartial )
-
-import Stuff
 
 import Data.Cov.Cov
 import Data.Cov.Jac

@@ -14,11 +14,10 @@
 
 module FV.Fit where
 
-import Prelude
+import Prelude.Extended
 import qualified Data.Vector.Unboxed as A ( foldl, unzip, length )
 import Data.Maybe ( Maybe (..), mapMaybe )
 
-import Stuff
 import Data.Cov
 import FV.Jacob as J
 import FV.Types ( VHMeas (..), HMeas (..), QMeas (..), XMeas (..)

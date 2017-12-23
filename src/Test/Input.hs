@@ -13,7 +13,7 @@
 --{-# LANGUAGE NamedFieldPuns #-}
 module Test.Input ( hSlurp, hSlurpMCtruth ) where
 
-import Prelude
+import Prelude.Extended
 import Control.Monad (guard)
 import qualified Data.Vector.Unboxed as A
   ( fromList )
@@ -25,7 +25,6 @@ import Data.Maybe ( mapMaybe )
 import Data.Cov
 import Data.Cov.Jac ( Jac (..) )
 import FV.Types ( MCtruth (..), VHMeas (..), XMeas (..), HMeas (..) )
-import Stuff
 
 
 -- type FilePath = String -- from Node.Path

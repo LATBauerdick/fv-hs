@@ -25,7 +25,7 @@ module FV.Types
   , MMeas (..)
   ) where
 
-import Prelude
+import Prelude.Extended
 import qualified Data.Vector.Unboxed as A
   ( head, length, unsafeIndex, drop, zip, map, foldl )
 import Data.Semigroup
@@ -34,7 +34,6 @@ import Control.Monad (guard)
 
 import Data.Cov
 import Data.Cov.Jac ( Jac (..) )
-import Stuff
 
 -----------------------------------------------
 -- Prong

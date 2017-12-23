@@ -14,7 +14,7 @@
 
 module Test.FVT (testFVT) where
 
-import Prelude
+import Prelude.Extended
 -- import Control.Monad.Eff (Eff)
 -- import Control.Monad.Eff.Console (CONSOLE, log, logShow)
 -- import Control.Monad.Eff.Random ( RANDOM )
@@ -35,8 +35,6 @@ import FV.Types
 
 import Test.Input ( hSlurp, hSlurpMCtruth )
 import FV.Fit ( fit )
-
-import Stuff
 
 showMomentum :: HMeas -> String
 showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h

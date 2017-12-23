@@ -1,5 +1,7 @@
 module LibSpec where
 
+import Prelude.Extended
+
 import Test.Hspec ( Spec, hspec, describe, it, shouldBe )
 import Test.QuickCheck ( property )
 --import Control.Exception (evaluate)
@@ -13,9 +15,6 @@ import Test.FVT ( testFVT )
 import Data.Cov ( testCov2 )
 import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..), hFilter, vBlowup )
 import Test.Random ( testRandom )
-
-
-import Stuff
 
 main :: IO ()
 main = hspec spec
