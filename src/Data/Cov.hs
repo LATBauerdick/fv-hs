@@ -8,12 +8,10 @@
 {-# LANGUAGE RankNTypes #-}
 --{-# LANGUAGE RebindableSyntax #-}
 --{-# LANGUAGE ScopedTypeVariables #-}
-
 {-# LANGUAGE OverloadedLists #-}
 
 {-# LANGUAGE DisambiguateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
-
 
 module Data.Cov
     where
