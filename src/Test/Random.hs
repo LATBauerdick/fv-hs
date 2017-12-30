@@ -11,6 +11,7 @@
 
 {-# LANGUAGE OverloadedLists #-}
 --{-# LANGUAGE NamedFieldPuns #-}
+{-# OPTIONS_GHC -XBangPatterns #-}
 
 module Test.Random ( testRandom ) where
 
@@ -24,8 +25,11 @@ import Data.Vector.Unboxed as A
 -- import Data.Traversable ( for )
 -- import Data.Tuple ( Tuple (..) )
 import Statistics.Sample ( meanVariance )
-import Statistics.Sample ( meanVariance )
 import System.Random ( RandomGen, newStdGen )
+import Data.Time.Clock
+import Text.Printf
+import Control.Parallel
+import Control.Parallel.Strategies
 
 import Data.Cov ( chol, fromArray, toArray, (*.), Vec5, Cov5 )
 import FV.Fit ( fit )
@@ -51,7 +55,7 @@ instance Randomizable HMeas where
 -- | randomize a vertex measurement by randomizing each helix parameter measurement
 -- | leaving the initial vertex untouched
 instance Randomizable VHMeas where
-  randomize (VHMeas { vertex= v, helices= hl}) g = 
+  randomize (VHMeas { vertex= v, helices= hl}) g =
     (VHMeas { vertex= v, helices= hl' }, g') where
       doit :: RandomGen g => HMeas -> (List HMeas, g) -> (List HMeas, g)
       doit h (hs, g) = (hs', g') where
@@ -69,20 +73,31 @@ testRandom ::Int
              -> IO String
 testRandom cnt vm = do
   g <- newStdGen
-  let ls :: [Int]
-      ls = [ 0 .. (cnt-1) ]
+  t0 <- getCurrentTime
+  let
+      mf = invMass <<< map fromQMeas <<< fitMomenta <<< fit $ vm
+      !mr = MMeas {m=m, dm=sqrt dm2}
+      (m, dm2) = meanVariance $ A.fromList ms
+      ls :: [Int]
+      ls = [0 .. (cnt-1)]
       (ms, _) = foldl doit ([], g) ls where
         doit :: RandomGen g => (List Number, g) -> Int -> (List Number, g)
         doit (ms, g) _ = (ms', g') where
           (vm', g') = randomize vm g
           m = fitm vm'
           ms' = m : ms
-  let (m, dm2) = meanVariance $ A.fromList ms
+  t1 <- getCurrentTime
 
-  pure $ "Fit Mass  "
-          <> (show <<< invMass <<< map fromQMeas
-                              <<< fitMomenta <<< fit $ vm)
-          <> "\nMean Mass " <> show (MMeas {m=m, dm=sqrt dm2})
+  -- ms = map func 1..cnt
+  -- func vm g = (m, g') where
+  --   (vm', g') = randomize vm g
+  --   m' = fitm vm'
+
+  pure $ "Fit Mass  " <> show mf
+       <> "\nMean Mass " <> show mr
+       <> "\ntime: "
+            <> to2fix (realToFrac (diffUTCTime t1 t0) :: Number)
+            <> " seconds"
   {-- let hist = histogram binSturges (V.toList hf) --}
   {-- _ <- plot "invMass.png" hist --}
 

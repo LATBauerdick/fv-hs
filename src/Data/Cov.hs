@@ -603,7 +603,7 @@ cholInv (Cov {v= a}) = Cov {v= a'} where
                         else msum
         p_i' <- MA.unsafeRead arr (ll+i0)
         let p = if i0 == j0 then sqrt s else s/p_i'
-        void $ if i0==j0 then MA.unsafeWrite arr (ll+i0) p
+        void $ if i0 ==j0 then MA.unsafeWrite arr (ll+i0) p
                         else MA.unsafeWrite arr (ixarr j0 i0) p
         pure ()
 

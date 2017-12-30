@@ -52,6 +52,7 @@ library
                     , directory
                     , probability
                     , loop
+                    , time
   default-language:   Haskell2010
 
 executable fvt
