@@ -11,15 +11,52 @@ copyright:           Copyright: (c) 1991, 2017 LATBauerdick
 category:            HEP
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.10.2
+tested-with:         GHC == 8.2.2
 
 source-repository head
   type:     git
   location: https://github.com/LATBauerdick/fv.hs
 
 library
+  ghc-options:       -Wall -Wno-unused-imports -Wno-unused-top-binds -Wno-type-defaults -Wno-name-shadowing -Wno-orphans
   default-extensions: NoImplicitPrelude
+                    , EmptyCase
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , InstanceSigs
+                    , MultiParamTypeClasses
+                    , LambdaCase
+                    , MultiWayIf
+                    , NamedFieldPuns
+                    , TupleSections
+                    , DeriveFoldable
+                    , DeriveFunctor
+                    , DeriveGeneric
+                    , DeriveLift
+                    , DeriveTraversable
+                    , DerivingStrategies
+                    , GeneralizedNewtypeDeriving
+                    , StandaloneDeriving
+                    , BangPatterns
+                    , KindSignatures
+                    , TypeOperators
                     , OverloadedStrings
+                    , ScopedTypeVariables
+                    , TypeApplications
+                    , ConstraintKinds
+                    , RankNTypes
+--                    , ApplicativeDo
+                    , DefaultSignatures
+                    , PatternSynonyms
+                    , ExistentialQuantification
+                    , FunctionalDependencies
+                    , GADTs
+                    , DataKinds
+                    , TypeFamilies
+                    , TypeFamilyDependencies
+                    , ExplicitForAll
+                    , OverloadedLists
+                    , DisambiguateRecordFields
   hs-source-dirs:     src
   exposed-modules:    FV.Fit
                     , FV.Types
