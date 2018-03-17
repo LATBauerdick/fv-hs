@@ -2,8 +2,6 @@ flags: {}
 nix:
   enable: true
 extra-package-dbs: []
-ghc-options:
-  ### '*' : -Wall -Wno-unused-imports -Wno-unused-top-binds -Wno-type-defaults -Wno-name-shadowing -Wno-orphans
 packages:
 - '.'
 extra-deps:
