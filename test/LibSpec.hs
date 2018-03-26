@@ -103,8 +103,8 @@ spec =
             showHelix h = "Helix ->" <> show h
         ds <- readFile "dat/tav-0.dat"
         let vm = uJust $ hSlurp ds
-        -- traverse_ (putStrLn <<< showHelix) $ helices vm
-        -- traverse_ (putStrLn <<< showMomentum) $ helices vm
+        traverse_ (putStrLn <<< showHelix) $ helices vm
+        traverse_ (putStrLn <<< showMomentum) $ helices vm
         doCluster vm
    --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
