@@ -48,7 +48,7 @@ doCluster vm' = do
   -- case ht of
   --   Empty     -> putStrLn "Empty"
   --   Node p1 _ -> print $ fitVertex p1
-  return ()
+  pure ()
 
 ftvtx :: Prong -> (Number, List Chi2)
 ftvtx p = ( zVertex . xFit . fitVertex $ p, fitChi2s p)
@@ -159,7 +159,7 @@ cluster (VHMeas v hllll) = trace (
                 else " eps"
 
   bDouble :: Chi2 -> String
-  bDouble (Chi2 c) = if c<999.9 
+  bDouble (Chi2 c) = if c<999.9
                 then printf "%6.1f" c
                 else " big"
 
@@ -371,4 +371,3 @@ moments (n, m1, m2, m3, m4) x = (n', m1', m2', m3', m4')
 
 mvsk (n, m1, m2, m3, m4) = (m1, m2/(n-1.0), (sqrt n)*m3/m2**1.5, n*m4/m2**2 - 3.0)
 -}
-
