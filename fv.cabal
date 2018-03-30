@@ -82,6 +82,7 @@ library
                     , parallel
                     , normaldistribution
                     , statistics
+                    , continued-fractions
                     , gamma
                     , Histogram
                     , gnuplot

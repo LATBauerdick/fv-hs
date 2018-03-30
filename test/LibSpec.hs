@@ -26,7 +26,7 @@ spec =
     describe "Cov" $ do
       it "testCov------------------------" $ do
         let  s = testCov2
-        putStrLn s
+        -- putStrLn s
         -- putStrLn $ testCov 0
         head s `shouldBe` 'T'
 
@@ -62,17 +62,17 @@ spec =
         fsmw n xs `shouldBe` 26.16
 
     describe "FV Test" $ do
-      -- it "hSlurp CMS event" $ do
-      --   ds <- readFile "dat/tav-4.dat"
-      --   let VHMeas _ hl = uJust $ hSlurp ds
-      --       HMeas _ _ w = head hl
-      --   w `shouldBe` 0.0114
+      it "hSlurp CMS event" $ do
+        ds <- readFile "dat/tav-4.dat"
+        let VHMeas _ hl = uJust $ hSlurp ds
+            HMeas _ _ w = head hl
+        w `shouldBe` 0.0114
 
-      -- it "hSlurp Aleph event" $ do
-      --   ds <- readFile "dat/tr05129e001412.dat"
-      --   let VHMeas _ hl = uJust <<< hSlurp $ ds
-      --       HMeas _ _ w = head hl
-      --   w `shouldBe` 4.5451703e-3
+      it "hSlurp Aleph event" $ do
+        ds <- readFile "dat/tr05129e001412.dat"
+        let VHMeas _ hl = uJust <<< hSlurp $ ds
+            HMeas _ _ w = head hl
+        w `shouldBe` 4.5451703e-3
 
       -- it "--Test FVT 1" $ do
       --   _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< readFile "dat/tr05129e001412.dat"
@@ -103,13 +103,14 @@ spec =
             showHelix h = "Helix ->" <> show h
         ds <- readFile "dat/tav-0.dat"
         let vm = uJust $ hSlurp ds
-        traverse_ (putStrLn <<< showHelix) $ helices vm
-        traverse_ (putStrLn <<< showMomentum) $ helices vm
-        doCluster vm
+        -- traverse_ (putStrLn <<< showHelix) $ helices vm
+        -- traverse_ (putStrLn <<< showMomentum) $ helices vm
+        s <- doCluster vm
+        putStrLn s
    --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
-      it "--Test Random" $ do
+      it "--Test Random 100" $ do
         out <- testRandom 100 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
                             <<< uJust <<< hSlurp
                             =<< readFile "dat/tr05129e001412.dat"

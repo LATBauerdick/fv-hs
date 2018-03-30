@@ -1,8 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE DisambiguateRecordFields #-}
-{-# LANGUAGE DeriveFunctor #-}
+-- {-# LANGUAGE DeriveFunctor #-}
 
 module Test.Cluster ( doCluster, fsmw ) where
 
@@ -23,20 +20,23 @@ import Text.Printf ( printf )
 -- import Control.Monad ( when )
 -- import Data.Maybe ( mapMaybe )
 -- import qualified Graphics.Gnuplot.Frame.OptionSet as Opts
-import Graphics.Histogram
+import Graphics.Histogram ( plot, histogramNumBins )
+import GHC.IO.Exception
 
-doCluster :: VHMeas -> IO ()
+doCluster :: VHMeas -> IO String
 doCluster vm' = do
   let vm = cleanup vm'
       v0 = vertex vm' -- beamspot
-  putStrLn $ "beam spot -> " <> show v0
-  putStrLn $ "# tracks  -> " <> show (length <<< helices $ vm')
-  putStrLn $ "# after cleanup-> " <> show (length <<< helices $ vm)
+      s = "Test Cluster----------------------------------------------------" <> "\n"
+        <> "beam spot -> " <> show v0 <> "\n"
+        <> "# tracks  -> " <> show (length <<< helices $ vm') <> "\n"
+        <> "# after cleanup-> " <> show (length <<< helices $ vm) <> "\n"
 
-  let histz = histogramNumBins 90 $ zs vm
-  _ <- plot "cluster-z.png" histz
-  let histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
-  _ <- plot "cluster-pd.png" histp
+      -- histz = histogramNumBins 90 $ zs vm
+      -- histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
+  _ <- plot "cluster-z.png" $ histogramNumBins 90 $ zs vm
+  _ <- plot "cluster-pd.png" $ histogramNumBins 11 $ 1.0 : 0.0 : probs vm
+  return s
 
   -- let Node _ ht = vList vm
   -- putStrLn "---------------------------------------------------------"
@@ -48,7 +48,6 @@ doCluster vm' = do
   -- case ht of
   --   Empty     -> putStrLn "Empty"
   --   Node p1 _ -> print $ fitVertex p1
-  pure ()
 
 ftvtx :: Prong -> (Number, List Chi2)
 ftvtx p = ( zVertex . xFit . fitVertex $ p, fitChi2s p)

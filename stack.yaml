@@ -1,7 +1,7 @@
-flags: {}
 nix:
   enable: true
 extra-package-dbs: []
+resolver: lts-11.2
 packages:
 - '.'
 extra-deps:
@@ -13,4 +13,4 @@ extra-deps:
 - gnuplot-0.5.4.2
 - probability-0.2.5.1
 - data-accessor-transformers-0.2.1.7
-resolver: lts-11.2
+flags: {}
