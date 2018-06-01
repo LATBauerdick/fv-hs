@@ -91,6 +91,12 @@ library
                     , probability
                     , loop
                     , time
+                    , lens
+                     , colour
+                     , data-default-class
+                     , Chart
+                     , Chart-diagrams
+                     , diagrams-solve
   default-language:   Haskell2010
 
 executable fvt
