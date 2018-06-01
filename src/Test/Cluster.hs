@@ -23,6 +23,31 @@ import Text.Printf ( printf )
 import Graphics.Histogram ( plot, histogramNumBins )
 import GHC.IO.Exception
 
+import Graphics.Rendering.Chart
+import Graphics.Rendering.Chart.Backend.Diagrams
+import Data.Default.Class
+import Data.Colour (opaque)
+import Data.Colour.Names (red)
+import Control.Lens
+
+chart = toRenderable layout
+  where
+    vals :: [(Double,Double,Double,Double)]
+    vals = [ (x,sin (exp x),sin x/2,cos x/10) | x <- [1..20]]
+    bars = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy) <- vals]
+         $ plot_errbars_title .~"test"
+         $ def
+
+    points = plot_points_style .~ filledCircles 2 (opaque red)
+           $ plot_points_values .~ [(x,y) |  (x,y,dx,dy) <- vals]
+           $ plot_points_title .~ "test data"
+           $ def
+
+    layout = layout_title .~ "Error Bars"
+           $ layout_plots .~ [toPlot bars, toPlot points]
+           $ def
+
+
 doCluster :: VHMeas -> IO String
 doCluster vm' = do
   let vm = cleanup vm'
@@ -32,10 +57,9 @@ doCluster vm' = do
         <> "# tracks  -> " <> show (length <<< helices $ vm') <> "\n"
         <> "# after cleanup-> " <> show (length <<< helices $ vm) <> "\n"
 
-      -- histz = histogramNumBins 90 $ zs vm
-      -- histp = histogramNumBins 11 $ 1.0 : 0.0 : probs vm
-  _ <- plot "cluster-z.png" $ histogramNumBins 90 $ zs vm
-  _ <- plot "cluster-pd.png" $ histogramNumBins 11 $ 1.0 : 0.0 : probs vm
+  -- _ <- plot "cluster-z.png" $ histogramNumBins 90 $ zs vm
+  -- _ <- plot "cluster-pd.png" $ histogramNumBins 11 $ 1.0 : 0.0 : probs vm
+  _ <- renderableToFile def "test.svg" chart
   return s
 
   -- let Node _ ht = vList vm
@@ -46,7 +70,7 @@ doCluster vm' = do
   -- -- print . fitVertex $ p0
   -- -- print . zip (fitChi2s p0) . map z0Helix . helices . measurements $ p0
   -- case ht of
-  --   Empty     -> putStrLn "Empty"
+  --   CEmpty     -> putStrLn "CEmpty"
   --   Node p1 _ -> print $ fitVertex p1
 
 ftvtx :: Prong -> (Number, List Chi2)
@@ -80,13 +104,13 @@ filtProb cut v h = mh where
             else Nothing
 
 -- Now the "v" parameter can be mapped over without any care for list invariants
-data HList v = Empty | Node v (HList v) deriving (Show, Functor)
+data HList v = CEmpty | Node v (HList v) deriving (Show, Functor)
 
 vList :: VHMeas -> HList Prong
 vList vm = Node p vRight where
   (p,vmr) = cluster vm
   vRight = case vmr of
-             Nothing -> Empty
+             Nothing -> CEmpty
              Just vm' -> vList vm'
 
 wght :: Number -> Chi2 -> Double -- weight function with Temperature t
