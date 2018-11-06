@@ -1,5 +1,5 @@
 nix:
-  enable: true
+  enable: false
   packages: [zlib.dev, zlib.out]
 extra-package-dbs: []
 resolver: lts-11.22

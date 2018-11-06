@@ -66,6 +66,7 @@ library
                     , Data.Cov.Cov
                     , Data.Cov.Jac
                     , Data.Cov.Vec
+                    , Data.Chol
                     , Test.FVT
                     , Test.Input
                     , Test.Random
