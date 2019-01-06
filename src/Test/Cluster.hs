@@ -6,7 +6,7 @@ module Test.Cluster ( doCluster, fsmw ) where
 import FV.Types (  VHMeas (..), HMeas (..), Prong (..)
   , XMeas (..), xXMeas, yXMeas
   , XFit (..), Chi2 (..)
-  , chi2Vertex, zVertex, z0Helix )
+  , chi2Vertex, zVertex, rVertex, z0Helix )
 import FV.Fit ( kAdd, kAddF, ksm', kChi2, fit )
 import Data.Cov.Vec
 import Test.Hist ( doHist )
@@ -27,8 +27,9 @@ doCluster vm' = do
         <> "# tracks  -> " <> show (length <<< helices $ vm') <> "\n"
         <> "# after cleanup-> " <> show (length <<< helices $ vm) <> "\n"
         <> "zs " <> (show . concatMap to2fix . zs $ vm) <> "\n"
-
-  _ <- doHist "test" . zs $ vm
+        <> "rs " <> (show . concatMap to2fix . rs $ vm) <> "\n"
+      points xs = zip (zs xs) (rs xs)
+  _ <- doHist "vertices-z-r" . points $ vm
   return s
 
   -- let Node _ ht = vList vm
@@ -54,6 +55,8 @@ probs :: VHMeas -> [Number]
 probs (VHMeas v hl) = filter (> 0.01) $ map (gamma . chi2Vertex . kAddF (xFit v)) hl
 zs :: VHMeas -> [Number]
 zs (VHMeas v hl) = filter (\x -> abs x<10.0) $ map (zVertex . kAddF (xFit v)) hl
+rs :: VHMeas -> [Number]
+rs (VHMeas v hl) = filter (\x -> abs x<10.0) $ map (rVertex . kAddF (xFit v)) hl
 
 cleanup :: VHMeas -> VHMeas
 -- remove vm helices that are incompatible with vm vertex

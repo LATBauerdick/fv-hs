@@ -33,26 +33,43 @@ import Data.Colour (opaque)
 import Data.Colour.Names (red)
 import Control.Lens
 
-chart :: Renderable ()
-chart = toRenderable layout
-  where
-    vals :: [(Double,Double,Double,Double)]
-    vals = [ (x,sin (exp x),sin x/2,cos x/10) | x <- [1..20]]
-    bars = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy) <- vals]
-         $ plot_errbars_title .~"test"
-         $ def
+-- chart :: Renderable ()
+-- chart = toRenderable layout
+--   where
+--     vals :: [(Double,Double,Double,Double)]
+--     vals = [ (x,sin (exp x),sin x/2,cos x/10) | x <- [1..20]]
+--     bars = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy) <- vals]
+--          $ plot_errbars_title .~"test"
+--          $ def
 
-    points = plot_points_style .~ filledCircles 2 (opaque red)
-           $ plot_points_values .~ [(x,y) |  (x,y,_,_) <- vals]
-           $ plot_points_title .~ "test data"
-           $ def
+--     points = plot_points_style .~ filledCircles 2 (opaque red)
+--            $ plot_points_values .~ [(x,y) |  (x,y,_,_) <- vals]
+--            $ plot_points_title .~ "test data"
+--            $ def
 
-    layout = layout_title .~ "Error Bars"
-           $ layout_plots .~ [toPlot bars, toPlot points]
-           $ def
+--     layout = layout_title .~ "Error Bars"
+--            $ layout_plots .~ [toPlot bars, toPlot points]
+--            $ def
 
-doHist :: String -> [Number] -> IO ()
-doHist s xs = do
+doHist :: String -> [(Number, Number)] -> IO ()
+doHist s ps = do
+  let vals :: [(Number,Number,Number,Number)]
+      vals = [ (x,y,0.1,0.01) | (x,y) <- ps]
+  let chart = toRenderable layout
+        where
+          bars  = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy) <- vals]
+                $ plot_errbars_title .~ s
+                $ def
+
+          points  = plot_points_style .~ filledCircles 2 (opaque red)
+                  $ plot_points_values .~ [(x,y) |  (x,y,_,_) <- vals]
+                  $ plot_points_title .~ s
+                  $ def
+
+          layout = layout_title .~ "FVT"
+                 $ layout_plots .~ [toPlot bars, toPlot points]
+                 $ def
+
   _ <- renderableToFile def{_fo_format=EPS} (s <> ".eps") chart
   pure ()
 
