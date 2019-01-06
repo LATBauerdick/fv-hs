@@ -1,0 +1,129 @@
+name:                fv
+version:             0.1.0.0
+synopsis:            "haskell implementation of FV vertex fitting package"
+description:         "Please see README.md"
+homepage:            "https://github.com/LATBauerdick/fv.hs#readme"
+license:             BSD3
+license-file:        LICENSE
+author:              LATBauerdick
+maintainer:          "github@bauerdick.org"
+copyright:           "Copyright: (c) 1991, 2017 LATBauerdick"
+category:            HEP
+build-type:          Simple
+
+dependencies:
+- base >= 4.7 && < 5
+- text
+# - semigroups
+# - matrix
+# - mtl
+# - interpolate
+- random
+- vector
+- parallel
+- normaldistribution
+- statistics
+- continued-fractions
+- gamma
+# - Histogram
+# - gnuplot
+# - split
+# - directory
+- probability
+- loop
+- time
+- lens
+- colour
+- data-default-class
+- Chart
+- Chart-diagrams
+#- diagrams-solve
+
+library:
+  source-dirs:     src
+  ghc-options:
+  - -Wall
+  - -Wno-unused-imports
+  - -Wno-unused-top-binds
+  - -Wno-type-defaults
+  - -Wno-name-shadowing
+  - -Wno-orphans
+  default-extensions:
+  - NoImplicitPrelude
+  - EmptyCase
+  - FlexibleContexts
+  - FlexibleInstances
+  - InstanceSigs
+  - MultiParamTypeClasses
+  - LambdaCase
+  - MultiWayIf
+  - NamedFieldPuns
+  - TupleSections
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveLift
+  - DeriveTraversable
+  - DerivingStrategies
+  - GeneralizedNewtypeDeriving
+  - StandaloneDeriving
+  - BangPatterns
+  - KindSignatures
+  - TypeOperators
+  - OverloadedStrings
+  - ScopedTypeVariables
+  - TypeApplications
+  - ConstraintKinds
+  - RankNTypes
+  # - ApplicativeDo
+  - DefaultSignatures
+  - PatternSynonyms
+  - ExistentialQuantification
+  - FunctionalDependencies
+  - GADTs
+  - DataKinds
+  - TypeFamilies
+  - TypeFamilyDependencies
+  - ExplicitForAll
+  - OverloadedLists
+  - DisambiguateRecordFields
+  exposed-modules:
+  - FV.Fit
+  - FV.Types
+  - FV.Jacob
+  - Prelude.Extended
+  - Data.Cov
+  - Data.Cov.Cov
+  - Data.Cov.Jac
+  - Data.Cov.Vec
+  - Data.Chol
+  - Test.FVT
+  - Test.Input
+  - Test.Random
+  - Test.Cluster
+  - Test.Hist
+  # - Test.Probability
+
+executables:
+  fvt:
+    main:            FVT.hs
+    source-dirs:     app
+    ghc-options: -Wall -Wunused-imports -Wno-unused-top-binds -Wno-type-defaults -Wno-name-shadowing -Wno-orphans -threaded -rtsopts -with-rtsopts=-N -Werror
+    default-extensions:
+    - NoImplicitPrelude
+    - OverloadedStrings
+    dependencies:
+    - base >= 4.7 && < 5
+    - fv
+
+tests:
+  spec:
+    main:                Spec.hs
+    source-dirs:         test
+    other-modules:       LibSpec
+    dependencies:
+    - base
+    - fv
+    - hspec
+    - QuickCheck
+
