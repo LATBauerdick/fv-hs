@@ -13,7 +13,7 @@
 --{-# LANGUAGE NamedFieldPuns #-}
 module Prelude.Extended
   ( module Prelude
-  , (<>), Semiring (..), Ring (..)
+  , Semiring (..), Ring (..) --, (<>)
   , (<<<), uidx, uJust, debug, trace, unsafePartial
   , Number, Array
   , Tuple (..)
