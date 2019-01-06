@@ -110,8 +110,8 @@ spec =
    --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
-      it "--Test Random 100" $ do
-        out <- testRandom 500 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
+      it "--Test Random 1000" $ do
+        out <- testRandom 1000 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
                             <<< uJust <<< hSlurp
                             =<< readFile "dat/tr05129e001412.dat"
         putStrLn out

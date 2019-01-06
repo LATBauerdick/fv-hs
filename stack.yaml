@@ -6,14 +6,15 @@ resolver: lts-11.22
 packages:
 - '.'
 extra-deps:
-- Histogram-0.1.0.2
+# - Histogram-0.1.0.2
+#
 - continued-fractions-0.9.1.1
 - converge-0.1.0.1
 - gamma-0.9.0.2
+#
 - normaldistribution-1.1.0.3
-- gnuplot-0.5.4.2
-- probability-0.2.5.1
-- data-accessor-transformers-0.2.1.7
+# - gnuplot-0.5.4.2
+# - probability-0.2.5.1
 - diagrams-postscript-1.4
 - diagrams-core-1.4.0.1
 - diagrams-lib-1.4.2

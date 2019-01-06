@@ -71,13 +71,14 @@ library
                     , Test.Input
                     , Test.Random
                     , Test.Cluster
-                    , Test.Probability
+                    , Test.Hist
+                    -- , Test.Probability
   build-depends:      base >= 4.7 && < 5
                     , text
-                    , semigroups
-                    , matrix
-                    , mtl
-                    , interpolate
+                    -- , semigroups
+                    -- , matrix
+                    -- , mtl
+                    -- , interpolate
                     , random
                     , vector
                     , parallel
@@ -85,19 +86,19 @@ library
                     , statistics
                     , continued-fractions
                     , gamma
-                    , Histogram
-                    , gnuplot
-                    , split
-                    , directory
-                    , probability
+                    -- , Histogram
+                    -- , gnuplot
+                    -- , split
+                    -- , directory
+                    -- , probability
                     , loop
                     , time
                     , lens
-                     , colour
-                     , data-default-class
-                     , Chart
-                     , Chart-diagrams
-                     , diagrams-solve
+                    , colour
+                    , data-default-class
+                    , Chart
+                    , Chart-diagrams
+                    -- , diagrams-solve
   default-language:   Haskell2010
 
 executable fvt
