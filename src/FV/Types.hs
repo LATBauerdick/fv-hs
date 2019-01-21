@@ -29,10 +29,8 @@ module FV.Types
 
 import Prelude.Extended
 import qualified Data.Vector.Unboxed as A
-  ( head, length, drop, zip, map, foldl )
-import Data.Semigroup
+  ( drop, zip, map, foldl )
 import Data.Foldable ( fold )
-import Control.Monad (guard)
 
 import Data.Cov
 import Data.Cov.Jac ( Jac (..) )

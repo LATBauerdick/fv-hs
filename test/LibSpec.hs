@@ -5,16 +5,16 @@ import Prelude.Extended
 import Test.Hspec ( Spec, hspec, describe, it, shouldBe )
 import Test.QuickCheck ( property )
 --import Control.Exception (evaluate)
-import Control.Monad ( (<=<) )
+-- import Control.Monad ( (<=<) )
 import Data.List ( sort )
-import Data.Maybe ( mapMaybe )
-import Data.Foldable ( traverse_ )
+-- import Data.Maybe ( mapMaybe )
+-- import Data.Foldable ( traverse_ )
 
 import Test.Input ( hSlurp )
 import Test.Cluster ( doCluster, fsmw )
-import Test.FVT ( testFVT )
+-- import Test.FVT ( testFVT )
 import Data.Cov ( testCov2 )
-import FV.Types ( VHMeas (..), HMeas (..), MCtruth (..), hFilter, vBlowup, fromHMeas )
+import FV.Types ( VHMeas (..), HMeas (..), hFilter, vBlowup )
 import Test.Random ( testRandom )
 
 main :: IO ()
@@ -96,11 +96,11 @@ spec =
       --   1 `shouldBe` 1
 
       it "--Test Cluster" $ do
-        let
-            showMomentum :: HMeas -> String
-            showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
-            showHelix :: HMeas -> String
-            showHelix h = "Helix ->" <> show h
+        -- let
+        --     showMomentum :: HMeas -> String
+        --     showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
+        --     showHelix :: HMeas -> String
+        --     showHelix h = "Helix ->" <> show h
         ds <- readFile "dat/tav-0.dat"
         let vm = uJust $ hSlurp ds
         -- traverse_ (putStrLn <<< showHelix) $ helices vm

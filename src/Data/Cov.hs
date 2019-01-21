@@ -18,12 +18,11 @@ module Data.Cov
 
 import Prelude.Extended
 import qualified Data.Vector.Unboxed as A (
-    replicate, length, unsafeIndex, foldl
-  , create, replicate, singleton, map, foldl, zipWith, maximum )
-import Control.Loop ( numLoop )
+    replicate, length, foldl
+  , replicate, singleton, map, foldl, zipWith )
 import Data.Foldable ( sum )
 import Data.Maybe ( Maybe (..) )
-import Control.Monad ( guard, void )
+import Control.Monad ( guard )
 -- import Data.Int ( toNumber, ceil )
 -- import Math ( abs, sqrt )
 -- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )

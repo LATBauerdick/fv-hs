@@ -21,17 +21,17 @@ import Prelude.Extended
 -- import Control.Monad.Eff.Random ( RANDOM )
 -- import Data.List.Lazy ( replicateM )
 import Data.Vector.Unboxed as A
-  ( zipWith, replicateM, fromList )
+  ( zipWith, fromList )
 -- import Data.Traversable ( for )
 -- import Data.Tuple ( Tuple (..) )
 import Statistics.Sample ( meanVariance )
 import System.Random ( RandomGen, newStdGen )
 import Data.Time.Clock
-import Text.Printf
-import Control.Parallel
-import Control.Parallel.Strategies
+-- import Text.Printf
+-- import Control.Parallel
+-- import Control.Parallel.Strategies
 
-import Data.Cov ( chol, fromArray, toArray, (*.), Vec5, Cov5 )
+import Data.Cov ( chol, fromArray, toArray, (*.), Vec5 )
 import FV.Fit ( fit )
 import FV.Types ( VHMeas(..), HMeas(..), MMeas(..)
   , invMass, fromQMeas, fitMomenta )

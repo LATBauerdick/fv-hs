@@ -4,8 +4,7 @@
 module Data.Cov.Cov where
 import Prelude.Extended
 import qualified Data.Vector.Unboxed as A (
-    replicate, length, unsafeIndex, foldl
-  , create, replicate, singleton, map, foldl, zipWith, maximum )
+    length, singleton, map, zipWith )
 
 newtype Cov a = Cov { v :: Array Number }
 

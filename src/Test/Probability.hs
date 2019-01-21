@@ -2,22 +2,15 @@
 module Test.Probability ( doProbability ) where
 
 import Prelude
-import Control.Parallel.Strategies
-import System.Random
-import Data.Random.Normal ( normals )
-import Statistics.Sample ( meanVariance )
-
-import qualified Data.Vector.Unboxed as V ( Vector, fromList, toList )
-
-import Data.List ( foldl', unfoldr, mapAccumL, (!!) )
+-- import System.Random
 
 import qualified Numeric.Probability.Distribution as Dist
 import qualified Numeric.Probability.Transition as Trans
 import qualified Numeric.Probability.Trace as Trace
 import qualified Numeric.Probability.Random as Rnd
-import Numeric.Probability.Simulation ((~..), (~*.), )
+import Numeric.Probability.Simulation ( (~..) )  --, (~*.), )
 import Numeric.Probability.Percentage
-    (Dist, Trans, RTrans, Expand, RExpand, Space, )
+    ( Trans, Expand, RExpand, Space )
 
 import FV.Types ( VHMeas )
 

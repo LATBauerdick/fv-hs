@@ -23,17 +23,12 @@ import Data.Monoid ( mempty )
 -- import Data.Array ( length, zip, foldl )
 import Data.Foldable (sum, traverse_)
 
-{-- import Test.Matrix (testMatrix) --}
-import Data.Cov ( testCov2 )
-import Test.Random ( testRandom )
-
 import FV.Types
   ( VHMeas, HMeas, QMeas
   , XMeas, Prong (..), Chi2 (Chi2)
   , vertex, helices,  hFilter, fromHMeas, fromQMeas, vBlowup, distance, invMass
   )
 
-import Test.Input ( hSlurp, hSlurpMCtruth )
 import FV.Fit ( fit )
 
 showMomentum :: HMeas -> String
