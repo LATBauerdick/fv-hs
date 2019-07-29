@@ -1,8 +1,10 @@
+# docker:
+#   enable: true
 nix:
   enable: false
   packages: [zlib.dev, zlib.out]
 extra-package-dbs: []
-resolver: lts-12.26
+resolver: lts-13.29
 allow-newer: true
 packages:
 - '.'
@@ -16,16 +18,16 @@ extra-deps:
 - normaldistribution-1.1.0.3
 # - gnuplot-0.5.5.3
 # - probability-0.2.5.2
-- diagrams-core-1.4.1.1
-- diagrams-lib-1.4.2.3
-- diagrams-solve-0.1.1
-- diagrams-svg-1.4.2
-- diagrams-postscript-1.4.1
-- dual-tree-0.2.2
-- lens-4.17
-- free-5.0.2
-- Chart-1.9 ##?
-- Chart-diagrams-1.9
-- SVGFonts-1.6.0.3
+# - diagrams-core-1.4.1.1
+# - diagrams-lib-1.4.2.3
+# - diagrams-solve-0.1.1
+# - diagrams-svg-1.4.2
+# - diagrams-postscript-1.4.1
+# - dual-tree-0.2.2
+# - lens-4.17
+# - free-5.0.2
+  #- Chart-1.9.1 ##?
+  #- Chart-diagrams-1.9.1
+# - SVGFonts-1.6.0.3
 
 flags: {}
