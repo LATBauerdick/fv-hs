@@ -12,7 +12,7 @@ import Data.List ( sort )
 
 import Test.Input ( hSlurp )
 import Test.Cluster ( doCluster, fsmw )
--- import Test.FVT ( testFVT )
+import Test.FVT ( testFVT )
 import Data.Cov ( testCov2 )
 import FV.Types ( VHMeas (..), HMeas (..), hFilter, vBlowup )
 import Test.Random ( testRandom )
@@ -26,7 +26,7 @@ spec =
     describe "Cov" $ do
       it "testCov------------------------" $ do
         let  s = testCov2
-        -- putStrLn s
+        putStrLn s
         -- putStrLn $ testCov 0
         head s `shouldBe` 'T'
 
@@ -74,9 +74,9 @@ spec =
             HMeas _ _ w = head hl
         w `shouldBe` 4.5451703e-3
 
-      -- it "--Test FVT 1" $ do
-      --   _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< readFile "dat/tr05129e001412.dat"
-      --   1 `shouldBe` 1
+      it "--Test FVT 1" $ do
+        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< readFile "dat/tr05129e001412.dat"
+        1 `shouldBe` 1
 
       -- it "--Test FVT 2" $ do
       --   ds <- readFile "dat/tr05158e004656.dat"
@@ -101,17 +101,17 @@ spec =
         --     showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
         --     showHelix :: HMeas -> String
         --     showHelix h = "Helix ->" <> show h
-        ds <- readFile "dat/tav-1.dat"
-        let vm = uJust $ hSlurp ds
-        -- traverse_ (putStrLn <<< showHelix) $ helices vm
-        -- traverse_ (putStrLn <<< showMomentum) $ helices vm
-        s <- doCluster vm
-        putStrLn s
+        -- ds <- readFile "dat/tav-1.dat"
+        -- let vm = uJust $ hSlurp ds
+        -- -- traverse_ (putStrLn <<< showHelix) $ helices vm
+        -- -- traverse_ (putStrLn <<< showMomentum) $ helices vm
+        -- s <- doCluster vm
+        -- putStrLn s
    --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
       it "--Test Random 5,000" $ do
-        out <- testRandom 5000 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
+        out <- testRandom 5 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
                             <<< uJust <<< hSlurp
                             =<< readFile "dat/tr05129e001412.dat"
         putStrLn out

@@ -19,7 +19,7 @@ module FV.Fit (
 
 import Prelude.Extended
 --import qualified Data.Vector.Unboxed as A ( foldl, unzip, length )
-import Data.Maybe ( Maybe (..), mapMaybe )
+import Data.Maybe ( Maybe (..), mapMaybe, fromJust )
 
 import Data.Cov
 import FV.Jacob as J
@@ -52,26 +52,25 @@ goodEnough (Chi2 c0) (Chi2 c) i = abs (c - c0) < chi2cut || i > iterMax where
 kAdd' :: XMeas -> HMeas -> Vec3 -> Vec3 -> Chi2 -> Int -> XMeas
 --kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e _ i |
 --        i == 0 && trace ("kadd'-->" <> show i <> "|" <> show v0 <> show h) false = undefined
-kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e 𝜒2_0 iter = x_k where
-  jj    = J.expand x_e q_e
-  Jacs {aajacs=aa, bbjacs=bb, h0jacs=h0} = jj
-  aaT   = tr aa
-  bbT   = tr bb
-  x_k   = case invMaybe (bb .*. gg) of
-            Nothing  -> XMeas v0 (inv uu0) `debug` "... can't invert in kAdd'"
-            Just ww  -> let
-                gb    = gg - gg .*. (bbT .*. ww)
-                uu    = uu0 + aa .*. gb
-                cc    = inv uu
-                m     = h - h0
-                v     = cc *. (uu0 *. v0 + aaT *. gb *. m)
-                dm    = m - aa *. v
-                q     = ww *. (bbT *. gg *. dm)
-                𝜒2    = Chi2 $ (dm - bb *. q) .*. gg + (v - v0) .*. uu0
-                x_k'  = if goodEnough 𝜒2_0 𝜒2 iter -- `debug` ("--> kAdd' chi2 is " <> show 𝜒2)
-                  then XMeas v cc
-                  else kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q 𝜒2 (iter+1)
-              in x_k'
+kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e (Chi2 𝜒2_0) iter
+  | goodEnough = XMeas v cc
+  | otherwise  = kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q (Chi2 𝜒2) (iter+1)
+  where
+    Jacs {aajacs=aa, bbjacs=bb, h0jacs=h0} = J.expand x_e q_e
+    aaT  = tr aa
+    bbT  = tr bb
+    ww   = fromJust $ invMaybe (bb .*. gg)
+    gb   = gg - gg .*. (bbT .*. ww)
+    uu   = uu0 + aa .*. gb
+    cc   = inv uu
+    m    = h - h0
+    v    = cc *. (uu0 *. v0 + aaT *. gb *. m)
+    dm   = m - aa *. v
+    q    = ww *. (bbT *. gg *. dm)
+    𝜒2   = (dm - bb *. q) .*. gg + (v - v0) .*. uu0
+    goodEnough = abs (𝜒2 - 𝜒2_0) < chi2cut || iter > iterMax where
+      chi2cut = 0.5
+      iterMax = 99 :: Int
 
 kAddF :: XFit -> HMeas -> XFit
 kAddF (XFit v vv _) (HMeas h hh _) = kAddF' v (inv vv) h (inv hh) v (J.hv2q h v) (Chi2 1e6) 0
