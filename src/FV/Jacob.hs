@@ -45,7 +45,7 @@ hv2q Data.Cov.Vec.Vec {Data.Cov.Vec.v=h_} Data.Cov.Vec.Vec {Data.Cov.Vec.v=v_} =
                 else [ w0, tl0, psi0 ]
                   where
                     oow0 = 1.0/w0
-                    gamma = atan r*cxi/(oow0-r*sxi)
+                    gamma = atan $ r*cxi/(oow0-r*sxi)
 
 expand :: Vec3 -> Vec3 -> Jacs
 expand v q = Jacs {aajacs= aa, bbjacs= bb, h0jacs= h0} where

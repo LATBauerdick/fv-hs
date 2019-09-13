@@ -132,7 +132,7 @@ ksm (XMeas x cc) (HMeas h hh w0) = do
                                 `debug` ("--> ksm bad " <> show (det uu')
                                                         <> show uu')
                     else cx'' where
-                      cc'  = inv uu' -- `debug` ("--> ksm " ++ show uu')
+                      cc'  = inv uu' -- `debug` ("--> ksm " <> show uu')
                       x'   = cc' *. (uu *. x - aaT *. gb *. p)
                       dx   = x - x'
                       cx'  = dx .*. uu'
