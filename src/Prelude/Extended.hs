@@ -10,11 +10,16 @@
 --{-# LANGUAGE ScopedTypeVariables #-}
 
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE OverloadedStrings #-}
 --{-# LANGUAGE NamedFieldPuns #-}
 module Prelude.Extended
   ( module Protolude
-  , Semiring (..), Ring (..) --, (<>)
-  , (<<<), uidx, uJust, debug, trace, unsafePartial
+  -- LATB Protolude this probably need fixing
+  , GHC.Show.show
+  , Semiring (..)
+  , Ring (..) --, (<>)
+  , (<<<), uidx, uJust, debug, unsafePartial
+-- , trace
   , Number, Array
   , Tuple (..)
   , List, range, fromList
@@ -25,9 +30,12 @@ module Prelude.Extended
   , toNumber, intFromString, numberFromString
   , sqr, div', mod', divMod'
   , normals
+  , error
+  , pack, unpack
   )  where
 
-import Protolude
+import Protolude hiding ( show, Semiring (..), zero )
+import GHC.Show (Show(..))
 import qualified Data.Vector.Unboxed as A
     ( Vector
     , fromList, map, maximum
@@ -38,14 +46,18 @@ import Text.Printf ( printf )
 import Text.Read ( readMaybe )
 import System.Random ( RandomGen, random )
 import qualified Data.List as L ( take )
-import Data.String as S ( unlines, unwords )
+-- import Data.String as S ( unlines, unwords )
+import Data.Text as S ( pack, unpack, unlines, unwords )
 
 --------------------------------------------------------------
 -- adapting for PureScript
 import Data.Semigroup ( (<>) )
-import Debug.Trace ( trace )
-debug :: a -> String -> a
+-- import Debug.Trace ( trace )
+debug :: a -> Text -> a
 debug = flip trace
+
+error :: [Char] -> a
+error = panic . pack
 
 type Number = Double
 type Array a = A.Vector a
@@ -67,7 +79,7 @@ indVs w i0 j0 | i0 <= j0   = i0*w - (i0*(i0-1)) `div` 2 + j0-i0
               | otherwise = j0*w - (j0*(j0-1)) `div` 2 + i0-j0
 
 -- pretty print of matrix
-prettyMatrix :: Int -> Int -> Array Number -> String
+prettyMatrix :: Int -> Int -> Array Number -> Text
 prettyMatrix r c v = S.unlines ls where
   -- | /O(1)/. Unsafe variant of 'getElem', without bounds checking.
   unsafeGet :: Int          -- ^ Row
@@ -79,12 +91,13 @@ prettyMatrix r c v = S.unlines ls where
   encode m i j = (i-1)*m + j - 1
   ls = do
     i <- range 1 r
-    let ws :: List String
+    let ws :: List Text
         ws = map (\j -> fillBlanks mx (to3fix $ unsafeGet i j v)) (range 1 c)
     pure $ "( " <> S.unwords ws <> " )"
-  mx = A.maximum $ A.map (length <<< to3fix) v
-  fillBlanks k str =
-    (replicate (k - length str) ' ') <> str
+  -- mx = A.maximum $ A.map (length <<< to3fix) v
+  mx = 8
+  fillBlanks k str = str
+    -- (replicate (k - length str) ' ') <> str
 
 -- filter list of objects given list of indices in [a]
 -- return list with only those b that have  indices that  are in rng [a]
@@ -109,7 +122,7 @@ fromList = A.fromList
 -- | Allows `Tuple`s to be rendered as a string with `show` whenever there are
 -- | `Show` instances for both component types.
 instance (Show a, Show b) => Show (Tuple a b) where
-  show (Tuple a b) = "(Tuple " <> show a <> " " <> show b <> ")"
+  show (Tuple a b) = "(Tuple " <> GHC.Show.show a <> " " <> GHC.Show.show b <> ")"
 
 class Semiring a where
   add  :: a -> a -> a
@@ -123,16 +136,16 @@ class Semiring a => Ring a where
 toNumber :: Int -> Number
 toNumber = fromIntegral
 
-to0fix :: Number -> String
-to0fix = printf "%4.0f"
-to1fix :: Number -> String
-to1fix = printf "%6.1f"
-to2fix :: Number -> String
-to2fix = printf "%7.2f"
-to3fix :: Number -> String
-to3fix = printf "%8.3f"
-to5fix :: Number -> String
-to5fix = printf "%10.5f"
+to0fix :: Number -> Text
+to0fix = pack . printf "%4.0f"
+to1fix :: Number -> Text
+to1fix = pack . printf "%6.1f"
+to2fix :: Number -> Text
+to2fix = pack . printf "%7.2f"
+to3fix :: Number -> Text
+to3fix = pack . printf "%8.3f"
+to5fix :: Number -> Text
+to5fix = pack . printf "%10.5f"
 
 sqr :: Number -> Number
 sqr x = x*x
@@ -152,12 +165,12 @@ mod' n d = n - toNumber f * d where
     f = div' n d
 
 -- | convert from String to Number and Int
-numberFromString :: String -> Maybe Number
-numberFromString  = readDouble where
-  readDouble = readMaybe :: String -> Maybe Double
-intFromString :: String -> Maybe Int
-intFromString = readInt where
-  readInt = readMaybe :: String -> Maybe Int
+numberFromString :: Text -> Maybe Number
+numberFromString = readDouble . unpack where
+  readDouble s = (readMaybe s) :: Maybe Double
+intFromString :: Text -> Maybe Int
+intFromString = readInt . unpack where
+  readInt = readMaybe
 
 
 -- | generate a list of n normally distributed random values

@@ -129,14 +129,14 @@ ksm (XMeas x cc) (HMeas h hh w0) = do
       gb   = gg - gg .*. (bbT .*. ww)
       uu'  = uu - aa .*. gb
       cx   = if det uu' < 0.0 then 1000.0
-                                `debug` ("--> ksm bad " <> show (det uu')
+                                `debug` pack ("--> ksm bad " <> show (det uu')
                                                         <> show uu')
                     else cx'' where
                       cc'  = inv uu' -- `debug` ("--> ksm " <> show uu')
                       x'   = cc' *. (uu *. x - aaT *. gb *. p)
                       dx   = x - x'
                       cx'  = dx .*. uu'
-                      cx'' = if cx' < 0.0 then 2000.0 `debug` ("--> ksm chi2 is " <> show cx' <> ", " <> show ch <> ", " <> show (max cx' 0.0 + ch))
+                      cx'' = if cx' < 0.0 then 2000.0 `debug` pack ("--> ksm chi2 is " <> show cx' <> ", " <> show ch <> ", " <> show (max cx' 0.0 + ch))
                                         else cx'
       𝜒2 = cx + ch
   pure (QMeas q dd w0, Chi2 𝜒2)

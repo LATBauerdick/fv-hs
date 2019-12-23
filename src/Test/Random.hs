@@ -70,7 +70,7 @@ fitm vm = m where
 
 testRandom ::Int
              -> VHMeas
-             -> IO String
+             -> IO Text
 testRandom cnt vm = do
   g <- newStdGen
   t0 <- getCurrentTime
@@ -93,8 +93,8 @@ testRandom cnt vm = do
   --   (vm', g') = randomize vm g
   --   m' = fitm vm'
 
-  pure $ "Fit Mass  " <> show mf
-       <> "\nMean Mass " <> show mr
+  pure $ "Fit Mass  " <> (pack <<< show) mf
+       <> "\nMean Mass " <> (pack <<< show) mr
        <> "\ntime: "
             <> to2fix (realToFrac (diffUTCTime t1 t0) :: Number)
             <> " seconds"

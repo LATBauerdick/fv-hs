@@ -21,6 +21,7 @@ import Data.List as L ( head, drop, take )
 --import Data.Tuple (Tuple (..), fst)
 import Data.Maybe ( mapMaybe )
 --import Control.Plus (empty)
+import Data.Text ( words )
 
 import Data.Cov
 import Data.Cov.Jac ( Jac (..) )
@@ -33,7 +34,7 @@ import FV.Types ( MCtruth (..), VHMeas (..), XMeas (..), HMeas (..) )
 {-- listToArray = ?whatGoesHere --}
 
 -- slurp in a String of measurements of PU z-positions into MCtruth
-hSlurpMCtruth :: String -> Maybe MCtruth
+hSlurpMCtruth :: Text -> Maybe MCtruth
 hSlurpMCtruth ds = mc where
   ws = words ds
   npu :: Maybe Int
@@ -50,7 +51,7 @@ hSlurpMCtruth ds = mc where
 
 -- slurps up a String with a bunch of Doubles
 -- and parses them w/ to a vertex and a set of helix measurements
-hSlurp :: String -> Maybe VHMeas
+hSlurp :: Text -> Maybe VHMeas
 hSlurp ds = vhm where
   ws = words ds
   npu :: Maybe Int

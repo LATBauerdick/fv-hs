@@ -51,20 +51,21 @@ import Control.Lens
 --            $ layout_plots .~ [toPlot bars, toPlot points]
 --            $ def
 
-doHist :: String -> [(Number, Number, Number, Number)] -> IO ()
+doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
 -- doHist s ps = do
 --   let vals :: [(Number,Number,Number,Number)]
 --       vals = [ (x,y,0.1,0.01) | (x,y) <- ps]
-doHist s vals = do
+doHist s' vals = do
+  let s = unpack s'
   let chart = toRenderable layout
         where
           bars  = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy) <- vals]
-                $ plot_errbars_title .~ s
+                $ plot_errbars_title .~ ( s )
                 $ def
 
           points  = plot_points_style .~ filledCircles 2 (opaque red)
                   $ plot_points_values .~ [(x,y) |  (x,y,_,_) <- vals]
-                  $ plot_points_title .~ s
+                  $ plot_points_title .~ ( s )
                   $ def
 
           layout = layout_title .~ "FVT"

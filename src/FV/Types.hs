@@ -35,6 +35,7 @@ import Data.Foldable ( fold )
 import Data.Cov
 import Data.Cov.Jac ( Jac (..) )
 
+type String =  Text
 -----------------------------------------------
 -- Prong
 -- a prong results from a vertex fit of N helices
@@ -115,7 +116,7 @@ instance Show MCtruth where
 --
 data HMeas = HMeas Vec5 Cov5 Number
 instance Show HMeas where
-  show (HMeas h ch _) = s' where
+  show (HMeas h ch _) = unpack s' where
     sh = A.map sqrt $ diag ch
     hs = toArray h
     s00 = to5fix x <> " +-" <> to5fix dx where
@@ -136,7 +137,7 @@ mπ :: Number
 mπ = 0.1395675
 data QMeas = QMeas Vec3 Cov3 Number
 instance Show QMeas where
-  show = showQMeas
+  show = unpack . showQMeas
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
 showQMeas :: QMeas -> String
 showQMeas (QMeas q cq w2pt) = s' where
@@ -186,7 +187,7 @@ instance Monoid PMeas where
   mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
   mempty = PMeas (fromArray [0.0,0.0,0.0,0.0]) zero
 instance Show PMeas where
-  show = showPMeas
+  show = unpack . showPMeas
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
 showPMeas :: PMeas -> String
 showPMeas (PMeas p cp) = s' where
@@ -281,7 +282,7 @@ data MMeas = MMeas
             , dm :: Number
             }
 instance Show MMeas where
-  show MMeas {m=m, dm=dm} = " " <> to1fix (m*1000.0) <> " +-" <> to1fix (dm*1000.0) <> " MeV"
+  show MMeas {m=m, dm=dm} = unpack $ " " <> to1fix (m*1000.0) <> " +-" <> to1fix (dm*1000.0) <> " MeV"
 
 -----------------------------------------------
 -- XMeas
@@ -289,7 +290,7 @@ instance Show MMeas where
 --
 data DMeas = DMeas Number Number -- distance and error
 instance Show DMeas where
-  show (DMeas d sd) = to2fix d <> " +-" <> to2fix sd <> " cm"
+  show (DMeas d sd) = unpack $ to2fix d <> " +-" <> to2fix sd <> " cm"
 class Pos a where
   distance :: a -> a -> DMeas -- distance between two positions
 instance Pos XMeas where
@@ -317,7 +318,7 @@ instance Monoid XMeas where
   mempty = XMeas zero zero
   mappend = undefined
 instance Show XMeas where
-  show = showXMeas
+  show = unpack . showXMeas
 -- return a string showing vertex position vector with errors
 showXMeas :: XMeas -> String
 showXMeas (XMeas v cv) = s' where
@@ -347,7 +348,7 @@ zXMeas (XMeas v _) = z where
 
 data XFit = XFit Vec3 Cov3 Chi2
 instance Show XFit where
-  show (XFit x xx c2) = showXMeas (XMeas x xx) <> ", chi2=" <> show c2
+  show (XFit x xx c2) = unpack $ showXMeas (XMeas x xx) <> pack (", chi2=" <> show c2)
 
 chi2Vertex :: XFit -> Chi2
 chi2Vertex (XFit _ _ c2) = c2

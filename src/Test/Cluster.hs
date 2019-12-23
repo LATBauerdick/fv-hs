@@ -36,15 +36,19 @@ import           Prelude.Extended
 import           Data.Maybe                     ( mapMaybe
                                                 , catMaybes
                                                 )
-import           Data.List                      ( sortOn
-                                                , foldl'
+import           Data.List                      (
+                                                  foldl'
+                                                -- , sortOn
                                                 , sort
                                                 , zip4
+                                                , unzip3
                                                 )
 import qualified Math.Gamma                     ( q )
 import           Text.Printf                    ( printf )
 
-doCluster :: VHMeas -> IO String
+import Unsafe ( unsafeLast, unsafeHead )
+
+doCluster :: VHMeas -> IO Text
 doCluster vm' = do
   let vm = cleanup vm'
       v0 = vertex vm' -- beamspot
@@ -53,11 +57,11 @@ doCluster vm' = do
           <> "beam spot -> " <> show v0 <> "\n"
           <> "# tracks  -> " <> show (length <<< helices $ vm') <> "\n"
           <> "# after cleanup-> " <> show (length <<< helices $ vm) <> "\n"
-          <> "zs " <> (show . concatMap to2fix . zs $ vm) <> "\n"
-          <> "rs " <> (show . concatMap to2fix . rs $ vm) <> "\n"
+          <> "zs " <> (show . concatMap (unpack <<< to2fix) . zs $ vm) <> "\n"
+          <> "rs " <> (show . concatMap (unpack <<< to2fix) . rs $ vm) <> "\n"
       points xs = zip4 (zs xs) (rs xs) (dzs xs) (drs xs)
   _ <- doHist "vertices-z-r" . points $ vm
-  return s
+  return (pack s)
 
   -- let Node _ ht = vList vm
   -- putStrLn "---------------------------------------------------------"
@@ -161,10 +165,10 @@ cluster vm
     )
     False
   = undefined
-cluster (VHMeas v hllll) = trace
-  (  "--> cluster debug:"
+cluster (VHMeas v hllll) = trace (
+  pack (  "--> cluster debug:"
   <> "\n--> cluster zs=" <> take 160 (show zs)
-  <> "\n--> cluster z0=" <> to3fix (z0 :: Number)
+  <> "\n--> cluster z0=" <> unpack (to3fix (z0 :: Number))
   <> "\n--> cluster v0=" <> show v0
   <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $ take 10 hl)
   <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $ take 10 $ drop 10 hl)
@@ -190,15 +194,15 @@ cluster (VHMeas v hllll) = trace
   <> "\n--> cluster #hl1=" <> (show . length . catMaybes $ hl1) <> " vv=" <> show vv
   <> printf "\n--> cluster nothing=%5d just=%5d" (length hlnothing) (length hljust)
   <> "\n--> cluster nProng=" <> show nProng
-  )
+  ))
   (p, r)
  where
 
-  sDouble :: Double -> String
-  sDouble c = if c > 0.001 then to3fix c else " eps"
+  sDouble :: Double -> [Char]
+  sDouble c = if c > 0.001 then unpack (to3fix c) else " eps"
 
-  bDouble :: Chi2 -> String
-  bDouble (Chi2 c) = if c < 999.9 then to1fix c else " big"
+  bDouble :: Chi2 -> [Char]
+  bDouble (Chi2 c) = if c < 999.9 then unpack (to1fix c) else " big"
 
   hl          = hllll
 
@@ -224,7 +228,7 @@ cluster (VHMeas v hllll) = trace
     Just h  -> kAdd v_ h
     Nothing -> v_
   annealingSchedule = [256.0, 64.0, 16.0, 4.0, 1.0]
-  t0                = head annealingSchedule
+  t0                = unsafeHead annealingSchedule
   -- t1 = annealingSchedule !! 3
 
   c21s              = map
@@ -297,7 +301,7 @@ cluster (VHMeas v hllll) = trace
 --newtype WeightedPoint = WeightedPoint Number
 type WeightedPoint = Number
 fsmw :: Int -> List WeightedPoint -> WeightedPoint
-fsmw 1 xs           = head xs
+fsmw 1 xs           = unsafeHead xs
 fsmw 2 [x0, x1]     = 0.5 * (x1 + x0)
 fsmw 3 [x0, x1, x2] = case 2 * x1 - x0 - x2 of
   xx | xx < 0 -> (x0 + x1) / 2.0
@@ -335,7 +339,7 @@ hsm n xs = fsmw n' xs'
   alpha = 0.5 :: Number
   n'    = ceiling (fromIntegral n * alpha)
   xns   = drop (n' - 1) xs
-  wmin  = last xs - head xs
+  wmin  = unsafeLast xs - unsafeHead xs
   findMin
     :: (WeightedPoint, Int) -> (WeightedPoint, Int) -> (WeightedPoint, Int)
   findMin (w0, j0) (w, j) = if w < w0 then (w, j) else (w0, j0)
@@ -350,7 +354,7 @@ weightOfInterval :: [WeightedPoint] -> WeightedPoint
 weightOfInterval xs = w
  where --`debug` ("weightOfInterval--> " <> show xs <> ", " <> show ws <> ", " <> show w) where
   ws = [ wDist x0 x1 | x0 <- xs, x1 <- xs, x1 > x0 ]
-  w  = (last xs - head xs) / sum ws
+  w  = (unsafeLast xs - unsafeHead xs) / sum ws
 
 
 

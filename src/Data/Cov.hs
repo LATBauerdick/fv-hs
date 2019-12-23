@@ -20,7 +20,7 @@ import Prelude.Extended
 import qualified Data.Vector.Unboxed as A (
     replicate, length, foldl
   , replicate, singleton, map, foldl, zipWith )
-import Data.Foldable ( sum )
+-- import Data.Foldable ( sum )
 import Data.Maybe ( Maybe (..) )
 import Control.Monad ( guard )
 -- import Data.Int ( toNumber, ceil )
@@ -94,7 +94,7 @@ instance Mat (Jac a b) where
     vc = A.zipWith f va vb
 
 class ShowMat a where
-  showMatrix :: a -> String
+  showMatrix :: a -> Text
 instance ShowMat (Vec a) where
   showMatrix (Vec {v}) = prettyMatrix (A.length v) 1 v
 instance ShowMat (Jac Dim5 Dim3) where
@@ -423,9 +423,9 @@ instance Num (Jac a b) where
   (*) = error "cannot multiply Jac*Jac to return a Jac, use *. instead"
 
 instance Show (Vec a) where
-  show c = "Show (Vec a) \n" <> showMatrix c
+  show c = unpack $ "Show (Vec a) \n" <> showMatrix c
 instance Show (Jac a b) where
-  show c = "Show (Jac a b) \n" <> showMatrix c
+  show c = unpack $ "Show (Jac a b) \n" <> showMatrix c
 
 instance Semiring (Cov Dim3) where
   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
@@ -515,8 +515,8 @@ cholInv (Cov {v= a}) = Cov {v= a'} where
         _  -> 0 -- error $ "cholInv: not supported for length " <> show (A.length a)
   a' = doCholInv a n
 
-testCov2 :: String
-testCov2 = s where
+testCov2 :: Text
+testCov2 = pack s where
   xc3 :: Cov Dim3
   xc3 = Cov {v= [1.0 .. 6.0]}
   -- xj3 :: Jac Dim3 Dim3

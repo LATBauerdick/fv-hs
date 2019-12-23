@@ -1,6 +1,8 @@
 module LibSpec where
 
 import Prelude.Extended
+import Unsafe ( unsafeHead )
+import qualified Data.Text as T ( head ) 
 
 import Test.Hspec ( Spec, hspec, describe, it, shouldBe )
 import Test.QuickCheck ( property )
@@ -26,9 +28,9 @@ spec =
     describe "Cov" $ do
       it "testCov------------------------" $ do
         let  s = testCov2
-        putStrLn s
-        -- putStrLn $ testCov 0
-        head s `shouldBe` 'T'
+        Prelude.Extended.putStrLn s
+        -- Prelude.Extended.putStrLn $ testCov 0
+        T.head s `shouldBe` 'T'
 
     describe "FSMW Tests" $ do
       it "FSMW5 works" $ do
@@ -49,7 +51,7 @@ spec =
       it "FSMW property: returns value in bound" $ do
         let fff :: [Double] -> Bool
             fff [] = True
-            fff xs = f >= head sxs && f <= last sxs where
+            fff xs = f >= unsafeHead sxs && f <= last sxs where
               sxs = sort xs
               n = length xs
               f = fsmw n sxs -- `debug` show n
@@ -63,19 +65,19 @@ spec =
 
     describe "FV Test" $ do
       it "hSlurp CMS event" $ do
-        ds <- readFile "dat/tav-4.dat"
+        ds <- Prelude.Extended.readFile "dat/tav-4.dat"
         let VHMeas _ hl = uJust $ hSlurp ds
-            HMeas _ _ w = head hl
+            HMeas _ _ w = unsafeHead hl
         w `shouldBe` 0.0114
 
       it "hSlurp Aleph event" $ do
-        ds <- readFile "dat/tr05129e001412.dat"
+        ds <- Prelude.Extended.readFile "dat/tr05129e001412.dat"
         let VHMeas _ hl = uJust <<< hSlurp $ ds
-            HMeas _ _ w = head hl
+            HMeas _ _ w = unsafeHead hl
         w `shouldBe` 4.5451703e-3
 
       it "--Test FVT 1" $ do
-        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< readFile "dat/tr05129e001412.dat"
+        _ <- testFVT [0,2,3,4,5] <<< uJust <<< hSlurp =<< Prelude.Extended.readFile "dat/tr05129e001412.dat"
         1 `shouldBe` 1
 
       -- it "--Test FVT 2" $ do
@@ -92,7 +94,7 @@ spec =
       --   -- let vf = fitVertex $ pr
       --   --     h = head . helices . hFilter [6] $ vm
       --   --     Just (_, chi2, _) =  ksm vf h
-      --   -- putStrLn $ printf "chi2 of track 6 w/r to fit vertex is %8.1f" (chi2::Double)
+      --   -- Prelude.Extended.putStrLn $ printf "chi2 of track 6 w/r to fit vertex is %8.1f" (chi2::Double)
       --   1 `shouldBe` 1
 
       it "--Test Cluster" $ do
@@ -101,20 +103,20 @@ spec =
             showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
             showHelix :: HMeas -> String
             showHelix h = "Helix ->" <> show h
-        ds <- readFile "dat/tav-4.dat"
+        ds <- Prelude.Extended.readFile "dat/tav-4.dat"
         let vm = uJust $ hSlurp ds
-        -- traverse_ (putStrLn <<< showHelix) $ helices vm
-        -- traverse_ (putStrLn <<< showMomentum) $ helices vm
+        -- traverse_ (Prelude.Extended.putStrLn <<< showHelix) $ helices vm
+        -- traverse_ (Prelude.Extended.putStrLn <<< showMomentum) $ helices vm
         s <- doCluster vm
-        putStrLn s
+        Prelude.Extended.putStrLn s
         -- _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
       it "--Test Random 5,000" $ do
         out <- testRandom 5 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
                             <<< uJust <<< hSlurp
-                            =<< readFile "dat/tr05129e001412.dat"
-        putStrLn out
+                            =<< Prelude.Extended.readFile "dat/tr05129e001412.dat"
+        Prelude.Extended.putStrLn out
         (1 :: Int) `shouldBe` 1
 
       -- it "test p works" $ do

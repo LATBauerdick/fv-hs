@@ -1,10 +1,13 @@
 
 {-# LANGUAGE DisambiguateRecordFields #-}
+-- {-# LANGUAGE OverloadedStrings #-}
 
 module Data.Cov.Cov where
 import Prelude.Extended
 import qualified Data.Vector.Unboxed as A (
     length, singleton, map, zipWith )
+
+import GHC.Show ( Show(..) )
 
 newtype Cov a = Cov { v :: Array Number }
 
@@ -17,7 +20,7 @@ instance Num (Cov a) where
   (*) = error "cannot multiply Cov*Cov to return a Cov, use *. instead"
 
 instance Show (Cov a) where
-  show c = "Show (Cov a) \n" <> showMatrix c where
+  show c = unpack $ ( "Show (Cov a) \n") <> showMatrix c where
     showMatrix (Cov {v=v_}) = let
       makeSymMat :: Int -> Array Number -> Array Number
       makeSymMat n vs = fromList $ do
