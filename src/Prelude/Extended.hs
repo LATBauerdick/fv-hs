@@ -12,7 +12,7 @@
 {-# LANGUAGE OverloadedLists #-}
 --{-# LANGUAGE NamedFieldPuns #-}
 module Prelude.Extended
-  ( module Prelude
+  ( module Protolude
   , Semiring (..), Ring (..) --, (<>)
   , (<<<), uidx, uJust, debug, trace, unsafePartial
   , Number, Array
@@ -27,7 +27,7 @@ module Prelude.Extended
   , normals
   )  where
 
-import Prelude
+import Protolude
 import qualified Data.Vector.Unboxed as A
     ( Vector
     , fromList, map, maximum

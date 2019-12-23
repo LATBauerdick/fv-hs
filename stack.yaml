@@ -8,6 +8,7 @@ resolver: lts-13.29
 allow-newer: true
 packages:
 - '.'
+location: .
 extra-deps:
 # - Histogram-0.1.0.2
 #

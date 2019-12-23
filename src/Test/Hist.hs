@@ -51,10 +51,11 @@ import Control.Lens
 --            $ layout_plots .~ [toPlot bars, toPlot points]
 --            $ def
 
-doHist :: String -> [(Number, Number)] -> IO ()
-doHist s ps = do
-  let vals :: [(Number,Number,Number,Number)]
-      vals = [ (x,y,0.1,0.01) | (x,y) <- ps]
+doHist :: String -> [(Number, Number, Number, Number)] -> IO ()
+-- doHist s ps = do
+--   let vals :: [(Number,Number,Number,Number)]
+--       vals = [ (x,y,0.1,0.01) | (x,y) <- ps]
+doHist s vals = do
   let chart = toRenderable layout
         where
           bars  = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy) <- vals]

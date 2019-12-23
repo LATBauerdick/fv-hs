@@ -17,7 +17,9 @@ import           FV.Types                       ( VHMeas(..)
                                                 , Chi2(..)
                                                 , chi2Vertex
                                                 , zVertex
+                                                , dzVertex
                                                 , rVertex
+                                                , drVertex
                                                 , z0Helix
                                                 )
 import           FV.Fit                         ( kAdd
@@ -37,6 +39,7 @@ import           Data.Maybe                     ( mapMaybe
 import           Data.List                      ( sortOn
                                                 , foldl'
                                                 , sort
+                                                , zip4
                                                 )
 import qualified Math.Gamma                     ( q )
 import           Text.Printf                    ( printf )
@@ -52,7 +55,7 @@ doCluster vm' = do
           <> "# after cleanup-> " <> show (length <<< helices $ vm) <> "\n"
           <> "zs " <> (show . concatMap to2fix . zs $ vm) <> "\n"
           <> "rs " <> (show . concatMap to2fix . rs $ vm) <> "\n"
-      points xs = zip (zs xs) (rs xs)
+      points xs = zip4 (zs xs) (rs xs) (dzs xs) (drs xs)
   _ <- doHist "vertices-z-r" . points $ vm
   return s
 
@@ -81,9 +84,15 @@ probs (VHMeas v hl) =
 zs :: VHMeas -> [Number]
 zs (VHMeas v hl) =
   filter (\x -> abs x < 10.0) $ map (zVertex . kAddF (xFit v)) hl
+dzs :: VHMeas -> [Number]
+dzs (VHMeas v hl) =
+  filter (\x -> abs x < 10.0) $ map (dzVertex . kAddF (xFit v)) hl
 rs :: VHMeas -> [Number]
 rs (VHMeas v hl) =
   filter (\x -> abs x < 10.0) $ map (rVertex . kAddF (xFit v)) hl
+drs :: VHMeas -> [Number]
+drs (VHMeas v hl) =
+  filter (\x -> abs x < 10.0) $ map (drVertex . kAddF (xFit v)) hl
 
 cleanup :: VHMeas -> VHMeas
 -- remove vm helices that are incompatible with vm vertex

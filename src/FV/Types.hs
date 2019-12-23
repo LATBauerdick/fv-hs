@@ -24,7 +24,7 @@ module FV.Types
   , PMeas (..), fromQMeas, invMass
   , MMeas (..)
   , XFit (..)
-    , chi2Vertex, zVertex, rVertex, z0Helix
+    , chi2Vertex, zVertex, dzVertex, rVertex, drVertex, z0Helix
   ) where
 
 import Prelude.Extended
@@ -356,6 +356,14 @@ zVertex :: XFit -> Double
 zVertex (XFit v _ _) = z where
   z = uidx (val v) 2
 
+dzVertex :: XFit -> Double
+dzVertex (XFit _ dv _) = dz where
+  dz = sqrt $ uidx (val dv) 5
+
 rVertex :: XFit -> Double
 rVertex (XFit v _ _) = r where
   r = sqrt $ (sqr (uidx (val v) 0)) + (sqr (uidx (val v) 1))
+
+drVertex :: XFit -> Double
+drVertex (XFit v _ _) = const 0.002 dr where
+  dr = sqrt $ (sqr (uidx (val v) 0)) + (sqr (uidx (val v) 1))

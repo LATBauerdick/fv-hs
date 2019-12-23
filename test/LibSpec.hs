@@ -14,7 +14,7 @@ import Test.Input ( hSlurp )
 import Test.Cluster ( doCluster, fsmw )
 import Test.FVT ( testFVT )
 import Data.Cov ( testCov2 )
-import FV.Types ( VHMeas (..), HMeas (..), hFilter, vBlowup )
+import FV.Types ( VHMeas (..), HMeas (..), hFilter, vBlowup, fromHMeas )
 import Test.Random ( testRandom )
 
 main :: IO ()
@@ -96,18 +96,18 @@ spec =
       --   1 `shouldBe` 1
 
       it "--Test Cluster" $ do
-        -- let
-        --     showMomentum :: HMeas -> String
-        --     showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
-        --     showHelix :: HMeas -> String
-        --     showHelix h = "Helix ->" <> show h
-        -- ds <- readFile "dat/tav-1.dat"
-        -- let vm = uJust $ hSlurp ds
-        -- -- traverse_ (putStrLn <<< showHelix) $ helices vm
-        -- -- traverse_ (putStrLn <<< showMomentum) $ helices vm
-        -- s <- doCluster vm
-        -- putStrLn s
-   --   _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
+        let
+            showMomentum :: HMeas -> String
+            showMomentum h = "pt,pz,fi,E ->" <> (show <<< fromHMeas) h
+            showHelix :: HMeas -> String
+            showHelix h = "Helix ->" <> show h
+        ds <- readFile "dat/tav-4.dat"
+        let vm = uJust $ hSlurp ds
+        -- traverse_ (putStrLn <<< showHelix) $ helices vm
+        -- traverse_ (putStrLn <<< showMomentum) $ helices vm
+        s <- doCluster vm
+        putStrLn s
+        -- _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
       it "--Test Random 5,000" $ do
