@@ -13,6 +13,7 @@ cabal-dev
 .cabal-sandbox/
 cabal.sandbox.config
 fv.cabal
+*.lock
 *.prof
 *.aux
 *.hp
