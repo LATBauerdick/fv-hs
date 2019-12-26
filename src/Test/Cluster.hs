@@ -37,16 +37,14 @@ import           Data.Maybe                     ( mapMaybe
                                                 , catMaybes
                                                 )
 import           Data.List                      (
-                                                  foldl'
+                                                  sort
+                                                -- , foldl'
                                                 -- , sortOn
-                                                , sort
                                                 , zip4
                                                 , unzip3
                                                 )
 import qualified Math.Gamma                     ( q )
 import           Text.Printf                    ( printf )
-
-import Unsafe ( unsafeLast, unsafeHead )
 
 doCluster :: VHMeas -> IO Text
 doCluster vm' = do
@@ -159,9 +157,9 @@ cluster :: VHMeas -> (Prong, Maybe VHMeas)
 cluster vm
   | trace
     (  "--> cluster called with "
-    <> (show . length . helices $ vm)
+    <> (tshow . length . helices $ vm)
     <> " helices, initial vertex at "
-    <> (show . vertex $ vm)
+    <> (tshow . vertex $ vm)
     )
     False
   = undefined
@@ -227,8 +225,9 @@ cluster (VHMeas v hllll) = trace (
   kAddW' v_ (mh, _) = case mh of
     Just h  -> kAdd v_ h
     Nothing -> v_
-  annealingSchedule = [256.0, 64.0, 16.0, 4.0, 1.0]
-  t0                = unsafeHead annealingSchedule
+  annealingSchedule :: NonEmpty Number;
+  annealingSchedule = 256.0 :| [64.0, 16.0, 4.0, 1.0]
+  t0                = head annealingSchedule
   -- t1 = annealingSchedule !! 3
 
   c21s              = map
@@ -301,7 +300,8 @@ cluster (VHMeas v hllll) = trace (
 --newtype WeightedPoint = WeightedPoint Number
 type WeightedPoint = Number
 fsmw :: Int -> List WeightedPoint -> WeightedPoint
-fsmw 1 xs           = unsafeHead xs
+fsmw 0 []            = error $ "Test.Cluster.fsmw got empty list"
+fsmw 1 [a]           = a -- head xs
 fsmw 2 [x0, x1]     = 0.5 * (x1 + x0)
 fsmw 3 [x0, x1, x2] = case 2 * x1 - x0 - x2 of
   xx | xx < 0 -> (x0 + x1) / 2.0
@@ -333,7 +333,7 @@ fsmw n xs = h
 -- HalfSampleMode
 -- see Bickel & Frühwirth, On a Fast, Robust Estimator of the Mode, 2006
 -- http://ideas.repec.org/a/eee/csdana/v50y2006i12p3500-3530.html
-hsm :: Int -> [WeightedPoint] -> WeightedPoint
+hsm :: Int -> List WeightedPoint -> WeightedPoint
 hsm n xs = fsmw n' xs'
  where
   alpha = 0.5 :: Number
@@ -350,7 +350,7 @@ hsm n xs = fsmw n' xs'
 
 wDist :: WeightedPoint -> WeightedPoint -> WeightedPoint
 wDist x0 x1 = 1.0 / sqrt (x1 - x0 + dmin) where dmin = 0.001 -- 10 µm
-weightOfInterval :: [WeightedPoint] -> WeightedPoint
+weightOfInterval :: List WeightedPoint -> WeightedPoint
 weightOfInterval xs = w
  where --`debug` ("weightOfInterval--> " <> show xs <> ", " <> show ws <> ", " <> show w) where
   ws = [ wDist x0 x1 | x0 <- xs, x1 <- xs, x1 > x0 ]

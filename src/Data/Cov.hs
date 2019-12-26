@@ -33,6 +33,8 @@ import Data.Cov.Cov
 import Data.Cov.Jac
 import Data.Cov.Vec
 
+import qualified GHC.Show as Show (Show (show))
+
 newtype Dim3 = DDim3 Int
 newtype Dim4 = DDim4 Int
 newtype Dim5 = DDim5 Int
@@ -74,7 +76,7 @@ instance Mat (Cov a) where
       6  -> 3
       10 -> 4
       15 -> 5
-      _  -> error $ "matCova: toArray not supported for length " <> show l
+      _  -> error $ "matCova: toArray not supported for length " <> tshow l
     iv = indVs n
     v' = fromList $ do
       i0 <- range 0 (n-1)
@@ -160,7 +162,7 @@ instance SymMat Dim3 where
   inv m = m' where
     mm = invMaybe m
     m' = case mm of
-           Nothing -> error $ "can't invert 3x3 matrix " <> show m
+           Nothing -> error $ "can't invert 3x3 matrix " <> tshow m
            Just x -> x
   invMaybe (Cov {v}) = _inv v where
     _inv :: Array Number -> Maybe (Cov Dim3)
@@ -248,7 +250,7 @@ instance MulMat (Cov a) (Cov a) (Jac a a) where
               6  -> 3
               10 -> 4
               15 -> 5
-              _  -> error $ "mulMatCC wrong length of Cov v " <> show (A.length va)
+              _  -> error $ "mulMatCC wrong length of Cov v " <> tshow (A.length va)
     vc = fromList $ do
       let ixa = indVs na
           ixb = indVs na
@@ -263,7 +265,7 @@ instance MulMat (Jac a b) (Cov b) (Jac a b) where
               6  -> 3
               10 -> 4
               15 -> 5
-              _  -> error $ "mulMatJC wrong length of Cov v " <> show (A.length vb)
+              _  -> error $ "mulMatJC wrong length of Cov v " <> tshow (A.length vb)
     na = (A.length va) `div` nb
     vc = fromList $ do
       let ixa = indV nb
@@ -279,7 +281,7 @@ instance MulMat (Cov a) (Jac a b) (Jac a b) where
               6  -> 3
               10 -> 4
               15 -> 5
-              _  -> error $ "mulMatCJ wrong length of Cov v " <> show (A.length va)
+              _  -> error $ "mulMatCJ wrong length of Cov v " <> tshow (A.length va)
     nb = (A.length vb) `div` na
     vc = fromList $ do
       let ixa = indVs na
@@ -307,7 +309,7 @@ instance MulMat (Jac a b) (Jac b a) (Jac a a) where
               9  -> 3
               16 -> 4
               25 -> 5
-              _  -> error $ "mulMatJJ can only do 3x5 * 5x3, 3x4 * 4*3, or squares" <> show (A.length vb)
+              _  -> error $ "mulMatJJ can only do 3x5 * 5x3, 3x4 * 4*3, or squares" <> tshow (A.length vb)
     na = (A.length va) `div` nb
     vc = fromList $ do
       let ixa = indV nb
@@ -355,7 +357,7 @@ instance SwMat (Cov a) (Cov a) (Cov a) where
               6  -> 3
               10 -> 4
               15 -> 5
-              _  -> error $ "sw cov cov: don't know how to " <> show l
+              _  -> error $ "sw cov cov: don't know how to " <> tshow l
     m = n -- > mxn * nxn * nxm -> mxm
     vint :: Array Number
     vint = fromList $ do
@@ -383,7 +385,7 @@ instance SwMat (Jac a b) (Cov a) (Cov b) where
               6  -> 3
               10 -> 4
               15 -> 5
-              _  -> error $ "swJac: don't know how to " <> show l
+              _  -> error $ "swJac: don't know how to " <> tshow l
     m = (A.length va) `div` n -- > mxn * nxn * nxm -> mxm
     vint :: Array Number
     vint = fromList $ do
@@ -431,21 +433,21 @@ instance Semiring (Cov Dim3) where
   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
   zero = Cov {v= A.replicate 6 0.0 }
   mul = error "------------> mul cov3 * cov3 not allowed"
-  one = Cov { v= [1.0, 0.0, 0.0, 1.0, 0.0, 1.0] }
+  -- one = Cov { v= [1.0, 0.0, 0.0, 1.0, 0.0, 1.0] }
 instance Ring (Cov Dim3) where
   sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
 instance Semiring (Cov Dim4) where
   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
   zero = Cov {v= A.replicate 10 0.0 }
   mul = error "------------> mul cov4 * cov4 not allowed"
-  one = Cov { v= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
+  -- one = Cov { v= [1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
 instance Ring (Cov Dim4) where
   sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
 instance Semiring (Cov Dim5) where
   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
   zero = Cov {v= A.replicate 15 0.0 }
   mul = error "------------> mul cov5 * cov5 not allowed"
-  one = Cov { v= [1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
+  -- one = Cov { v= [1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0] }
 instance Ring (Cov Dim5) where
   sub (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (-) v1 v2}
 
@@ -453,7 +455,7 @@ instance Semiring (Jac a b) where
   add (Jac {v= v1}) (Jac {v= v2, nr= r}) = Jac {v= A.zipWith (+) v1 v2, nr= r}
   zero = undefined
   mul = undefined
-  one = undefined
+  -- one = undefined
 instance Ring (Jac a b) where
   sub (Jac {v= va, nr= r}) (Jac {v= vb}) = Jac {v= A.zipWith (-) va vb, nr= r}
 
@@ -462,21 +464,21 @@ instance Semiring (Vec Dim3) where
   add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
   zero = Vec {v= A.replicate 3 0.0 }
   mul = undefined
-  one = Vec { v= A.replicate 3 1.0 }
+  -- one = Vec { v= A.replicate 3 1.0 }
 instance Ring (Vec Dim3) where
   sub (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (-) v1 v2}
 instance Semiring (Vec Dim4) where
   add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
   zero = Vec {v= A.replicate 4 0.0 }
   mul = undefined
-  one = Vec { v= A.replicate 4 1.0 }
+  -- one = Vec { v= A.replicate 4 1.0 }
 instance Ring (Vec Dim4) where
   sub (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (-) v1 v2}
 instance Semiring (Vec Dim5) where
   add (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (+) v1 v2}
   zero = Vec {v= A.replicate 5 0.0 }
   mul = undefined
-  one = Vec { v= A.replicate 5 1.0 }
+  -- one = Vec { v= A.replicate 5 1.0 }
 instance Ring (Vec Dim5) where
   sub (Vec {v= v1}) (Vec {v= v2}) = Vec {v= A.zipWith (-) v1 v2}
 
@@ -503,7 +505,7 @@ choldc (Cov {v= a}) = Jac {v= a', nr= n} where
         6  -> 3
         10 -> 4
         15 -> 5
-        _  -> error $ "choldc: cannot deal with A.length " <> show (A.length a)
+        _  -> error $ "choldc: cannot deal with A.length " <> tshow (A.length a)
   a' = doCholdc a n
 
 cholInv :: forall a. Cov a -> Cov a
@@ -512,7 +514,7 @@ cholInv (Cov {v= a}) = Cov {v= a'} where
         6  -> 3
         10 -> 4
         15 -> 5
-        _  -> 0 -- error $ "cholInv: not supported for length " <> show (A.length a)
+        _  -> 0 -- error $ "cholInv: not supported for length " <> tshow (A.length a)
   a' = doCholInv a n
 
 testCov2 :: Text
@@ -534,7 +536,7 @@ testCov2 = pack s where
   -- xv5 = fromArray [1.0,1.0,1.0,1.0,1.0] :: Vec5
   s =  "Test Cov 2----------------------------------------------\n"
     <> "Vec *. Vec = " <> show (v3 *. v3) <> "\n"
-    <> "Cov *. Cov = " <> show (((fromArray[1.0,2.0,3.0,4.0,5.0,6.0])::Cov3) *. ((fromArray [0.0,0.0,1.0,1.0,0.0,0.0])::Cov3) *. inv (one::Cov3)) <> "\n"
+    -- <> "Cov *. Cov = " <> show (((fromArray[1.0,2.0,3.0,4.0,5.0,6.0])::Cov3) *. ((fromArray [0.0,0.0,1.0,1.0,0.0,0.0])::Cov3) *. inv (one::Cov3)) <> "\n"
 --    <> "Vec + Vec = " <> show (v5 + v5) <> "\n"
 --    <> "chol Cov = " <> show (chol (one::Cov5)) <> "\n"
 --    <> "Vec .*. Cov = " <> show (v5 .*. inv (one::Cov5)) <> "\n"

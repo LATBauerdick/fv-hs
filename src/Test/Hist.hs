@@ -3,7 +3,7 @@
 
 module Test.Hist ( doHist ) where
 
-import Prelude.Extended
+import Prelude.Extended hiding ( (.~) )
 
 -- import Data.Histogram
 -- histo :: (Foldable v, Unbox a, Num a) =>

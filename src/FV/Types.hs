@@ -30,12 +30,11 @@ module FV.Types
 import Prelude.Extended
 import qualified Data.Vector.Unboxed as A
   ( drop, zip, map, foldl )
-import Data.Foldable ( fold )
+-- import Data.Foldable ( fold )
 
 import Data.Cov
 import Data.Cov.Jac ( Jac (..) )
 
-type String =  Text
 -----------------------------------------------
 -- Prong
 -- a prong results from a vertex fit of N helices
@@ -46,7 +45,7 @@ instance Semiring Chi2 where
   add (Chi2 c0) (Chi2 c1) = Chi2 (c0+c1)
   zero = Chi2 0.0
   mul (Chi2 c0) (Chi2 c1) = Chi2 (c0*c1)
-  one = Chi2 1.0
+  -- one = Chi2 1.0
 instance Num Chi2 where
   fromInteger i = Chi2 $ fromInteger i
   negate (Chi2 c) = Chi2 (negate c)
@@ -139,9 +138,9 @@ data QMeas = QMeas Vec3 Cov3 Number
 instance Show QMeas where
   show = unpack . showQMeas
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
-showQMeas :: QMeas -> String
+showQMeas :: QMeas -> Text
 showQMeas (QMeas q cq w2pt) = s' where
-  f :: String -> (Number, Number) -> String
+  f :: Text -> (Number, Number) -> Text
   f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx
   m          = mπ
   wp         = w2pt
@@ -189,7 +188,7 @@ instance Monoid PMeas where
 instance Show PMeas where
   show = unpack . showPMeas
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
-showPMeas :: PMeas -> String
+showPMeas :: PMeas -> Text
 showPMeas (PMeas p cp) = s' where
   sp         = A.map sqrt $ diag cp
   f s (x, dx)  = s <> to3fix x <> " +-" <> to3fix dx -- \xc2b1 ±±±±±
@@ -320,7 +319,7 @@ instance Monoid XMeas where
 instance Show XMeas where
   show = unpack . showXMeas
 -- return a string showing vertex position vector with errors
-showXMeas :: XMeas -> String
+showXMeas :: XMeas -> Text
 showXMeas (XMeas v cv) = s' where
   vv         = toArray v
   x          = uidx vv 0
@@ -330,7 +329,7 @@ showXMeas (XMeas v cv) = s' where
   dx         = uidx s2v 0
   dy         = uidx s2v 1
   dz         = uidx s2v 2
-  f :: Number -> Number -> String -> String
+  f :: Number -> Number -> Text -> Text
   f x dx s  = s <> to2fix x <>  " +-" <> to2fix dx
   s' = f z dz <<< f y dy <<< f x dx $
     "(r,z) =" <> "(" <> to2fix (sqrt (x*x + y*y))

@@ -13,7 +13,8 @@ build-type:          Simple
 
 dependencies:
 - base >= 4.7 && < 5
-- protolude
+# - protolude
+- universum
 - text
 # - semigroups
 # - matrix

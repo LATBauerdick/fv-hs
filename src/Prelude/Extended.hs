@@ -13,12 +13,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 --{-# LANGUAGE NamedFieldPuns #-}
 module Prelude.Extended
-  ( module Protolude
+  -- ( module Protolude
+  ( module Universum
   -- LATB Protolude this probably need fixing
-  , GHC.Show.show
+  , log
+  , atan2
   , Semiring (..)
   , Ring (..) --, (<>)
   , (<<<), uidx, uJust, debug, unsafePartial
+  , unsafeHead, unsafeLast
 -- , trace
   , Number, Array
   , Tuple (..)
@@ -30,12 +33,22 @@ module Prelude.Extended
   , toNumber, intFromString, numberFromString
   , sqr, div', mod', divMod'
   , normals
-  , error
+  -- , error
+  , Show.Show (show)
+  , tshow
   , pack, unpack
   )  where
 
-import Protolude hiding ( show, Semiring (..), zero )
-import GHC.Show (Show(..))
+-- import Protolude hiding ( show, Semiring (..), zero )
+-- -- | Generalized version of 'Prelude.show'.
+-- show :: forall b a . (Show.Show a, IsString b) => a -> b
+-- show x = fromString (Show.show x)
+import Universum hiding (show)
+import qualified GHC.Show as Show (Show (show))
+import GHC.Float (Floating ( log ))
+import GHC.Float (RealFloat ( atan2 ))
+import qualified Universum.Unsafe as Unsafe
+ 
 import qualified Data.Vector.Unboxed as A
     ( Vector
     , fromList, map, maximum
@@ -56,8 +69,16 @@ import Data.Semigroup ( (<>) )
 debug :: a -> Text -> a
 debug = flip trace
 
-error :: [Char] -> a
-error = panic . pack
+-- error :: [Char] -> a
+-- error = panic . pack
+unsafeHead :: [a] -> a
+unsafeHead = Unsafe.head
+
+unsafeLast :: [a] -> a
+unsafeLast = Unsafe.last
+
+tshow :: forall b a. (Show a, IsString b) => a -> b
+tshow x = fromString (Show.show x)
 
 type Number = Double
 type Array a = A.Vector a
@@ -122,13 +143,13 @@ fromList = A.fromList
 -- | Allows `Tuple`s to be rendered as a string with `show` whenever there are
 -- | `Show` instances for both component types.
 instance (Show a, Show b) => Show (Tuple a b) where
-  show (Tuple a b) = "(Tuple " <> GHC.Show.show a <> " " <> GHC.Show.show b <> ")"
+  show (Tuple a b) = "(Tuple " <> Show.show a <> " " <> Show.show b <> ")"
 
 class Semiring a where
   add  :: a -> a -> a
   zero :: a
   mul  :: a -> a -> a
-  one  :: a
+  -- one  :: a
 class Semiring a => Ring a where
   sub :: a -> a -> a
 --------------------------------------------------------------

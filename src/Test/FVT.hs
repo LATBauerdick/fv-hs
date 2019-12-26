@@ -21,7 +21,7 @@ import Prelude.Extended
 import Data.Monoid ( mempty )
 -- import Data.Tuple ( Tuple(..) )
 -- import Data.Array ( length, zip, foldl )
-import Data.Foldable ( traverse_ )
+-- import Data.Foldable ( traverse_ )
 
 import FV.Types
   ( VHMeas, HMeas, QMeas
@@ -31,16 +31,14 @@ import FV.Types
 
 import FV.Fit ( fit )
 
-type String = Text
-
-showMomentum :: HMeas -> String
+showMomentum :: HMeas -> Text
 showMomentum h = "pt,pz,fi,E ->" <> (pack <<< show <<< fromHMeas) h
-showHelix :: HMeas -> String
+showHelix :: HMeas -> Text
 showHelix h = "Helix ->" <> (pack <<< show) h
-showProng :: Prong -> String
+showProng :: Prong -> Text
 showProng (Prong {nProng= n, fitVertex= v, fitMomenta= ql, fitChi2s= cl}) =
   let
-      showCl :: String -> List Chi2 -> String
+      showCl :: Text -> List Chi2 -> Text
       showCl = foldl (\s (Chi2 x) -> s <> to1fix x)
       Chi2 chi2tot = sum cl
       sc = "chi2tot ->" <> to1fix chi2tot <> ", ndof " <> (pack <<< show $ n*2)
@@ -64,7 +62,7 @@ doFitTest :: VHMeas
 doFitTest vm' l5 = do
   let vm = vBlowup 10000.0 vm'
   let showLen xs = show $ length xs
-      showQChi2 :: (QMeas, Chi2) -> String
+      showQChi2 :: (QMeas, Chi2) -> Text
       showQChi2 (qm, (Chi2 chi2)) = "q"
                                 <> " chi2 ->" <> to1fix chi2
                                 <> " pt,pz,fi,E ->"
