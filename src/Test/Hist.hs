@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 -- {-# LANGUAGE DeriveFunctor #-}
 
-module Test.Hist ( doHist ) where
+module Test.Hist ( doHist, doHistXY ) where
 
 import Prelude.Extended hiding ( (.~) )
 
@@ -51,10 +51,30 @@ import Control.Lens
 --            $ layout_plots .~ [toPlot bars, toPlot points]
 --            $ def
 
+doHistXY :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
+-- plot points with error ellipse
+doHistXY s' vals = do
+  let s = toString s'
+  let chart = toRenderable layout
+        where
+          bars  = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy,_) <- vals]
+                $ plot_errbars_title .~ ( s )
+                $ def
+
+          points  = plot_points_style .~ filledCircles 2 (opaque red)
+                  $ plot_points_values .~ [(x,y) |  (x,y,_,_,_) <- vals]
+                  $ plot_points_title .~ ( s )
+                  $ def
+
+          layout = layout_title .~ "FVT"
+                 $ layout_plots .~ [toPlot bars, toPlot points]
+                 $ def
+
+  _ <- renderableToFile def{_fo_format=EPS} (s <> ".eps") chart
+  pure ()
+
 doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
--- doHist s ps = do
---   let vals :: [(Number,Number,Number,Number)]
---       vals = [ (x,y,0.1,0.01) | (x,y) <- ps]
+-- plot points with error bars
 doHist s' vals = do
   let s = toString s'
   let chart = toRenderable layout

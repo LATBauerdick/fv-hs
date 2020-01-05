@@ -33,8 +33,10 @@ import           FV.Fit                         ( kAdd
                                                 , fit
                                                 )
 import           Data.Cov.Vec
-import           Test.Hist                      ( doHist )
+import           Test.Hist                      ( doHist, doHistXY )
 --import Data.Text
+
+import Data.Cov ( Mat(val) )
 
 import           Prelude.Extended
 import           Data.Maybe                     ( mapMaybe
@@ -43,6 +45,7 @@ import           Data.Maybe                     ( mapMaybe
 import           Data.List                      (
                                                   sort
                                                 , zip4
+                                                , zip5
                                                 , unzip3
                                                 )
 import qualified Math.Gamma                     ( q )
@@ -61,8 +64,7 @@ doCluster vm' = do
           <> "rs " <> (show . concatMap (toString <<< to2fix) . prs $ vm) <> "\n"
       points xs = zip4 (pzs xs) (prs xs) (dpzs xs) (dprs xs)
   _ <- doHist "vertices-z-r" . points $ vm
-  let xys xs = zip4 (pxs xs) (pys xs) (dpxs xs) (dpys xs)
-  _ <- doHist "vertices-x-y" . xys $ vm
+  _ <- doHistXY "vertices-x-y" . eigen2 $ vm
   return (fromString s)
 
   -- let Node _ ht = vList vm
@@ -87,18 +89,31 @@ gamma (Chi2 c2) = Math.Gamma.q 1.0 c2
 probs :: VHMeas -> [Number]
 probs (VHMeas v hl) =
   filter (> 0.01) $ map (gamma . chi2Vertex . kAddF (xFit v)) hl
-pxs :: VHMeas -> [Number]
-pxs (VHMeas v hl) =
-  filter (\x -> abs x < 10.0) $ map (xVertex . kAddF (xFit v)) hl
-dpxs :: VHMeas -> [Number]
-dpxs (VHMeas v hl) =
-  filter (\x -> abs x < 10.0) $ map (dxVertex . kAddF (xFit v)) hl
-pys :: VHMeas -> [Number]
-pys (VHMeas v hl) =
-  filter (\x -> abs x < 10.0) $ map (yVertex . kAddF (xFit v)) hl
-dpys :: VHMeas -> [Number]
-dpys (VHMeas v hl) =
-  filter (\x -> abs x < 10.0) $ map (dyVertex . kAddF (xFit v)) hl
+
+eigen2 :: VHMeas -> [(Number,Number,Number,Number,Number)]
+eigen2 (VHMeas v hl) = x5 where
+  xf = xFit v
+  x5 = map (\h -> eigen5 $ kAddF xf h) hl
+
+eigen5 :: XFit -> (Number,Number,Number,Number,Number)
+eigen5 (XFit v3 cv3 c2) = (x,y,dx,dy,alf) where
+  x = uidx (val v3) 0
+  y = uidx (val v3) 1
+
+  a = uidx (val cv3) 0
+  b = uidx (val cv3) 1
+  d = uidx (val cv3) 3
+  sqrtdet = sqrt $ (a+d)*(a+d) - 4.0*(a*d - b*b)
+  l1 = (a+d) - sqrtdet
+  l2 = (a+d) + sqrtdet
+  (lmn, lmx) = if l1<l2 then (l1,l2) else (l2,l1)
+
+  cl = 5.991 -- 95%, 9.210 for 99%, 4.605 for 90%
+  dx = sqrt (lmx * cl)
+  dy = sqrt (lmn * cl)
+  alf = atan2 b (lmx - d)
+
+
 pzs :: VHMeas -> [Number]
 pzs (VHMeas v hl) =
   filter (\x -> abs x < 10.0) $ map (zVertex . kAddF (xFit v)) hl
