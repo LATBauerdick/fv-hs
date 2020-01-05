@@ -27,8 +27,8 @@ spec =
     describe "Cov" $ do
       it "testCov------------------------" $ do
         let  s = testCov2
-        P.putStrLn s
-        -- P.putStrLn $ testCov 0
+        P.putTextLn s
+        -- P.putTextLn $ testCov 0
         T.head s `shouldBe` 'T'
 
     describe "FSMW Tests" $ do
@@ -93,7 +93,7 @@ spec =
       --   -- let vf = fitVertex $ pr
       --   --     h = head . helices . hFilter [6] $ vm
       --   --     Just (_, chi2, _) =  ksm vf h
-      --   -- P.putStrLn $ printf "chi2 of track 6 w/r to fit vertex is %8.1f" (chi2::Double)
+      --   -- P.putTextLn $ printf "chi2 of track 6 w/r to fit vertex is %8.1f" (chi2::Double)
       --   1 `shouldBe` 1
 
       it "--Test Cluster" $ do
@@ -104,10 +104,10 @@ spec =
             showHelix h = "Helix ->" <> show h
         ds <- P.readFile "dat/tav-4.dat"
         let vm = uJust $ hSlurp ds
-        -- traverse_ (P.putStrLn <<< showHelix) $ helices vm
-        -- traverse_ (P.putStrLn <<< showMomentum) $ helices vm
+        -- traverse_ (P.putTextLn <<< showHelix) $ helices vm
+        -- traverse_ (P.putTextLn <<< showMomentum) $ helices vm
         s <- doCluster vm
-        P.putStrLn s
+        P.putTextLn s
         -- _ <- doCluster . fst <=< hSlurp $ "dat/tav-0.dat"
         (1 :: Int) `shouldBe` 1
 
@@ -115,7 +115,7 @@ spec =
         out <- testRandom 5 <<< hFilter [0,2,3,4,5] <<< vBlowup 10000.0
                             <<< uJust <<< hSlurp
                             =<< P.readFile "dat/tr05129e001412.dat"
-        P.putStrLn out
+        P.putTextLn out
         (1 :: Int) `shouldBe` 1
 
       -- it "test p works" $ do

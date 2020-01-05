@@ -42,7 +42,7 @@ kAdd (XMeas v vv) (HMeas h hh w0) = kAdd' x_km1 p_k x_e q_e (Chi2 1e6) 0 where
   q_e   = J.hv2q h v
 
 goodEnough :: Chi2 -> Chi2 -> Int -> Bool
---goodEnough (Chi2 c0) (Chi2 c) i | i < 99 && trace ("." <> show i <> "|" <> to1fix (abs (c-c0)) <> " " <> to1fix c) false = undefined
+--goodEnough (Chi2 c0) (Chi2 c) i | i < 99 && trace ("." <> tshow i <> "|" <> to1fix (abs (c-c0)) <> " " <> to1fix c) false = undefined
 goodEnough (Chi2 c0) (Chi2 c) i = abs (c - c0) < chi2cut || i > iterMax where
   chi2cut = 0.5
   iterMax = 99 :: Int
@@ -51,7 +51,7 @@ goodEnough (Chi2 c0) (Chi2 c) i = abs (c - c0) < chi2cut || i > iterMax where
 -- | if we can't invert, don't update vertex
 kAdd' :: XMeas -> HMeas -> Vec3 -> Vec3 -> Chi2 -> Int -> XMeas
 --kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e _ i |
---        i == 0 && trace ("kadd'-->" <> show i <> "|" <> show v0 <> show h) false = undefined
+--        i == 0 && trace ("kadd'-->" <> tshow i <> "|" <> tshow v0 <> tshow h) false = undefined
 kAdd' (XMeas v0 uu0) (HMeas h gg w0) x_e q_e (Chi2 𝜒2_0) iter
   | goodEnough = XMeas v cc
   | otherwise  = kAdd' (XMeas v0 uu0) (HMeas h gg w0) v q (Chi2 𝜒2) (iter+1)
@@ -98,7 +98,7 @@ kAddF' v0 uu0 h gg x_e q_e 𝜒2_0 iter = x_k where
               in x_k'
 
 kSmooth :: VHMeas -> XMeas -> Prong
---kSmooth vm v | trace ("kSmooth " <> (show <<< length <<< helices $ vm) <> ", vertex at " <> (show v) ) false = undefined
+--kSmooth vm v | trace ("kSmooth " <> (tshow <<< length <<< helices $ vm) <> ", vertex at " <> (tshow v) ) false = undefined
 kSmooth (VHMeas {vertex= v0, helices= hl}) v = pr' where
   (ql, chi2l) = unzip $ mapMaybe (ksm v) hl
   hl' = hl
@@ -129,14 +129,14 @@ ksm (XMeas x cc) (HMeas h hh w0) = do
       gb   = gg - gg .*. (bbT .*. ww)
       uu'  = uu - aa .*. gb
       cx   = if det uu' < 0.0 then 1000.0
-                                `debug` pack ("--> ksm bad " <> show (det uu')
-                                                        <> show uu')
+                                `debug` ("--> ksm bad " <> tshow (det uu')
+                                                        <> tshow uu')
                     else cx'' where
-                      cc'  = inv uu' -- `debug` ("--> ksm " <> show uu')
+                      cc'  = inv uu' -- `debug` ("--> ksm " <> tshow uu')
                       x'   = cc' *. (uu *. x - aaT *. gb *. p)
                       dx   = x - x'
                       cx'  = dx .*. uu'
-                      cx'' = if cx' < 0.0 then 2000.0 `debug` pack ("--> ksm chi2 is " <> show cx' <> ", " <> show ch <> ", " <> show (max cx' 0.0 + ch))
+                      cx'' = if cx' < 0.0 then 2000.0 `debug` ("--> ksm chi2 is " <> tshow cx' <> ", " <> tshow ch <> ", " <> tshow (max cx' 0.0 + ch))
                                         else cx'
       𝜒2 = cx + ch
   pure (QMeas q dd w0, Chi2 𝜒2)

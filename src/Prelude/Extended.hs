@@ -13,16 +13,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 --{-# LANGUAGE NamedFieldPuns #-}
 module Prelude.Extended
-  -- ( module Protolude
   ( module Universum
-  -- LATB Protolude this probably need fixing
   , log
   , atan2
   , Semiring (..)
   , Ring (..) --, (<>)
   , (<<<), uidx, uJust, debug, unsafePartial
   , unsafeHead, unsafeLast
--- , trace
   , Number, Array
   , Tuple (..)
   , List, range, fromList
@@ -33,16 +30,11 @@ module Prelude.Extended
   , toNumber, intFromString, numberFromString
   , sqr, div', mod', divMod'
   , normals
-  -- , error
   , Show.Show (show)
   , tshow
   , pack, unpack
   )  where
 
--- import Protolude hiding ( show, Semiring (..), zero )
--- -- | Generalized version of 'Prelude.show'.
--- show :: forall b a . (Show.Show a, IsString b) => a -> b
--- show x = fromString (Show.show x)
 import Universum hiding (show)
 import qualified GHC.Show as Show (Show (show))
 import GHC.Float (Floating ( log ))
@@ -69,8 +61,6 @@ import Data.Semigroup ( (<>) )
 debug :: a -> Text -> a
 debug = flip trace
 
--- error :: [Char] -> a
--- error = panic . pack
 unsafeHead :: [a] -> a
 unsafeHead = Unsafe.head
 

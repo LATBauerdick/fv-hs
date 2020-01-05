@@ -56,7 +56,7 @@ doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
 --   let vals :: [(Number,Number,Number,Number)]
 --       vals = [ (x,y,0.1,0.01) | (x,y) <- ps]
 doHist s' vals = do
-  let s = unpack s'
+  let s = toString s'
   let chart = toRenderable layout
         where
           bars  = plot_errbars_values .~ [symErrPoint x y dx dy | (x,y,dx,dy) <- vals]

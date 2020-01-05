@@ -20,20 +20,13 @@ import Prelude.Extended
 import qualified Data.Vector.Unboxed as A (
     replicate, length, foldl
   , replicate, singleton, map, foldl, zipWith )
--- import Data.Foldable ( sum )
 import Data.Maybe ( Maybe (..) )
 import Control.Monad ( guard )
--- import Data.Int ( toNumber, ceil )
--- import Math ( abs, sqrt )
--- import Unsafe.Coerce  as Unsafe.Coerce ( unsafeCoerce )
--- import Partial.Unsafe ( unsafePartial )
 import Data.Chol ( doCholdc, doCholInv )
 
 import Data.Cov.Cov
 import Data.Cov.Jac
 import Data.Cov.Vec
-
-import qualified GHC.Show as Show (Show (show))
 
 newtype Dim3 = DDim3 Int
 newtype Dim4 = DDim4 Int
@@ -425,9 +418,9 @@ instance Num (Jac a b) where
   (*) = error "cannot multiply Jac*Jac to return a Jac, use *. instead"
 
 instance Show (Vec a) where
-  show c = unpack $ "Show (Vec a) \n" <> showMatrix c
+  show c = toString $ "Show (Vec a) \n" <> showMatrix c
 instance Show (Jac a b) where
-  show c = unpack $ "Show (Jac a b) \n" <> showMatrix c
+  show c = toString $ "Show (Jac a b) \n" <> showMatrix c
 
 instance Semiring (Cov Dim3) where
   add (Cov {v= v1}) (Cov {v= v2}) = Cov {v= A.zipWith (+) v1 v2}
@@ -518,7 +511,7 @@ cholInv (Cov {v= a}) = Cov {v= a'} where
   a' = doCholInv a n
 
 testCov2 :: Text
-testCov2 = pack s where
+testCov2 = fromString s where
   xc3 :: Cov Dim3
   xc3 = Cov {v= [1.0 .. 6.0]}
   -- xj3 :: Jac Dim3 Dim3

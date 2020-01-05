@@ -24,13 +24,12 @@ module FV.Types
   , PMeas (..), fromQMeas, invMass
   , MMeas (..)
   , XFit (..)
-    , chi2Vertex, zVertex, dzVertex, rVertex, drVertex, z0Helix
+    , chi2Vertex, xVertex, dxVertex, yVertex, dyVertex, zVertex, dzVertex, rVertex, drVertex, z0Helix
   ) where
 
 import Prelude.Extended
 import qualified Data.Vector.Unboxed as A
   ( drop, zip, map, foldl )
--- import Data.Foldable ( fold )
 
 import Data.Cov
 import Data.Cov.Jac ( Jac (..) )
@@ -115,7 +114,7 @@ instance Show MCtruth where
 --
 data HMeas = HMeas Vec5 Cov5 Number
 instance Show HMeas where
-  show (HMeas h ch _) = unpack s' where
+  show (HMeas h ch _) = toString s' where
     sh = A.map sqrt $ diag ch
     hs = toArray h
     s00 = to5fix x <> " +-" <> to5fix dx where
@@ -136,7 +135,7 @@ mπ :: Number
 mπ = 0.1395675
 data QMeas = QMeas Vec3 Cov3 Number
 instance Show QMeas where
-  show = unpack . showQMeas
+  show = toString . showQMeas
 -- print QMeas as a 4-momentum vector with errors, use pt and pz
 showQMeas :: QMeas -> Text
 showQMeas (QMeas q cq w2pt) = s' where
@@ -186,7 +185,7 @@ instance Monoid PMeas where
   mappend (PMeas p1 cp1) (PMeas p2 cp2) = PMeas (p1+p2) (cp1 + cp2)
   mempty = PMeas (fromArray [0.0,0.0,0.0,0.0]) zero
 instance Show PMeas where
-  show = unpack . showPMeas
+  show = toString . showPMeas
 -- print PMeas as a 4-momentum vector px,py,pz,E with errors
 showPMeas :: PMeas -> Text
 showPMeas (PMeas p cp) = s' where
@@ -281,7 +280,7 @@ data MMeas = MMeas
             , dm :: Number
             }
 instance Show MMeas where
-  show MMeas {m=m, dm=dm} = unpack $ " " <> to1fix (m*1000.0) <> " +-" <> to1fix (dm*1000.0) <> " MeV"
+  show MMeas {m=m, dm=dm} = toString $ " " <> to1fix (m*1000.0) <> " +-" <> to1fix (dm*1000.0) <> " MeV"
 
 -----------------------------------------------
 -- XMeas
@@ -289,7 +288,7 @@ instance Show MMeas where
 --
 data DMeas = DMeas Number Number -- distance and error
 instance Show DMeas where
-  show (DMeas d sd) = unpack $ to2fix d <> " +-" <> to2fix sd <> " cm"
+  show (DMeas d sd) = toString $ to2fix d <> " +-" <> to2fix sd <> " cm"
 class Pos a where
   distance :: a -> a -> DMeas -- distance between two positions
 instance Pos XMeas where
@@ -317,7 +316,7 @@ instance Monoid XMeas where
   mempty = XMeas zero zero
   mappend = undefined
 instance Show XMeas where
-  show = unpack . showXMeas
+  show = toString . showXMeas
 -- return a string showing vertex position vector with errors
 showXMeas :: XMeas -> Text
 showXMeas (XMeas v cv) = s' where
@@ -329,11 +328,12 @@ showXMeas (XMeas v cv) = s' where
   dx         = uidx s2v 0
   dy         = uidx s2v 1
   dz         = uidx s2v 2
+  dr         = sqrt $ dx*dx + dy*dy -- this needs to be fixed ????
   f :: Number -> Number -> Text -> Text
   f x dx s  = s <> to2fix x <>  " +-" <> to2fix dx
   s' = f z dz <<< f y dy <<< f x dx $
-    "(r,z) =" <> "(" <> to2fix (sqrt (x*x + y*y))
-              <> ", " <> to2fix z <> "), x y z ="
+    "(r,z) =" <> "(" <> to2fix (sqrt (x*x + y*y)) <>  " +-" <> to2fix dr
+              <> ", " <> to2fix z  <>  " +-" <> to2fix dz <> "), x y z ="
 
 xXMeas :: XMeas -> Number
 xXMeas (XMeas v _) = x where
@@ -347,10 +347,26 @@ zXMeas (XMeas v _) = z where
 
 data XFit = XFit Vec3 Cov3 Chi2
 instance Show XFit where
-  show (XFit x xx c2) = unpack $ showXMeas (XMeas x xx) <> pack (", chi2=" <> show c2)
+  show (XFit x xx c2) = toString $ showXMeas (XMeas x xx) <> ", chi2=" <> tshow c2
 
 chi2Vertex :: XFit -> Chi2
 chi2Vertex (XFit _ _ c2) = c2
+
+xVertex :: XFit -> Double
+xVertex (XFit v _ _) = x where
+  x = uidx (val v) 0
+
+dxVertex :: XFit -> Double
+dxVertex (XFit _ dv _) = dx where
+  dx = sqrt $ uidx (val dv) 0
+
+yVertex :: XFit -> Double
+yVertex (XFit v _ _) = y where
+  y = uidx (val v) 1
+
+dyVertex :: XFit -> Double
+dyVertex (XFit _ dv _) = dy where
+  dy = sqrt $ uidx (val dv) 3
 
 zVertex :: XFit -> Double
 zVertex (XFit v _ _) = z where
@@ -365,5 +381,5 @@ rVertex (XFit v _ _) = r where
   r = sqrt $ (sqr (uidx (val v) 0)) + (sqr (uidx (val v) 1))
 
 drVertex :: XFit -> Double
-drVertex (XFit v _ _) = const 0.002 dr where
-  dr = sqrt $ (sqr (uidx (val v) 0)) + (sqr (uidx (val v) 1))
+drVertex (XFit _ dv _) = dr where
+  dr = sqrt $ (uidx (val dv) 0) + (uidx (val dv) 3) -- this needs to be fixed ????

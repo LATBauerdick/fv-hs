@@ -67,7 +67,7 @@ doCholdc a n = a' where
         msum <- if i0==j0 then MA.unsafeRead arr (ll+i0)
                          else MA.unsafeRead arr (ixarr j0 i0)
         let s = if i0==j0 && msum < 0.0
-                        then error ("choldc: not a positive definite matrix " <> tshow a)
+                        then error $ "choldc: not a positive definite matrix " <> tshow a
                         else msum
         p_i' <- MA.unsafeRead arr (ll+i0)
         let p = if (i0 == j0) then (sqrt s) else s/p_i'
@@ -110,8 +110,8 @@ doCholInv a n = a' where
         msum <- if i0==j0 then MA.unsafeRead arr (ll+i0)
                          else MA.unsafeRead arr (ixarr j0 i0)
         let s = if i0==j0 && msum < 0.0
-                        then error $ ("cholInv: not a positive definite matrix "
-                                     <> tshow a)
+                        then error $ "cholInv: not a positive definite matrix "
+                                     <> tshow a
                         else msum
         p_i' <- MA.unsafeRead arr (ll+i0)
         let p = if i0 == j0 then sqrt s else s/p_i'

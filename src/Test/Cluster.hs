@@ -16,6 +16,10 @@ import           FV.Types                       ( VHMeas(..)
                                                 , XFit(..)
                                                 , Chi2(..)
                                                 , chi2Vertex
+                                                , xVertex
+                                                , dxVertex
+                                                , yVertex
+                                                , dyVertex
                                                 , zVertex
                                                 , dzVertex
                                                 , rVertex
@@ -38,8 +42,6 @@ import           Data.Maybe                     ( mapMaybe
                                                 )
 import           Data.List                      (
                                                   sort
-                                                -- , foldl'
-                                                -- , sortOn
                                                 , zip4
                                                 , unzip3
                                                 )
@@ -55,11 +57,13 @@ doCluster vm' = do
           <> "beam spot -> " <> show v0 <> "\n"
           <> "# tracks  -> " <> show (length <<< helices $ vm') <> "\n"
           <> "# after cleanup-> " <> show (length <<< helices $ vm) <> "\n"
-          <> "zs " <> (show . concatMap (unpack <<< to2fix) . zs $ vm) <> "\n"
-          <> "rs " <> (show . concatMap (unpack <<< to2fix) . rs $ vm) <> "\n"
-      points xs = zip4 (zs xs) (rs xs) (dzs xs) (drs xs)
+          <> "zs " <> (show . concatMap (toString <<< to2fix) . pzs $ vm) <> "\n"
+          <> "rs " <> (show . concatMap (toString <<< to2fix) . prs $ vm) <> "\n"
+      points xs = zip4 (pzs xs) (prs xs) (dpzs xs) (dprs xs)
   _ <- doHist "vertices-z-r" . points $ vm
-  return (pack s)
+  let xys xs = zip4 (pxs xs) (pys xs) (dpxs xs) (dpys xs)
+  _ <- doHist "vertices-x-y" . xys $ vm
+  return (fromString s)
 
   -- let Node _ ht = vList vm
   -- putStrLn "---------------------------------------------------------"
@@ -83,17 +87,29 @@ gamma (Chi2 c2) = Math.Gamma.q 1.0 c2
 probs :: VHMeas -> [Number]
 probs (VHMeas v hl) =
   filter (> 0.01) $ map (gamma . chi2Vertex . kAddF (xFit v)) hl
-zs :: VHMeas -> [Number]
-zs (VHMeas v hl) =
+pxs :: VHMeas -> [Number]
+pxs (VHMeas v hl) =
+  filter (\x -> abs x < 10.0) $ map (xVertex . kAddF (xFit v)) hl
+dpxs :: VHMeas -> [Number]
+dpxs (VHMeas v hl) =
+  filter (\x -> abs x < 10.0) $ map (dxVertex . kAddF (xFit v)) hl
+pys :: VHMeas -> [Number]
+pys (VHMeas v hl) =
+  filter (\x -> abs x < 10.0) $ map (yVertex . kAddF (xFit v)) hl
+dpys :: VHMeas -> [Number]
+dpys (VHMeas v hl) =
+  filter (\x -> abs x < 10.0) $ map (dyVertex . kAddF (xFit v)) hl
+pzs :: VHMeas -> [Number]
+pzs (VHMeas v hl) =
   filter (\x -> abs x < 10.0) $ map (zVertex . kAddF (xFit v)) hl
-dzs :: VHMeas -> [Number]
-dzs (VHMeas v hl) =
+dpzs :: VHMeas -> [Number]
+dpzs (VHMeas v hl) =
   filter (\x -> abs x < 10.0) $ map (dzVertex . kAddF (xFit v)) hl
-rs :: VHMeas -> [Number]
-rs (VHMeas v hl) =
+prs :: VHMeas -> [Number]
+prs (VHMeas v hl) =
   filter (\x -> abs x < 10.0) $ map (rVertex . kAddF (xFit v)) hl
-drs :: VHMeas -> [Number]
-drs (VHMeas v hl) =
+dprs :: VHMeas -> [Number]
+dprs (VHMeas v hl) =
   filter (\x -> abs x < 10.0) $ map (drVertex . kAddF (xFit v)) hl
 
 cleanup :: VHMeas -> VHMeas
@@ -164,9 +180,9 @@ cluster vm
     False
   = undefined
 cluster (VHMeas v hllll) = trace (
-  pack (  "--> cluster debug:"
+  fromString (  "--> cluster debug:"
   <> "\n--> cluster zs=" <> take 160 (show zs)
-  <> "\n--> cluster z0=" <> unpack (to3fix (z0 :: Number))
+  <> "\n--> cluster z0=" <> toString (to3fix (z0 :: Number))
   <> "\n--> cluster v0=" <> show v0
   <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $ take 10 hl)
   <> "\n--> cluster fit v0 hl0 " <> (show . ftvtx . fit $ VHMeas v0 $ take 10 $ drop 10 hl)
@@ -197,10 +213,10 @@ cluster (VHMeas v hllll) = trace (
  where
 
   sDouble :: Double -> [Char]
-  sDouble c = if c > 0.001 then unpack (to3fix c) else " eps"
+  sDouble c = if c > 0.001 then toString (to3fix c) else " eps"
 
   bDouble :: Chi2 -> [Char]
-  bDouble (Chi2 c) = if c < 999.9 then unpack (to1fix c) else " big"
+  bDouble (Chi2 c) = if c < 999.9 then toString (to1fix c) else " big"
 
   hl          = hllll
 
@@ -300,8 +316,8 @@ cluster (VHMeas v hllll) = trace (
 --newtype WeightedPoint = WeightedPoint Number
 type WeightedPoint = Number
 fsmw :: Int -> List WeightedPoint -> WeightedPoint
-fsmw 0 []            = error $ "Test.Cluster.fsmw got empty list"
-fsmw 1 [a]           = a -- head xs
+fsmw 0 []           = error $ "Test.Cluster.fsmw got empty list"
+fsmw 1 [a]          = a -- head xs
 fsmw 2 [x0, x1]     = 0.5 * (x1 + x0)
 fsmw 3 [x0, x1, x2] = case 2 * x1 - x0 - x2 of
   xx | xx < 0 -> (x0 + x1) / 2.0

@@ -19,9 +19,6 @@ import Prelude.Extended
 -- import Control.Monad.Eff.Console (CONSOLE, log, logShow)
 -- import Control.Monad.Eff.Random ( RANDOM )
 import Data.Monoid ( mempty )
--- import Data.Tuple ( Tuple(..) )
--- import Data.Array ( length, zip, foldl )
--- import Data.Foldable ( traverse_ )
 
 import FV.Types
   ( VHMeas, HMeas, QMeas
@@ -32,28 +29,28 @@ import FV.Types
 import FV.Fit ( fit )
 
 showMomentum :: HMeas -> Text
-showMomentum h = "pt,pz,fi,E ->" <> (pack <<< show <<< fromHMeas) h
+showMomentum h = "pt,pz,fi,E ->" <> (tshow <<< fromHMeas) h
 showHelix :: HMeas -> Text
-showHelix h = "Helix ->" <> (pack <<< show) h
+showHelix h = "Helix ->" <> tshow h
 showProng :: Prong -> Text
 showProng (Prong {nProng= n, fitVertex= v, fitMomenta= ql, fitChi2s= cl}) =
   let
       showCl :: Text -> List Chi2 -> Text
       showCl = foldl (\s (Chi2 x) -> s <> to1fix x)
       Chi2 chi2tot = sum cl
-      sc = "chi2tot ->" <> to1fix chi2tot <> ", ndof " <> (pack <<< show $ n*2)
-      sd = ", r ->" <> (pack <<< show $ distance v mempty)
+      sc = "chi2tot ->" <> to1fix chi2tot <> ", ndof " <> (tshow $ n*2)
+      sd = ", r ->" <> (tshow $ distance v mempty)
       scl = showCl ", chi2s ->" cl
-      sm = ", Mass ->" <> (pack <<< show $ invMass (map fromQMeas ql))
+      sm = ", Mass ->" <> (tshow $ invMass (map fromQMeas ql))
   in sc <> sd <> scl <> sm
 
 testFVT :: List Int -> VHMeas -> IO ()
 testFVT l5 vm = do
   let hel = helices vm
-  traverse_ (putStrLn <<< showHelix) hel
-  traverse_ (putStrLn <<< showMomentum) hel
+  traverse_ (putTextLn <<< showHelix) hel
+  traverse_ (putTextLn <<< showMomentum) hel
   doFitTest vm l5
-  putStrLn $ showProng <<< fit <<< hFilter l5 <<< vBlowup 10000.0 $ vm
+  putTextLn $ showProng <<< fit <<< hFilter l5 <<< vBlowup 10000.0 $ vm
   pure ()
 
 doFitTest :: VHMeas
@@ -61,37 +58,37 @@ doFitTest :: VHMeas
             -> IO ()
 doFitTest vm' l5 = do
   let vm = vBlowup 10000.0 vm'
-  let showLen xs = show $ length xs
+  let showLen xs = tshow $ length xs
       showQChi2 :: (QMeas, Chi2) -> Text
       showQChi2 (qm, (Chi2 chi2)) = "q"
                                 <> " chi2 ->" <> to1fix chi2
                                 <> " pt,pz,fi,E ->"
-                                <> (pack <<< show) qm
+                                <> tshow qm
 
-  putStrLn $           "initial vertex position -> " <> show ((vertex vm)::XMeas)
+  putTextLn $           "initial vertex position -> " <> tshow ((vertex vm)::XMeas)
 
   let pl         = map (fromQMeas <<< fromHMeas) $ helices vm
-  putStrLn $ "Inv Mass " <> showLen pl <> " helix" <> show (invMass pl)
+  putTextLn $ "Inv Mass " <> showLen pl <> " helix" <> tshow (invMass pl)
   let pl5        = map (fromQMeas <<< fromHMeas) (helices <<< hFilter l5 $ vm)
-  putStrLn $ "Inv Mass " <> showLen pl5 <> " helix" <> show (invMass pl5)
+  putTextLn $ "Inv Mass " <> showLen pl5 <> " helix" <> tshow (invMass pl5)
 
-  putStrLn $           pack "Fitting Vertex --------------------"
+  putTextLn $           "Fitting Vertex --------------------"
   let -- pr = fit vm
       Prong {fitVertex= vf, fitMomenta= ql, fitChi2s= cl} = fit vm
-  putStrLn $           "Fitted vertex -> " <> show vf
-  traverse_ (putStrLn <<< showQChi2) $ zip ql cl
-  putStrLn $ "Inv Mass " <> show (length ql) <> " fit"
-                    <> show (invMass (map fromQMeas ql))
+  putTextLn $           "Fitted vertex -> " <> tshow vf
+  traverse_ (putTextLn <<< showQChi2) $ zip ql cl
+  putTextLn $ "Inv Mass " <> tshow (length ql) <> " fit"
+                    <> tshow (invMass (map fromQMeas ql))
 
   let m5 = invMass <<< map fromQMeas <<< iflt l5 $ ql
-  putStrLn $ "Inv Mass " <> show (length l5) <> " fit" <> show m5
+  putTextLn $ "Inv Mass " <> tshow (length l5) <> " fit" <> tshow m5
 
-  putStrLn $           pack "Refitting Vertex-----------------"
+  putTextLn $           "Refitting Vertex-----------------"
   let Prong {fitVertex=fv, fitMomenta=fqs, fitChi2s=fcs, nProng=np} = fit <<< hFilter l5 $ vm
-  putStrLn $           "Refitted vertex -> " <> show fv
-  traverse_ (putStrLn <<< showQChi2) $ zip fqs fcs
-  putStrLn $           "Inv Mass " <> (pack <<< show) np <> " refit" 
-                       <> (pack <<< show <<< invMass <<< map fromQMeas $ fqs)
-  putStrLn $           "Final vertex -> " <> (pack <<< show) fv
-  putStrLn $           pack "end of doFitTest------------------------------------------"
+  putTextLn $           "Refitted vertex -> " <> tshow fv
+  traverse_ (putTextLn <<< showQChi2) $ zip fqs fcs
+  putTextLn $           "Inv Mass " <> (tshow) np <> " refit" 
+                       <> (tshow <<< invMass <<< map fromQMeas $ fqs)
+  putTextLn $           "Final vertex -> " <> tshow fv
+  putTextLn $           "end of doFitTest------------------------------------------"
 
