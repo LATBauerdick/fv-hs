@@ -27,6 +27,7 @@ import Prelude.Extended hiding ( (.~) )
 -- _ <- plot "cluster-pd.png" $ histogramNumBins 11 $ 1.0 : 0.0 : probs vm
 
 import Graphics.Rendering.Chart
+import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Diagrams
 import Data.Default.Class
 import Data.Colour (opaque)
@@ -93,5 +94,33 @@ doHist s' vals = do
                  $ def
 
   _ <- renderableToFile def{_fo_format=EPS} (s <> ".eps") chart
+  doHistVec "vector"
   pure ()
 
+
+r' x y z = sqrt $ x*x + y*y + z*z
+tadd (x1,y1) (x2,y2) = (x1+x2, y1+y2)
+efield sign x y = (sign*x/r, sign*y/r) where r = r' x y 10
+bfield sign x y = (-sign*y/r/r, sign*x/r/r) where r = r' x y 10
+ef (x,y) = efield 1 (x-20) y `tadd` efield (-1) (x+20) y
+bf (x,y) = bfield 1 (x-20) y `tadd` bfield (-1) (x+20) y
+square a s = [(x,y) | x <- range, y <- range] where range = [-a, -a+s..a] :: [Number]
+grid = square 30 3
+vectorField title f grid = fmap plotVectorField $ liftEC $ do
+  c <- takeColor
+  plot_vectors_mapf .= f
+  plot_vectors_grid .= grid
+  plot_vectors_style . vector_line_style . line_color .= c
+  plot_vectors_style . vector_head_style . point_color .= c
+  plot_vectors_title .= title
+
+
+doHistVec :: Text -> IO ()
+doHistVec s = toFile def{_fo_format=EPS} ( (toString s) <> ".eps") $ do
+  setColors [opaque black, opaque blue]
+
+  layout_title .= "Vector Field"
+  plot $ vectorField "Electric Field" ef grid
+  plot $ vectorField "Magnetic Field" bf grid
+
+  pure ()
