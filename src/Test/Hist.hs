@@ -106,10 +106,18 @@ ef (x,y) = efield 1 (x-20) y `tadd` efield (-1) (x+20) y
 bf (x,y) = bfield 1 (x-20) y `tadd` bfield (-1) (x+20) y
 square a s = [(x,y) | x <- range, y <- range] where range = [-a, -a+s..a] :: [Number]
 grid = square 30 3
+vvals a s = [((x,y), bf (x,y)) | x <- range, y <- range] where range = [-a, -a+s..a] :: [Number]
 vectorField title f grid = fmap plotVectorField $ liftEC $ do
   c <- takeColor
   plot_vectors_mapf .= f
   plot_vectors_grid .= grid
+  plot_vectors_style . vector_line_style . line_color .= c
+  plot_vectors_style . vector_head_style . point_color .= c
+  plot_vectors_title .= title
+
+vectorVal title val = fmap plotVectorField $ liftEC $ do
+  c <- takeColor
+  plot_vectors_values .= val
   plot_vectors_style . vector_line_style . line_color .= c
   plot_vectors_style . vector_head_style . point_color .= c
   plot_vectors_title .= title
@@ -120,7 +128,8 @@ doHistVec s = toFile def{_fo_format=EPS} ( (toString s) <> ".eps") $ do
   setColors [opaque black, opaque blue]
 
   layout_title .= "Vector Field"
-  plot $ vectorField "Electric Field" ef grid
-  plot $ vectorField "Magnetic Field" bf grid
+  -- plot $ vectorField "Electric Field" ef grid
+  -- plot $ vectorField "Magnetic Field" bf grid
+  plot $ vectorVal "Mag Field" (vvals 50 5)
 
   pure ()
