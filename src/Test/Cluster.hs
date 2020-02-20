@@ -33,7 +33,7 @@ import           FV.Fit                         ( kAdd
                                                 , fit
                                                 )
 import           Data.Cov.Vec
-import           Test.Hist                      ( doHist, doHistXY )
+import           Test.Hist                      ( doHist, doHistXY, doHistVec )
 --import Data.Text
 
 import Data.Cov ( Mat(val) )
@@ -65,6 +65,7 @@ doCluster vm' = do
       points xs = zip4 (pzs xs) (prs xs) (dpzs xs) (dprs xs)
   _ <- doHist "vertices-z-r" . points $ vm
   _ <- doHistXY "vertices-x-y" . eigen2 $ vm
+  _ <- doHistVec "vectors-x-y" . eigen2 $ vm
   return (fromString s)
 
   -- let Node _ ht = vList vm
