@@ -18,6 +18,7 @@ fv.cabal
 *.aux
 *.hp
 *.svg
+*.pdf
 *.eps
 *.png
 *.eventlog
