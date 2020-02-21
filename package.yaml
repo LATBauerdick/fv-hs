@@ -37,7 +37,8 @@ dependencies:
 - colour
 - data-default-class
 - Chart
-- Chart-diagrams
+- Chart-cairo
+# - Chart-diagrams
 #- diagrams-solve
 
 library:

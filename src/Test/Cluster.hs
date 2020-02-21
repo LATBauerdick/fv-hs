@@ -94,7 +94,7 @@ probs (VHMeas v hl) =
 eigen2 :: VHMeas -> [(Number,Number,Number,Number,Number)]
 eigen2 (VHMeas v hl) = x5 where
   xf = xFit v
-  x5 = map (\h -> eigen5 $ kAddF xf h) hl
+  x5 = take 10 $ map (\h -> eigen5 $ kAddF xf h) hl
 
 eigen5 :: XFit -> (Number,Number,Number,Number,Number)
 eigen5 (XFit v3 cv3 c2) = (x,y,dx,dy,alf) where

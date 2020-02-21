@@ -28,11 +28,15 @@ import Prelude.Extended hiding ( (.~) )
 
 import Graphics.Rendering.Chart
 import Graphics.Rendering.Chart.Easy
-import Graphics.Rendering.Chart.Backend.Diagrams
+import Graphics.Rendering.Chart.Backend.Cairo
 import Data.Default.Class
 import Data.Colour (opaque)
 import Data.Colour.Names (red)
 import Control.Lens
+
+outProps = fo_size .~ (1024,768)
+        $ fo_format .~ PDF
+        $ def
 
 doHistXY :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
 -- plot points with error ellipse
@@ -53,7 +57,7 @@ doHistXY s' vals = do
                  $ layout_plots .~ [toPlot bars, toPlot points]
                  $ def
 
-  _ <- renderableToFile def{_fo_format=EPS} (s <> ".eps") chart
+  _ <- renderableToFile outProps (s <> ".pdf") chart
   pure ()
 
 doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
@@ -75,7 +79,7 @@ doHist s' vals = do
                  $ layout_plots .~ [toPlot bars, toPlot points]
                  $ def
 
-  _ <- renderableToFile def{_fo_format=EPS} (s <> ".eps") chart
+  _ <- renderableToFile def{_fo_format=PDF} (s <> ".pdf") chart
   pure ()
 
 
@@ -100,14 +104,15 @@ vectorField title f grid = fmap plotVectorField $ liftEC $ do
 vectorVal title val = fmap plotVectorField $ liftEC $ do
   c <- takeColor
   plot_vectors_values .= val
+  plot_vectors_scale .= 0.0
   plot_vectors_style . vector_line_style . line_color .= c
   plot_vectors_style . vector_head_style . point_color .= c
   plot_vectors_title .= title
 
 
 doHistVec :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
-doHistVec s vals = toFile def{_fo_format=EPS} ( (toString s) <> ".eps") $ do
-  setColors [opaque black, opaque blue]
+doHistVec s vals = toFile def{_fo_format=PDF} ( (toString s) <> ".pdf") $ do
+  setColors [ opaque blue, opaque black ]
 
   layout_title .= "Vector Field"
   -- plot $ vectorField "Electric Field" ef grid
@@ -117,3 +122,4 @@ doHistVec s vals = toFile def{_fo_format=EPS} ( (toString s) <> ".eps") $ do
   plot $ vectorVal "Mag Field" v
 
   pure ()
+

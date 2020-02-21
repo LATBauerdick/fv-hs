@@ -4,7 +4,8 @@ nix:
   enable: false
   packages: [zlib.dev, zlib.out]
 extra-package-dbs: []
-resolver: lts-13.29
+# resolver: lts-13.29
+resolver: lts-15.00
 allow-newer: true
 packages:
 - '.'
@@ -15,7 +16,10 @@ extra-deps:
 - continued-fractions-0.9.1.1
 - converge-0.1.0.1
 - gamma-0.9.0.2
-#
+- probability-0.2.6@sha256:6d85d961d85fd5d1a35b90fe77510f6fcc6a8f20e8ed503219c38378de9cb3cd,2857
+- Chart-cairo-1.9.3@sha256:f484a7194ca08ed67f02aa626e2f8f4d1a9b50624e0d50e3ced62958f7481cca,925
+- cairo-0.13.8.0@sha256:9b64a376ebaa4f153bba5866a32291fd4bed48147009cce9158ce6533928eba8,4075
+- gtk2hs-buildtools-0.13.8.0@sha256:132f38155fc677430a47ea750918973161c876fb6f281d342ac2f07eb99229ce,5238
 - normaldistribution-1.1.0.3
 # - gnuplot-0.5.5.3
 # - probability-0.2.5.2
