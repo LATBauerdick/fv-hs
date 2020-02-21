@@ -109,7 +109,7 @@ eigen5 (XFit v3 cv3 c2) = (x,y,dx,dy,alf) where
   l2 = (a+d) + sqrtdet
   (lmn, lmx) = if l1<l2 then (l1,l2) else (l2,l1)
 
-  cl = 5.991 -- 95%, 9.210 for 99%, 4.605 for 90%
+  cl = 1.0 -- 5.991 -- 95%, 9.210 for 99%, 4.605 for 90%
   dx = sqrt (lmx * cl)
   dy = sqrt (lmn * cl)
   alf = atan2 b (lmx - d)

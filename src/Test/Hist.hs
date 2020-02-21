@@ -38,6 +38,7 @@ outProps = fo_size .~ (1024,768)
         $ fo_format .~ PDF
         $ def
 
+pframe = [((x,y),(0.0,0.0)) | x <- range, y <- range] where range = [-0.3, 0.3]
 doHistXY :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
 -- plot points with error ellipse
 doHistXY s' vals = do
@@ -53,12 +54,24 @@ doHistXY s' vals = do
                   $ plot_points_title .~ ( s )
                   $ def
 
+          c = opaque blue
+          -- vls = vector_line_style . line_color .= c
+          -- vhs = vector_head_style . point_color .= c
+          frame   = plot_vectors_scale .~ 0.0
+                  $ plot_vectors_title .~ ( s )
+                  $ plot_vectors_values .~ pframe
+                  $ def
+
           layout = layout_title .~ "FVT"
+                 $ layout_x_axis . laxis_generate .~ scaledAxis def (-0.3,0.3)
+                 $ layout_y_axis . laxis_generate .~ scaledAxis def (-0.3,0.3)
+                 -- $ layout_left_axis_visibility . axis_show_ticks .~ False
                  $ layout_plots .~ [toPlot bars, toPlot points]
                  $ def
 
   _ <- renderableToFile outProps (s <> ".pdf") chart
   pure ()
+
 
 doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
 -- plot points with error bars
@@ -101,6 +114,14 @@ vectorField title f grid = fmap plotVectorField $ liftEC $ do
   plot_vectors_style . vector_head_style . point_color .= c
   plot_vectors_title .= title
 
+-- vectorFrame title = fmap plotVectorField $ liftEC $ do
+--   c <- takeColor
+--   plot_vectors_values .= pframe
+--   plot_vectors_scale .= 0.0
+--   plot_vectors_style . vector_line_style . line_color .= c
+--   plot_vectors_style . vector_head_style . point_color .= c
+--   plot_vectors_title .= title
+
 vectorVal title val = fmap plotVectorField $ liftEC $ do
   c <- takeColor
   plot_vectors_values .= val
@@ -112,14 +133,14 @@ vectorVal title val = fmap plotVectorField $ liftEC $ do
 
 doHistVec :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
 doHistVec s vals = toFile def{_fo_format=PDF} ( (toString s) <> ".pdf") $ do
-  setColors [ opaque blue, opaque black ]
+  setColors [ opaque black, opaque blue ]
 
   layout_title .= "Vector Field"
-  -- plot $ vectorField "Electric Field" ef grid
-  -- plot $ vectorField "Magnetic Field" bf grid
-  -- plot $ vectorVal "Mag Field" (vvals 50 5)
+  layout_x_axis . laxis_generate .= scaledAxis def (-0.3,0.3)
+  layout_y_axis . laxis_generate .= scaledAxis def (-0.3,0.3)
+
   let v = fmap ( \(x,y,dx,dy,alf) -> ((x,y),(dx,dy)) ) vals
-  plot $ vectorVal "Mag Field" v
+  plot $ vectorVal "corr errs" v
 
   pure ()
 
