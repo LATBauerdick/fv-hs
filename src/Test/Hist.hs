@@ -111,36 +111,33 @@ vectorField title f grid = fmap plotVectorField $ liftEC $ do
   plot_vectors_mapf .= f
   plot_vectors_grid .= grid
   plot_vectors_style . vector_line_style . line_color .= c
+  plot_vectors_style . vector_line_style . line_width .= 0.1
   plot_vectors_style . vector_head_style . point_color .= c
   plot_vectors_title .= title
 
--- vectorFrame title = fmap plotVectorField $ liftEC $ do
---   c <- takeColor
---   plot_vectors_values .= pframe
---   plot_vectors_scale .= 0.0
---   plot_vectors_style . vector_line_style . line_color .= c
---   plot_vectors_style . vector_head_style . point_color .= c
---   plot_vectors_title .= title
-
-vectorVal title val = fmap plotVectorField $ liftEC $ do
+vectorVal title vals = fmap plotVectorField $ liftEC $ do
   c <- takeColor
-  plot_vectors_values .= val
+  plot_vectors_values .= vals
   plot_vectors_scale .= 0.0
   plot_vectors_style . vector_line_style . line_color .= c
   plot_vectors_style . vector_head_style . point_color .= c
   plot_vectors_title .= title
 
-
 doHistVec :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
 doHistVec s vals = toFile def{_fo_format=PDF} ( (toString s) <> ".pdf") $ do
-  setColors [ opaque black, opaque blue ]
+  setColors [ opaque black, opaque blue, opaque red ]
 
   layout_title .= "Vector Field"
   layout_x_axis . laxis_generate .= scaledAxis def (-0.3,0.3)
   layout_y_axis . laxis_generate .= scaledAxis def (-0.3,0.3)
 
-  let v = fmap ( \(x,y,dx,dy,alf) -> ((x,y),(dx,dy)) ) vals
-  plot $ vectorVal "corr errs" v
+  -- plot $ vectorPoints "points" vals
+
+  plot $ vectorVal "corr err max" $ fmap ( \(x,y,dx,dy,alf) -> ((x,y),(dx*cos alf,dx*sin alf)) ) vals
+  plot $ vectorVal "corr err min" $ fmap ( \(x,y,dx,dy,alf) -> ((x,y),(dy*cos (alf+pi/2.0),dy*sin (alf+pi/2.0))) ) vals
+  c <- takeColor
+  -- plot_points_style .= filledCircles 2 (opaque red)
+  plot $ points "vertices" [(x,y) |  (x,y,_,_,_) <- vals]
 
   pure ()
 

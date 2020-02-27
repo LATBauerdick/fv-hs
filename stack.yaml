@@ -1,5 +1,7 @@
 # docker:
 #   enable: true
+docker:
+  enable: true
 nix:
   enable: false
   packages: [zlib.dev, zlib.out]
