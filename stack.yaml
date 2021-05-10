@@ -1,17 +1,15 @@
-# docker:
-#   enable: true
 docker:
-  enable: true
-nix:
   enable: false
+nix:
+  enable: true
   packages: [zlib.dev, zlib.out]
 extra-package-dbs: []
 # resolver: lts-13.29
-resolver: lts-15.00
+resolver: lts-16.21
 allow-newer: true
 packages:
 - '.'
-location: .
+# location: .
 extra-deps:
 # - Histogram-0.1.0.2
 #
