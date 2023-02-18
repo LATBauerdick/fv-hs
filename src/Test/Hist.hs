@@ -26,6 +26,17 @@ import Prelude.Extended hiding ( (.~) )
 -- _ <- plot "cluster-z.png" $ histogramNumBins 90 $ zs vm
 -- _ <- plot "cluster-pd.png" $ histogramNumBins 11 $ 1.0 : 0.0 : probs vm
 
+doHistXY :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
+doHistXY s' vals = do
+  pure ()
+doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
+doHist s' vals = do
+  pure ()
+doHistVec :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
+doHistVec _ _ = do
+  pure ()
+
+{-
 import Graphics.Rendering.Chart
 import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Cairo
@@ -72,7 +83,6 @@ doHistXY s' vals = do
   _ <- renderableToFile outProps (s <> ".pdf") chart
   pure ()
 
-
 doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
 -- plot points with error bars
 doHist s' vals = do
@@ -94,7 +104,6 @@ doHist s' vals = do
 
   _ <- renderableToFile def{_fo_format=PDF} (s <> ".pdf") chart
   pure ()
-
 
 r' x y z = sqrt $ x*x + y*y + z*z
 tadd (x1,y1) (x2,y2) = (x1+x2, y1+y2)
@@ -141,3 +150,4 @@ doHistVec s vals = toFile def{_fo_format=PDF} ( (toString s) <> ".pdf") $ do
 
   pure ()
 
+-}

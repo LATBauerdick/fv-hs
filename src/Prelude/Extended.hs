@@ -35,7 +35,7 @@ module Prelude.Extended
   , pack, unpack
   )  where
 
-import Universum hiding (show)
+import Universum hiding (show, readMaybe, fromList)
 import qualified GHC.Show as Show (Show (show))
 import GHC.Float (Floating ( log ))
 import GHC.Float (RealFloat ( atan2 ))
