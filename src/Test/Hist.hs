@@ -25,7 +25,7 @@ import Prelude.Extended hiding ( (.~) )
 -- import Graphics.Histogram ( plot, histogramNumBins )
 -- _ <- plot "cluster-z.png" $ histogramNumBins 90 $ zs vm
 -- _ <- plot "cluster-pd.png" $ histogramNumBins 11 $ 1.0 : 0.0 : probs vm
-
+{-
 doHistXY :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
 doHistXY s' vals = do
   pure ()
@@ -35,18 +35,19 @@ doHist s' vals = do
 doHistVec :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
 doHistVec _ _ = do
   pure ()
+-}
 
-{-
 import Graphics.Rendering.Chart
 import Graphics.Rendering.Chart.Easy
-import Graphics.Rendering.Chart.Backend.Cairo
+-- import Graphics.Rendering.Chart.Backend.Cairo
+import Graphics.Rendering.Chart.Backend.Diagrams
 import Data.Default.Class
 import Data.Colour (opaque)
 import Data.Colour.Names (red)
 import Control.Lens
 
 outProps = fo_size .~ (1024,768)
-        $ fo_format .~ PDF
+        $ fo_format .~ SVG
         $ def
 
 pframe = [((x,y),(0.0,0.0)) | x <- range, y <- range] where range = [-0.3, 0.3]
@@ -80,7 +81,7 @@ doHistXY s' vals = do
                  $ layout_plots .~ [toPlot bars, toPlot points]
                  $ def
 
-  _ <- renderableToFile outProps (s <> ".pdf") chart
+  _ <- renderableToFile outProps (s <> ".svg") chart
   pure ()
 
 doHist :: Text -> [(Number, Number, Number, Number)] -> IO ()
@@ -102,7 +103,7 @@ doHist s' vals = do
                  $ layout_plots .~ [toPlot bars, toPlot points]
                  $ def
 
-  _ <- renderableToFile def{_fo_format=PDF} (s <> ".pdf") chart
+  _ <- renderableToFile def{_fo_format=SVG} (s <> ".svg") chart
   pure ()
 
 r' x y z = sqrt $ x*x + y*y + z*z
@@ -133,7 +134,8 @@ vectorVal title vals = fmap plotVectorField $ liftEC $ do
   plot_vectors_title .= title
 
 doHistVec :: Text -> [(Number, Number, Number, Number, Number)] -> IO ()
-doHistVec s vals = toFile def{_fo_format=PDF} ( (toString s) <> ".pdf") $ do
+doHistVec s vals = -- pure ()
+  toFile def{_fo_format=SVG} ( (toString s) <> ".svg") $ do
   setColors [ opaque black, opaque blue, opaque red ]
 
   layout_title .= "Vector Field"
@@ -150,4 +152,3 @@ doHistVec s vals = toFile def{_fo_format=PDF} ( (toString s) <> ".pdf") $ do
 
   pure ()
 
--}

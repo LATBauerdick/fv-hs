@@ -36,9 +36,9 @@ dependencies:
 - lens
 - colour
 - data-default-class
-# - Chart
+- Chart
 # - Chart-cairo
-# - Chart-diagrams
+- Chart-diagrams
 #- diagrams-solve
 
 library:
