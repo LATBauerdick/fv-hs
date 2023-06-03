@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards, LambdaCase #-}
 -- {-# LANGUAGE DeriveFunctor #-}
 
 module Test.Cluster
@@ -94,10 +94,10 @@ probs (VHMeas v hl) =
 eigen2 :: VHMeas -> [(Number,Number,Number,Number,Number)]
 eigen2 (VHMeas v hl) = x5 where
   xf = xFit v
-  x5 = take 10 $ map (\h -> eigen5 $ kAddF xf h) hl
+  x5 = take 10 $ map (eigen5 . kAddF xf) hl
 
 eigen5 :: XFit -> (Number,Number,Number,Number,Number)
-eigen5 (XFit v3 cv3 c2) = (x,y,dx,dy,alf) where
+eigen5 (XFit v3 cv3 _) = (x,y,dx,dy,alf) where
   x = uidx (val v3) 0
   y = uidx (val v3) 1
 
@@ -151,9 +151,7 @@ vList :: VHMeas -> HList Prong
 vList vm = Node p vRight
  where
   (p, vmr) = cluster vm
-  vRight   = case vmr of
-    Nothing  -> CEmpty
-    Just vm' -> vList vm'
+  vRight = maybe CEmpty vList vmr
 
 wght :: Number -> Chi2 -> Double -- weight function with Temperature t
 wght t (Chi2 chi2) = w
@@ -263,7 +261,7 @@ cluster (VHMeas v hllll) = trace (
   -- t1 = annealingSchedule !! 3
 
   c21s              = map
-    (\mh -> case mh of
+    (\case
       Just h  -> kChi2 v1 h
       Nothing -> Chi2 0.0
     )
@@ -271,7 +269,7 @@ cluster (VHMeas v hllll) = trace (
   ws1  = fmap (max 0.001 . wght t0) c21s
   v2   = foldl kAddW' v1 $ zip hl0 ws1
   c22s = map
-    (\mh -> case mh of
+    (\case
       Just h  -> kChi2 v2 h
       Nothing -> Chi2 0.0
     )
@@ -279,7 +277,7 @@ cluster (VHMeas v hllll) = trace (
   ws2  = fmap (max 0.001 . wght t0) c22s
   v3   = foldl kAddW' v2 $ zip hl0 ws2
   c23s = map
-    (\mh -> case mh of
+    (\case
       Just h  -> kChi2 v3 h
       Nothing -> Chi2 0.0
     )
@@ -287,7 +285,7 @@ cluster (VHMeas v hllll) = trace (
   ws3  = fmap (max 0.001 . wght 4.0) c23s
   v4   = foldl kAddW' v3 $ zip hl0 ws3
   c24s = map
-    (\mh -> case mh of
+    (\case
       Just h  -> kChi2 v4 h
       Nothing -> Chi2 0.0
     )
@@ -332,7 +330,7 @@ cluster (VHMeas v hllll) = trace (
 --newtype WeightedPoint = WeightedPoint Number
 type WeightedPoint = Number
 fsmw :: Int -> List WeightedPoint -> WeightedPoint
-fsmw 0 []           = error $ "Test.Cluster.fsmw got empty list"
+fsmw 0 []           = error "Test.Cluster.fsmw got empty list"
 fsmw 1 [a]          = a -- head xs
 fsmw 2 [x0, x1]     = 0.5 * (x1 + x0)
 fsmw 3 [x0, x1, x2] = case 2 * x1 - x0 - x2 of
